@@ -43,6 +43,7 @@
       ],
       "expo-localization"
     ],
+    "jsEngine": "hermes",
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
