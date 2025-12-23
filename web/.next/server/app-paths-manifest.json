@@ -1,0 +1,8 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/cron/monthly-reminder/route": "app/api/cron/monthly-reminder/route.js",
+  "/members/page": "app/members/page.js",
+  "/page": "app/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/transactions/page": "app/transactions/page.js"
+}

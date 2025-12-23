@@ -17,6 +17,7 @@ export default function TransactionsScreen() {
     const [selectedMember, setSelectedMember] = useState<UserProfile | null>(null);
     const [type, setType] = useState<'Contribution' | 'Loan' | 'Loan Repayment'>('Contribution');
     const [loading, setLoading] = useState(false);
+    const [memberLoanBalance, setMemberLoanBalance] = useState(0);
 
     // Member Selection State
     const [members, setMembers] = useState<UserProfile[]>([]);
@@ -116,23 +117,33 @@ export default function TransactionsScreen() {
                             Transaction Type
                         </Text>
                         <View style={styles.typeGrid as ViewStyle}>
-                            {(['Contribution', 'Loan', 'Loan Repayment'] as const).map((row) => (
-                                <TouchableOpacity
-                                    key={row}
-                                    onPress={() => setType(row)}
-                                    style={[
-                                        styles.typeCard as ViewStyle,
-                                        type === row ? (styles.typeCardActive as ViewStyle) : (styles.typeCardInactive as ViewStyle)
-                                    ]}
-                                >
-                                    <Text style={[
-                                        styles.typeText as TextStyle,
-                                        type === row ? (styles.typeTextActive as TextStyle) : (styles.typeTextInactive as TextStyle)
-                                    ]}>
-                                        {row === 'Loan Repayment' ? 'Repay' : row}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
+                            {(['Contribution', 'Loan', 'Loan Repayment'] as const).map((row) => {
+                                const isRepay = row === 'Loan Repayment';
+                                const isDisabled = isRepay && memberLoanBalance <= 0;
+
+                                return (
+                                    <TouchableOpacity
+                                        key={row}
+                                        onPress={() => !isDisabled && setType(row)}
+                                        disabled={isDisabled}
+                                        style={[
+                                            styles.typeCard as ViewStyle,
+                                            type === row ? (styles.typeCardActive as ViewStyle) : (styles.typeCardInactive as ViewStyle),
+                                            isDisabled && { opacity: 0.3 }
+                                        ]}
+                                    >
+                                        <Text style={[
+                                            styles.typeText as TextStyle,
+                                            type === row ? (styles.typeTextActive as TextStyle) : (styles.typeTextInactive as TextStyle)
+                                        ]}>
+                                            {isRepay ? 'Repay' : row}
+                                        </Text>
+                                        {isDisabled && (
+                                            <Text style={{ fontSize: 8, color: '#94A3B8', marginTop: 2 }}>No Loan</Text>
+                                        )}
+                                    </TouchableOpacity>
+                                );
+                            })}
                         </View>
                     </View>
 
@@ -200,9 +211,15 @@ export default function TransactionsScreen() {
                         renderItem={({ item }) => (
                             <TouchableOpacity
                                 style={styles.memberListItem as ViewStyle}
-                                onPress={() => {
+                                onPress={async () => {
                                     setSelectedMember(item);
                                     setShowMemberModal(false);
+                                    // Fetch their loan balance
+                                    const stats = await transactionService.getMemberStats(item.uid);
+                                    setMemberLoanBalance(stats.currentLoan);
+                                    if (stats.currentLoan <= 0 && type === 'Loan Repayment') {
+                                        setType('Contribution'); // Reset if they don't have a loan
+                                    }
                                 }}
                             >
                                 <View style={styles.avatarMini as ViewStyle}>

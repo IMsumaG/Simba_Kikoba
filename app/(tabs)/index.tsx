@@ -2,12 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, RefreshControl, ScrollView, StatusBar, StyleSheet, Text, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { ActivityIndicator, Alert, RefreshControl, ScrollView, StatusBar, StyleSheet, Text, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 import { useAuth } from '../../services/AuthContext';
 import { memberService } from '../../services/memberService';
-import { transactionService } from '../../services/transactionService';
+import { Transaction, transactionService } from '../../services/transactionService';
 
 export default function DashboardScreen() {
   const { role, user } = useAuth();
@@ -21,6 +21,7 @@ export default function DashboardScreen() {
     totalMembers: 0,
     personalContribution: 0
   });
+  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -29,13 +30,24 @@ export default function DashboardScreen() {
       const dashboardTotals = await transactionService.getDashboardTotals();
       const allMembers = await memberService.getAllUsers();
 
-      // Calculate personal contribution if not admin
       let personalContrib = 0;
+      let transactions: Transaction[] = [];
+
       if (user) {
-        const allTransactions = await transactionService.getAllTransactions();
-        personalContrib = allTransactions
-          .filter(t => t.memberId === user.uid && t.type === 'Contribution')
-          .reduce((sum, t) => sum + t.amount, 0);
+        if (isAdmin) {
+          // Admin sees last 5 overall transactions
+          transactions = await transactionService.getAllTransactions();
+          transactions = transactions.slice(0, 5);
+        } else {
+          // Member sees their own last 5 transactions
+          transactions = await transactionService.getMemberTransactions(user.uid, 5);
+
+          // Calculate personal contribution
+          const allUserTrans = await transactionService.getMemberTransactions(user.uid, 1000);
+          personalContrib = allUserTrans
+            .filter(t => t.type === 'Contribution')
+            .reduce((sum, t) => sum + t.amount, 0);
+        }
       }
 
       setStats({
@@ -43,6 +55,7 @@ export default function DashboardScreen() {
         totalMembers: allMembers.length,
         personalContribution: personalContrib
       });
+      setRecentTransactions(transactions);
     } catch (error) {
       console.error('Error loading dashboard:', error);
     } finally {
@@ -53,12 +66,12 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     fetchDashboardData();
-  }, [user]);
+  }, [user, role]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchDashboardData();
-  }, [user]);
+  }, [user, role]);
 
   const StatCard = ({ title, value, icon, color, subtitle }: any) => (
     <View style={styles.statCard as ViewStyle}>
@@ -70,6 +83,31 @@ export default function DashboardScreen() {
       <Text style={styles.statTitle as TextStyle}>{title}</Text>
       <Text style={styles.statValue as TextStyle}>{value}</Text>
       {subtitle && <Text style={styles.statSubtitle as TextStyle}>{subtitle}</Text>}
+    </View>
+  );
+
+  const TransactionItem = ({ type, amount, date, memberName }: any) => (
+    <View style={styles.transactionItem as ViewStyle}>
+      <View style={styles.transactionLeft as ViewStyle}>
+        <View
+          style={[styles.transactionIcon as ViewStyle, { backgroundColor: type === 'Contribution' ? '#DCFCE7' : (type === 'Loan' ? '#FEE2E2' : '#FEF3C7') }]}
+        >
+          <Ionicons
+            name={type === 'Contribution' ? 'arrow-down-outline' : (type === 'Loan' ? 'arrow-up-outline' : 'refresh-outline')}
+            size={20}
+            color={type === 'Contribution' ? '#166534' : (type === 'Loan' ? '#991B1B' : '#92400E')}
+          />
+        </View>
+        <View style={styles.transactionTextContainer as ViewStyle}>
+          <Text style={styles.transactionType as TextStyle}>{type}</Text>
+          <Text style={styles.transactionDate as TextStyle}>
+            {isAdmin ? `by ${memberName || 'Unknown'} • ` : ''}{new Date(date).toLocaleDateString()}
+          </Text>
+        </View>
+      </View>
+      <Text style={[styles.transactionAmount as TextStyle, { color: type === 'Contribution' ? '#059669' : (type === 'Loan' ? '#DC2626' : '#D97706') }]}>
+        {type === 'Contribution' ? '+' : '-'} TSh {amount.toLocaleString()}
+      </Text>
     </View>
   );
 
@@ -156,9 +194,35 @@ export default function DashboardScreen() {
               value="Live"
               icon="trending-up"
               color="#10B981"
-              subtitle="Connected to Firestore"
+              subtitle="Firestore Sync"
             />
           </ScrollView>
+        </View>
+
+        {/* Recent Transactions Section */}
+        <View style={styles.section as ViewStyle}>
+          <View style={styles.sectionHeader as ViewStyle}>
+            <Text style={styles.sectionTitle as TextStyle}>
+              {isAdmin ? "Overall Recent Activities" : "My Recent Activities"}
+            </Text>
+          </View>
+          {loading ? (
+            <ActivityIndicator color={Colors.primary} style={{ marginVertical: 20 }} />
+          ) : recentTransactions.length > 0 ? (
+            recentTransactions.map((item, index) => (
+              <TransactionItem
+                key={item.id || index}
+                type={item.type}
+                amount={item.amount}
+                date={item.date}
+                memberName={item.memberName}
+              />
+            ))
+          ) : (
+            <View style={styles.emptyBox as ViewStyle}>
+              <Text style={styles.emptyText as TextStyle}>No transactions yet</Text>
+            </View>
+          )}
         </View>
 
         {/* Admin Tools - For Manual Alerts */}
@@ -397,5 +461,52 @@ const styles = StyleSheet.create({
   adminActionSubtitle: {
     color: 'rgba(255, 255, 255, 0.5)',
     fontSize: 12,
+  },
+  transactionItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
+  },
+  transactionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  transactionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  transactionTextContainer: {
+    justifyContent: 'center',
+  },
+  transactionType: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#0F172A',
+  },
+  transactionDate: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  transactionAmount: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  emptyBox: {
+    padding: 30,
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 20,
+    marginTop: 10,
+  },
+  emptyText: {
+    color: '#94A3B8',
   },
 });

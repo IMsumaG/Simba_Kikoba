@@ -1,4 +1,4 @@
-import { addDoc, collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { addDoc, collection, getDocs, orderBy, query, where } from 'firebase/firestore';
 import { db } from './firebase';
 
 export interface Transaction {
@@ -53,5 +53,55 @@ export const transactionService = {
             activeLoans: activeLoansCount,
             totalMembers: 0
         };
+    },
+
+    // Get stats for a specific member
+    async getMemberStats(memberId: string) {
+        const q = query(collection(db, 'transactions'), where('memberId', '==', memberId));
+        const querySnapshot = await getDocs(q);
+
+        let totalContributions = 0;
+        let totalLoans = 0;
+        let totalRepayments = 0;
+
+        querySnapshot.forEach((doc) => {
+            const data = doc.data() as Transaction;
+            if (data.type === 'Contribution') {
+                totalContributions += data.amount;
+            } else if (data.type === 'Loan') {
+                totalLoans += data.amount;
+            } else if (data.type === 'Loan Repayment') {
+                totalRepayments += data.amount;
+            }
+        });
+
+        return {
+            totalContributions,
+            currentLoan: totalLoans - totalRepayments,
+            totalLoans
+        };
+    },
+
+    async getMemberTransactions(memberId: string, limitCount: number = 5): Promise<Transaction[]> {
+        const q = query(
+            collection(db, 'transactions'),
+            where('memberId', '==', memberId)
+        );
+        const querySnapshot = await getDocs(q);
+        const transactions: Transaction[] = [];
+        querySnapshot.forEach((doc) => {
+            transactions.push({ id: doc.id, ...doc.data() } as Transaction);
+        });
+
+        // Sort by date descending in memory
+        return transactions
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            .slice(0, limitCount);
+    },
+
+    // Delete a transaction
+    async deleteTransaction(transactionId: string) {
+        const { deleteDoc, doc } = await import('firebase/firestore');
+        return await deleteDoc(doc(db, 'transactions', transactionId));
     }
 };

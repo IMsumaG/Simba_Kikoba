@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, FlatList, Modal, StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
@@ -8,7 +9,8 @@ import { useAuth } from '../../services/AuthContext';
 import { memberService, UserProfile } from '../../services/memberService';
 
 export default function MembersScreen() {
-    const { t } = useTranslation();
+    const t = useTranslation().t;
+    const router = useRouter();
     const { role: currentUserRole } = useAuth();
     const isAdmin = currentUserRole === 'Admin';
     const [search, setSearch] = useState('');
@@ -80,7 +82,13 @@ export default function MembersScreen() {
     );
 
     const renderMember = ({ item }: { item: UserProfile }) => (
-        <View style={styles.memberItem as ViewStyle}>
+        <TouchableOpacity
+            style={styles.memberItem as ViewStyle}
+            onPress={() => router.push({
+                pathname: '/member/[id]',
+                params: { id: item.uid, name: item.displayName || 'Member' }
+            })}
+        >
             <View style={styles.avatar as ViewStyle}>
                 <Text style={styles.avatarText as TextStyle}>{item.displayName?.[0] || 'U'}</Text>
             </View>
@@ -113,7 +121,7 @@ export default function MembersScreen() {
                     </TouchableOpacity>
                 </View>
             )}
-        </View>
+        </TouchableOpacity>
     );
 
     return (

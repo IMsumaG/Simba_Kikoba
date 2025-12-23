@@ -1,66 +1,324 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
-import { SafeAreaView, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, ScrollView, StatusBar, StyleSheet, Text, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
+import { Transaction, transactionService } from '../../services/transactionService';
 
 export default function MemberDetailScreen() {
     const { id, name } = useLocalSearchParams();
     const router = useRouter();
+    const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState({
+        totalContributions: 0,
+        currentLoan: 0,
+        totalLoans: 0
+    });
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+    useEffect(() => {
+        if (id) {
+            fetchMemberData();
+        }
+    }, [id]);
+
+    const fetchMemberData = async () => {
+        try {
+            setLoading(true);
+            const memberId = Array.isArray(id) ? id[0] : id;
+            const fetchedStats = await transactionService.getMemberStats(memberId);
+            const fetchedTransactions = await transactionService.getMemberTransactions(memberId, 5);
+
+            setStats(fetchedStats);
+            setTransactions(fetchedTransactions);
+        } catch (error) {
+            console.error('Error fetching member data:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteTransaction = async (transactionId: string) => {
+        Alert.alert(
+            "Delete Transaction",
+            "Are you sure you want to remove this transaction? This will update the member's balance.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            await transactionService.deleteTransaction(transactionId);
+                            fetchMemberData(); // Refresh stats and list
+                            Alert.alert("Success", "Transaction deleted.");
+                        } catch (error) {
+                            Alert.alert("Error", "Failed to delete transaction.");
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const TransactionItem = ({ id: transId, type, amount, date }: any) => (
+        <View style={styles.transactionItem as ViewStyle}>
+            <View style={styles.transactionLeft as ViewStyle}>
+                <View
+                    style={[styles.transactionIcon as ViewStyle, { backgroundColor: type === 'Contribution' ? '#DCFCE7' : (type === 'Loan' ? '#FEE2E2' : '#FEF3C7') }]}
+                >
+                    <Ionicons
+                        name={type === 'Contribution' ? 'arrow-down-outline' : (type === 'Loan' ? 'arrow-up-outline' : 'refresh-outline')}
+                        size={20}
+                        color={type === 'Contribution' ? '#166534' : (type === 'Loan' ? '#991B1B' : '#92400E')}
+                    />
+                </View>
+                <View style={styles.transactionTextContainer as ViewStyle}>
+                    <Text style={styles.transactionType as TextStyle}>{type}</Text>
+                    <Text style={styles.transactionDate as TextStyle}>
+                        {new Date(date).toLocaleDateString()}
+                    </Text>
+                </View>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={[styles.transactionAmount as TextStyle, { color: type === 'Contribution' ? '#059669' : (type === 'Loan' ? '#DC2626' : '#D97706'), marginRight: 12 }]}>
+                    {type === 'Contribution' ? '+' : '-'} TSh {(amount || 0).toLocaleString()}
+                </Text>
+                <TouchableOpacity onPress={() => handleDeleteTransaction(transId)}>
+                    <Ionicons name="trash-outline" size={18} color="#94A3B8" />
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
 
     return (
-        <SafeAreaView className="flex-1 bg-white">
-            <View className="px-6 pt-6 pb-4 flex-row items-center border-b border-gray-50">
-                <TouchableOpacity onPress={() => router.back()} className="mr-4">
+        <SafeAreaView style={styles.container as ViewStyle}>
+            <StatusBar barStyle="dark-content" />
+            <View style={styles.header as ViewStyle}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backButton as ViewStyle}>
                     <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
                 </TouchableOpacity>
-                <Text className="text-gray-900 text-xl font-bold">Member Profile</Text>
+                <Text style={styles.headerTitle as TextStyle}>Member Profile</Text>
+                <View style={{ width: 40 }} />
             </View>
 
-            <ScrollView className="flex-1 px-6 pt-8">
-                <View className="items-center mb-10">
-                    <View className="w-24 h-24 rounded-full bg-primary/10 items-center justify-center mb-4">
-                        <Text className="text-primary font-bold text-3xl">{String(name?.[0] || 'U')}</Text>
+            {loading ? (
+                <View style={styles.centered as ViewStyle}>
+                    <ActivityIndicator size="large" color={Colors.primary} />
+                </View>
+            ) : (
+                <ScrollView
+                    style={styles.flex1 as ViewStyle}
+                    contentContainerStyle={styles.scrollContent as ViewStyle}
+                    showsVerticalScrollIndicator={false}
+                >
+                    {/* User Profile Header */}
+                    <View style={styles.profileHeader as ViewStyle}>
+                        <View style={styles.avatarLarge as ViewStyle}>
+                            <Text style={styles.avatarTextLarge as TextStyle}>{String(name?.[0] || 'U')}</Text>
+                        </View>
+                        <Text style={styles.profileName as TextStyle}>{name || 'Member'}</Text>
                     </View>
-                    <Text className="text-gray-900 text-2xl font-bold">{name || 'Member Name'}</Text>
-                    <Text className="text-gray-400 mt-1">Member ID: {id}</Text>
-                </View>
 
-                <View className="space-y-6">
-                    <Section label="Contact Information">
-                        <InfoItem icon="mail-outline" label="Email" value="member@example.com" />
-                        <InfoItem icon="call-outline" label="Phone" value="+255 700 000 000" />
-                    </Section>
+                    {/* Financial Summary Cards */}
+                    <View style={styles.summaryContainer as ViewStyle}>
+                        <View style={styles.summaryCard as ViewStyle}>
+                            <View style={[styles.summaryIcon as ViewStyle, { backgroundColor: '#DCFCE7' }]}>
+                                <Ionicons name="wallet-outline" size={20} color="#166534" />
+                            </View>
+                            <Text style={styles.summaryLabel as TextStyle}>Total Contribution</Text>
+                            <Text style={styles.summaryValue as TextStyle}>TSh {stats.totalContributions.toLocaleString()}</Text>
+                        </View>
 
-                    <Section label="Financial Summary">
-                        <InfoItem icon="wallet-outline" label="Total Contributions" value="TSh 450,000" color={Colors.primary} />
-                        <InfoItem icon="cash-outline" label="Current Loan" value="TSh 0" />
-                    </Section>
+                        <View style={styles.summaryCard as ViewStyle}>
+                            <View style={[styles.summaryIcon as ViewStyle, { backgroundColor: '#FEE2E2' }]}>
+                                <Ionicons name="cash-outline" size={20} color="#991B1B" />
+                            </View>
+                            <Text style={styles.summaryLabel as TextStyle}>Current Loan</Text>
+                            <Text style={styles.summaryValue as TextStyle}>TSh {stats.currentLoan.toLocaleString()}</Text>
+                        </View>
+                    </View>
 
-                    <TouchableOpacity className="bg-primary/10 rounded-xl py-4 items-center mt-6">
-                        <Text className="text-primary font-bold">View Transaction History</Text>
-                    </TouchableOpacity>
-                </View>
-            </ScrollView>
+                    {/* Recent Transactions */}
+                    <View style={styles.section as ViewStyle}>
+                        <Text style={styles.sectionTitle as TextStyle}>Last 5 Transactions</Text>
+                        {transactions.length > 0 ? (
+                            transactions.map((item, index) => (
+                                <TransactionItem
+                                    key={item.id || index}
+                                    id={item.id}
+                                    type={item.type}
+                                    amount={item.amount}
+                                    date={item.date}
+                                />
+                            ))
+                        ) : (
+                            <View style={styles.emptyBox as ViewStyle}>
+                                <Text style={styles.emptyText as TextStyle}>No transactions found</Text>
+                            </View>
+                        )}
+                    </View>
+                </ScrollView>
+            )}
         </SafeAreaView>
     );
 }
 
-const Section = ({ label, children }: any) => (
-    <View className="mb-6">
-        <Text className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-3 ml-1">{label}</Text>
-        <View className="bg-gray-50 rounded-2xl p-4 space-y-4 border border-gray-100">
-            {children}
-        </View>
-    </View>
-);
-
-const InfoItem = ({ icon, label, value, color = '#64748B' }: any) => (
-    <View className="flex-row items-center py-2">
-        <Ionicons name={icon} size={20} color={color} />
-        <View className="ml-4">
-            <Text className="text-gray-400 text-xs">{label}</Text>
-            <Text className="text-gray-900 font-semibold">{value}</Text>
-        </View>
-    </View>
-);
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: 'white',
+    },
+    flex1: {
+        flex: 1,
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9',
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#F8FAFC',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#0F172A',
+    },
+    centered: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    scrollContent: {
+        paddingBottom: 40,
+    },
+    profileHeader: {
+        alignItems: 'center',
+        paddingVertical: 32,
+    },
+    avatarLarge: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        backgroundColor: 'rgba(234, 88, 12, 0.1)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 16,
+        borderWidth: 4,
+        borderColor: '#FFF7ED',
+    },
+    avatarTextLarge: {
+        color: '#EA580C',
+        fontSize: 40,
+        fontWeight: '900',
+    },
+    profileName: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#0F172A',
+    },
+    profileId: {
+        fontSize: 14,
+        color: '#94A3B8',
+        marginTop: 4,
+    },
+    summaryContainer: {
+        flexDirection: 'row',
+        paddingHorizontal: 20,
+        gap: 16,
+        marginBottom: 32,
+    },
+    summaryCard: {
+        flex: 1,
+        backgroundColor: '#F8FAFC',
+        borderRadius: 24,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
+    },
+    summaryIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 12,
+    },
+    summaryLabel: {
+        fontSize: 12,
+        color: '#64748B',
+        fontWeight: '600',
+        marginBottom: 4,
+    },
+    summaryValue: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#0F172A',
+    },
+    section: {
+        paddingHorizontal: 20,
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#0F172A',
+        marginBottom: 16,
+    },
+    transactionItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F8FAFC',
+    },
+    transactionLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    transactionIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 16,
+    },
+    transactionTextContainer: {
+        justifyContent: 'center',
+    },
+    transactionType: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#0F172A',
+    },
+    transactionDate: {
+        fontSize: 12,
+        color: '#94A3B8',
+        marginTop: 2,
+    },
+    transactionAmount: {
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+    emptyBox: {
+        padding: 40,
+        alignItems: 'center',
+        backgroundColor: '#F8FAFC',
+        borderRadius: 20,
+    },
+    emptyText: {
+        color: '#94A3B8',
+    },
+});

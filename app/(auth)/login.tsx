@@ -4,6 +4,7 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 import { auth } from '../../services/firebase';
 
@@ -12,6 +13,7 @@ export default function LoginScreen() {
     const router = useRouter();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -38,84 +40,93 @@ export default function LoginScreen() {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.container}
         >
-            <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-                <View style={styles.content}>
-                    {/* Logo & Header */}
-                    <View style={styles.header}>
-                        <View style={styles.logo}>
-                            <Ionicons name="trending-up" size={40} color="white" />
-                        </View>
-                        <Text style={styles.title}>KIKOBA Insights</Text>
-                        <Text style={styles.subtitle}>{t('common.login')}</Text>
-                    </View>
-
-                    {/* Form */}
-                    <View style={styles.form}>
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>{t('common.email')}</Text>
-                            <View style={styles.inputContainer}>
-                                <Ionicons name="mail-outline" size={20} color={Colors.textSecondary} />
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="name@example.com"
-                                    placeholderTextColor={Colors.textDisabled}
-                                    value={email}
-                                    onChangeText={setEmail}
-                                    autoCapitalize="none"
-                                    keyboardType="email-address"
-                                />
+            <SafeAreaView style={styles.container}>
+                <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+                    <View style={styles.content}>
+                        {/* Logo & Header */}
+                        <View style={styles.header}>
+                            <View style={styles.logo}>
+                                <Ionicons name="trending-up" size={40} color="white" />
                             </View>
+                            <Text style={styles.title}>KIKOBA Insights</Text>
+                            <Text style={styles.subtitle}>{t('common.login')}</Text>
                         </View>
 
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>{t('common.password')}</Text>
-                            <View style={styles.inputContainer}>
-                                <Ionicons name="lock-closed-outline" size={20} color={Colors.textSecondary} />
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="••••••••"
-                                    placeholderTextColor={Colors.textDisabled}
-                                    value={password}
-                                    onChangeText={setPassword}
-                                    secureTextEntry
-                                />
-                            </View>
-                        </View>
-
-                        {error ? (
-                            <Text style={styles.error}>{error}</Text>
-                        ) : null}
-
-                        <TouchableOpacity
-                            onPress={handleLogin}
-                            disabled={loading}
-                            style={styles.button}
-                        >
-                            {loading ? (
-                                <ActivityIndicator color="white" />
-                            ) : (
-                                <View style={styles.buttonContent}>
-                                    <Text style={styles.buttonText}>{t('common.login')}</Text>
-                                    <Ionicons name="arrow-forward" size={20} color="white" />
+                        {/* Form */}
+                        <View style={styles.form}>
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>{t('common.email')}</Text>
+                                <View style={styles.inputContainer}>
+                                    <Ionicons name="mail-outline" size={20} color={Colors.textSecondary} />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="name@example.com"
+                                        placeholderTextColor={Colors.textDisabled}
+                                        value={email}
+                                        onChangeText={setEmail}
+                                        autoCapitalize="none"
+                                        keyboardType="email-address"
+                                    />
                                 </View>
-                            )}
-                        </TouchableOpacity>
-                    </View>
+                            </View>
 
-                    {/* Future: Biometrics placeholder */}
-                    <TouchableOpacity style={styles.forgotPassword}>
-                        <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-                    </TouchableOpacity>
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>{t('common.password')}</Text>
+                                <View style={styles.inputContainer}>
+                                    <Ionicons name="lock-closed-outline" size={20} color={Colors.textSecondary} />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="••••••••"
+                                        placeholderTextColor={Colors.textDisabled}
+                                        value={password}
+                                        onChangeText={setPassword}
+                                        secureTextEntry={!showPassword}
+                                    />
+                                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{ padding: 4 }}>
+                                        <Ionicons
+                                            name={showPassword ? "eye-outline" : "eye-off-outline"}
+                                            size={20}
+                                            color={Colors.textSecondary}
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
 
-                    <View style={styles.footer}>
-                        <Text style={styles.footerText}>Don't have an account? </Text>
-                        <TouchableOpacity onPress={() => router.push('/signup' as any)}>
-                            <Text style={styles.linkText}>Sign Up</Text>
+                            {error ? (
+                                <Text style={styles.error}>{error}</Text>
+                            ) : null}
+
+                            <TouchableOpacity
+                                onPress={handleLogin}
+                                disabled={loading}
+                                style={styles.button}
+                            >
+                                {loading ? (
+                                    <ActivityIndicator color="white" />
+                                ) : (
+                                    <View style={styles.buttonContent}>
+                                        <Text style={styles.buttonText}>{t('common.login')}</Text>
+                                        <Ionicons name="arrow-forward" size={20} color="white" />
+                                    </View>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Future: Biometrics placeholder */}
+                        <TouchableOpacity style={styles.forgotPassword}>
+                            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
                         </TouchableOpacity>
+
+                        <View style={styles.footer}>
+                            <Text style={styles.footerText}>Don't have an account? </Text>
+                            <TouchableOpacity onPress={() => router.push('/signup' as any)}>
+                                <Text style={styles.linkText}>Sign Up</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
-                </View>
-            </ScrollView>
-        </KeyboardAvoidingView>
+                </ScrollView>
+            </SafeAreaView>
+        </KeyboardAvoidingView >
     );
 }
 

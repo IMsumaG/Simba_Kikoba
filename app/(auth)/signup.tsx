@@ -15,6 +15,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 import { auth, db } from '../../services/firebase';
 
@@ -25,6 +26,8 @@ export default function SignUpScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -75,110 +78,126 @@ export default function SignUpScreen() {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.container}
         >
-            <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-                <View style={styles.content}>
-                    {/* Header */}
-                    <View style={styles.header}>
-                        <TouchableOpacity
-                            onPress={() => router.back()}
-                            style={styles.backButton}
-                        >
-                            <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
-                        </TouchableOpacity>
-                        <Text style={styles.title}>Create Account</Text>
-                        <Text style={styles.subtitle}>Join KIKOBA Insights today</Text>
-                    </View>
-
-                    {/* Form */}
-                    <View style={styles.form}>
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Full Name</Text>
-                            <View style={styles.inputContainer}>
-                                <Ionicons name="person-outline" size={20} color={Colors.textSecondary} />
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="John Doe"
-                                    placeholderTextColor={Colors.textDisabled}
-                                    value={name}
-                                    onChangeText={setName}
-                                />
-                            </View>
+            <SafeAreaView style={styles.container}>
+                <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+                    <View style={styles.content}>
+                        {/* Header */}
+                        <View style={styles.header}>
+                            <TouchableOpacity
+                                onPress={() => router.back()}
+                                style={styles.backButton}
+                            >
+                                <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+                            </TouchableOpacity>
+                            <Text style={styles.title}>Create Account</Text>
+                            <Text style={styles.subtitle}>Join KIKOBA Insights today</Text>
                         </View>
 
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>{t('common.email')}</Text>
-                            <View style={styles.inputContainer}>
-                                <Ionicons name="mail-outline" size={20} color={Colors.textSecondary} />
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="name@example.com"
-                                    placeholderTextColor={Colors.textDisabled}
-                                    value={email}
-                                    onChangeText={setEmail}
-                                    autoCapitalize="none"
-                                    keyboardType="email-address"
-                                />
-                            </View>
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>{t('common.password')}</Text>
-                            <View style={styles.inputContainer}>
-                                <Ionicons name="lock-closed-outline" size={20} color={Colors.textSecondary} />
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="••••••••"
-                                    placeholderTextColor={Colors.textDisabled}
-                                    value={password}
-                                    onChangeText={setPassword}
-                                    secureTextEntry
-                                />
-                            </View>
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Confirm Password</Text>
-                            <View style={styles.inputContainer}>
-                                <Ionicons name="lock-closed-outline" size={20} color={Colors.textSecondary} />
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="••••••••"
-                                    placeholderTextColor={Colors.textDisabled}
-                                    value={confirmPassword}
-                                    onChangeText={setConfirmPassword}
-                                    secureTextEntry
-                                />
-                            </View>
-                        </View>
-
-                        {error ? (
-                            <Text style={styles.error}>{error}</Text>
-                        ) : null}
-
-                        <TouchableOpacity
-                            onPress={handleSignUp}
-                            disabled={loading}
-                            style={styles.button}
-                        >
-                            {loading ? (
-                                <ActivityIndicator color="white" />
-                            ) : (
-                                <View style={styles.buttonContent}>
-                                    <Text style={styles.buttonText}>Sign Up</Text>
-                                    <Ionicons name="person-add-outline" size={20} color="white" />
+                        {/* Form */}
+                        <View style={styles.form}>
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Full Name</Text>
+                                <View style={styles.inputContainer}>
+                                    <Ionicons name="person-outline" size={20} color={Colors.textSecondary} />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="John Doe"
+                                        placeholderTextColor={Colors.textDisabled}
+                                        value={name}
+                                        onChangeText={setName}
+                                    />
                                 </View>
-                            )}
-                        </TouchableOpacity>
-                    </View>
+                            </View>
 
-                    <View style={styles.footer}>
-                        <Text style={styles.footerText}>Already have an account? </Text>
-                        <TouchableOpacity onPress={() => router.push('/login' as any)}>
-                            <Text style={styles.linkText}>Login</Text>
-                        </TouchableOpacity>
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>{t('common.email')}</Text>
+                                <View style={styles.inputContainer}>
+                                    <Ionicons name="mail-outline" size={20} color={Colors.textSecondary} />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="name@example.com"
+                                        placeholderTextColor={Colors.textDisabled}
+                                        value={email}
+                                        onChangeText={setEmail}
+                                        autoCapitalize="none"
+                                        keyboardType="email-address"
+                                    />
+                                </View>
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>{t('common.password')}</Text>
+                                <View style={styles.inputContainer}>
+                                    <Ionicons name="lock-closed-outline" size={20} color={Colors.textSecondary} />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="••••••••"
+                                        placeholderTextColor={Colors.textDisabled}
+                                        value={password}
+                                        onChangeText={setPassword}
+                                        secureTextEntry={!showPassword}
+                                    />
+                                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{ padding: 4 }}>
+                                        <Ionicons
+                                            name={showPassword ? "eye-outline" : "eye-off-outline"}
+                                            size={20}
+                                            color={Colors.textSecondary}
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Confirm Password</Text>
+                                <View style={styles.inputContainer}>
+                                    <Ionicons name="lock-closed-outline" size={20} color={Colors.textSecondary} />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="••••••••"
+                                        placeholderTextColor={Colors.textDisabled}
+                                        value={confirmPassword}
+                                        onChangeText={setConfirmPassword}
+                                        secureTextEntry={!showConfirmPassword}
+                                    />
+                                    <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={{ padding: 4 }}>
+                                        <Ionicons
+                                            name={showConfirmPassword ? "eye-outline" : "eye-off-outline"}
+                                            size={20}
+                                            color={Colors.textSecondary}
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
+                            {error ? (
+                                <Text style={styles.error}>{error}</Text>
+                            ) : null}
+
+                            <TouchableOpacity
+                                onPress={handleSignUp}
+                                disabled={loading}
+                                style={styles.button}
+                            >
+                                {loading ? (
+                                    <ActivityIndicator color="white" />
+                                ) : (
+                                    <View style={styles.buttonContent}>
+                                        <Text style={styles.buttonText}>Sign Up</Text>
+                                        <Ionicons name="person-add-outline" size={20} color="white" />
+                                    </View>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.footer}>
+                            <Text style={styles.footerText}>Already have an account? </Text>
+                            <TouchableOpacity onPress={() => router.push('/login' as any)}>
+                                <Text style={styles.linkText}>Login</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
-                </View>
-            </ScrollView>
+                </ScrollView>
+            </SafeAreaView>
         </KeyboardAvoidingView>
     );
 }

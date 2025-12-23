@@ -2,25 +2,37 @@ import emailjs from '@emailjs/nodejs';
 import admin from 'firebase-admin';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Initialize Firebase Admin (only once)
-if (!admin.apps.length) {
-    try {
-        admin.initializeApp({
-            credential: admin.credential.cert({
-                projectId: process.env.FIREBASE_PROJECT_ID,
-                clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-                // Replace escaped newlines for Vercel env compatibility
-                privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-            }),
-        });
-    } catch (error) {
-        console.error('Firebase Admin initialization error:', error);
+// Initialize Firebase Admin (lazy load)
+function initFirebaseAdmin() {
+    if (!admin.apps.length) {
+        // Check if we have credentials (skip if building without them)
+        if (!process.env.FIREBASE_PRIVATE_KEY) {
+            console.warn('Missing FIREBASE_PRIVATE_KEY, skipping Admin init');
+            return null;
+        }
+
+        try {
+            admin.initializeApp({
+                credential: admin.credential.cert({
+                    projectId: process.env.FIREBASE_PROJECT_ID,
+                    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+                    // Replace escaped newlines for Vercel env compatibility
+                    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+                }),
+            });
+        } catch (error) {
+            console.error('Firebase Admin initialization error:', error);
+        }
     }
+    return admin;
 }
 
-const db = admin.firestore();
-
 export async function GET(request: NextRequest) {
+    const app = initFirebaseAdmin();
+    if (!app) {
+        return NextResponse.json({ error: 'Server misconfiguration: Missing Firebase Credentials' }, { status: 500 });
+    }
+    const db = app.firestore();
     // CRON_SECRET is used for basic security to ensure only authorized callers trigger this
     const authHeader = request.headers.get('authorization');
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
