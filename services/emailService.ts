@@ -1,11 +1,12 @@
 import { collection, getDocs, query, where } from 'firebase/firestore';
+import { Secrets } from '../constants/Secrets';
 import { db } from './firebase';
 
 export const EMAIL_CONFIG = {
-    SERVICE_ID: 'service_j0se2rj',
-    TEMPLATE_ID: 'template_7k5qmlo',
-    PUBLIC_KEY: 'iOyQZAIzGnj__rDJ_',
-    PRIVATE_KEY: 'xibH3hESCknVBl3FDAI1p', // <-- Add your Private Key here from EmailJS Account > API Keys
+    SERVICE_ID: Secrets.EMAILJS.SERVICE_ID,
+    TEMPLATE_ID: Secrets.EMAILJS.TEMPLATE_ID,
+    PUBLIC_KEY: Secrets.EMAILJS.PUBLIC_KEY,
+    PRIVATE_KEY: Secrets.EMAILJS.PRIVATE_KEY,
 };
 
 export async function sendEmailReminderToAllAdmins() {

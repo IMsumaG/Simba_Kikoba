@@ -3,15 +3,16 @@ import { initializeApp } from "firebase/app";
 // @ts-ignore
 import { getReactNativePersistence, initializeAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { Secrets } from "../constants/Secrets";
 
 // TODO: Replace with your actual Firebase config
 const firebaseConfig = {
-    apiKey: "AIzaSyBWBs-DPjFFpVjm_Kcna5PE5Jf_L7DofH8",
-    authDomain: "kikoba-app-28064.firebaseapp.com",
-    projectId: "kikoba-app-28064",
-    storageBucket: "kikoba-app-28064.firebasestorage.app",
-    messagingSenderId: "496818688394",
-    appId: "1:496818688394:web:61b33f4aede1cf3a9cb873"
+    apiKey: Secrets.FIREBASE.API_KEY,
+    authDomain: Secrets.FIREBASE.AUTH_DOMAIN,
+    projectId: Secrets.FIREBASE.PROJECT_ID,
+    storageBucket: Secrets.FIREBASE.STORAGE_BUCKET,
+    messagingSenderId: Secrets.FIREBASE.MESSAGING_SENDER_ID,
+    appId: Secrets.FIREBASE.APP_ID
 };
 
 const app = initializeApp(firebaseConfig);
