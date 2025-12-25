@@ -16,8 +16,15 @@ export default function TransactionsScreen() {
     const [amount, setAmount] = useState('');
     const [selectedMember, setSelectedMember] = useState<UserProfile | null>(null);
     const [type, setType] = useState<'Contribution' | 'Loan' | 'Loan Repayment'>('Contribution');
+    const [category, setCategory] = useState<'Hisa' | 'Jamii' | 'Standard' | 'Dharura'>('Hisa');
     const [loading, setLoading] = useState(false);
     const [memberLoanBalance, setMemberLoanBalance] = useState(0);
+    const [loanBalanceByCategory, setLoanBalanceByCategory] = useState<{ [key in 'Hisa' | 'Jamii' | 'Standard' | 'Dharura']: number }>({
+        Hisa: 0,
+        Jamii: 0,
+        Standard: 0,
+        Dharura: 0
+    });
 
     // Member Selection State
     const [members, setMembers] = useState<UserProfile[]>([]);
@@ -57,6 +64,8 @@ export default function TransactionsScreen() {
                 amount: Number(amount),
                 memberId: isAdmin ? selectedMember!.uid : currentUser!.uid,
                 memberName: isAdmin ? selectedMember!.displayName : (currentUser?.displayName || 'Self'),
+                category: type === 'Contribution' ? category : (type === 'Loan' ? category : category),
+                interestRate: (type === 'Loan' && category === 'Standard') ? 10 : 0,
                 date: new Date().toISOString(),
                 createdBy: currentUser!.uid,
                 status: 'Completed'
@@ -124,7 +133,13 @@ export default function TransactionsScreen() {
                                 return (
                                     <TouchableOpacity
                                         key={row}
-                                        onPress={() => !isDisabled && setType(row)}
+                                        onPress={() => {
+                                            if (!isDisabled) {
+                                                setType(row);
+                                                if (row === 'Contribution') setCategory('Hisa');
+                                                if (row === 'Loan') setCategory('Standard');
+                                            }
+                                        }}
                                         disabled={isDisabled}
                                         style={[
                                             styles.typeCard as ViewStyle,
@@ -145,6 +160,80 @@ export default function TransactionsScreen() {
                                 );
                             })}
                         </View>
+
+                        {/* Sub-Category Selection */}
+                        {type !== 'Loan Repayment' && (
+                            <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+                                {type === 'Contribution' ? (
+                                    <>
+                                        <TouchableOpacity
+                                            onPress={() => setCategory('Hisa')}
+                                            style={[styles.subTypeBtn, category === 'Hisa' ? styles.subTypeBtnActive : styles.subTypeBtnInactive]}
+                                        >
+                                            <Text style={[styles.subTypeText, category === 'Hisa' ? { color: 'white' } : { color: '#64748B' }]}>Hisa (Shares)</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            onPress={() => setCategory('Jamii')}
+                                            style={[styles.subTypeBtn, category === 'Jamii' ? styles.subTypeBtnActive : styles.subTypeBtnInactive]}
+                                        >
+                                            <Text style={[styles.subTypeText, category === 'Jamii' ? { color: 'white' } : { color: '#64748B' }]}>Jamii</Text>
+                                        </TouchableOpacity>
+                                    </>
+                                ) : (
+                                    <>
+                                        <TouchableOpacity
+                                            onPress={() => setCategory('Standard')}
+                                            style={[styles.subTypeBtn, category === 'Standard' ? styles.subTypeBtnActiveRed : styles.subTypeBtnInactive]}
+                                        >
+                                            <Text style={[styles.subTypeText, category === 'Standard' ? { color: 'white' } : { color: '#64748B' }]}>Standard (10%)</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            onPress={() => setCategory('Dharura')}
+                                            style={[styles.subTypeBtn, category === 'Dharura' ? styles.subTypeBtnActiveRed : styles.subTypeBtnInactive]}
+                                        >
+                                            <Text style={[styles.subTypeText, category === 'Dharura' ? { color: 'white' } : { color: '#64748B' }]}>Dharura (0%)</Text>
+                                        </TouchableOpacity>
+                                    </>
+                                )}
+                            </View>
+                        )}
+
+                        {/* Loan Repayment Category Selection */}
+                        {type === 'Loan Repayment' && (
+                            <View style={{ marginTop: 16 }}>
+                                <Text style={styles.label as TextStyle}>Repayment Category</Text>
+                                <View style={{ flexDirection: 'row', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
+                                    {(['Standard', 'Dharura'] as const).map((cat) => {
+                                        const hasBalance = loanBalanceByCategory[cat] > 0;
+                                        return (
+                                            <TouchableOpacity
+                                                key={cat}
+                                                onPress={() => {
+                                                    if (hasBalance) {
+                                                        setCategory(cat);
+                                                    }
+                                                }}
+                                                disabled={!hasBalance}
+                                                style={[
+                                                    styles.subTypeBtn,
+                                                    hasBalance ? (category === cat ? styles.subTypeBtnActiveRed : styles.subTypeBtnInactive) : styles.subTypeBtnDisabled,
+                                                    !hasBalance && { opacity: 0.4 }
+                                                ]}
+                                            >
+                                                <View>
+                                                    <Text style={[styles.subTypeText, category === cat && hasBalance ? { color: 'white' } : { color: '#64748B' }]}>
+                                                        {cat} {cat === 'Standard' ? '(10%)' : '(0%)'}
+                                                    </Text>
+                                                    <Text style={{ fontSize: 12, color: hasBalance ? '#10B981' : '#EF4444', marginTop: 4 }}>
+                                                        Balance: {loanBalanceByCategory[cat].toFixed(2)}
+                                                    </Text>
+                                                </View>
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                </View>
+                            </View>
+                        )}
                     </View>
 
                     {/* Amount */}
@@ -214,9 +303,11 @@ export default function TransactionsScreen() {
                                 onPress={async () => {
                                     setSelectedMember(item);
                                     setShowMemberModal(false);
-                                    // Fetch their loan balance
+                                    // Fetch their loan balance and balance by category
                                     const stats = await transactionService.getMemberStats(item.uid);
+                                    const balanceByCategory = await transactionService.getLoanBalanceByCategory(item.uid);
                                     setMemberLoanBalance(stats.currentLoan);
+                                    setLoanBalanceByCategory(balanceByCategory);
                                     if (stats.currentLoan <= 0 && type === 'Loan Repayment') {
                                         setType('Contribution'); // Reset if they don't have a loan
                                     }
@@ -446,5 +537,33 @@ const styles = StyleSheet.create({
     separator: {
         height: 1,
         backgroundColor: '#F8FAFC',
+    },
+    subTypeBtn: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+    },
+    subTypeBtnActive: {
+        backgroundColor: '#10B981',
+        borderColor: '#10B981',
+    },
+    subTypeBtnActiveRed: {
+        backgroundColor: '#EF4444',
+        borderColor: '#EF4444',
+    },
+    subTypeBtnInactive: {
+        backgroundColor: '#F1F5F9',
+        borderColor: '#F1F5F9',
+    },
+    subTypeBtnDisabled: {
+        backgroundColor: '#E2E8F0',
+        borderColor: '#CBD5E1',
+    },
+    subTypeText: {
+        fontSize: 14,
+        fontWeight: '700',
     }
 });

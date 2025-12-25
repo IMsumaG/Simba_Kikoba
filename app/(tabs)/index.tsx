@@ -19,7 +19,32 @@ export default function DashboardScreen() {
     loanPool: 0,
     activeLoans: 0,
     totalMembers: 0,
-    personalContribution: 0
+    personalContribution: 0,
+    personalLoan: 0
+  });
+  const [personalContributionsByCategory, setPersonalContributionsByCategory] = useState<{ [key in 'Hisa' | 'Jamii' | 'Standard' | 'Dharura']: number }>({
+    Hisa: 0,
+    Jamii: 0,
+    Standard: 0,
+    Dharura: 0
+  });
+  const [personalLoansByCategory, setPersonalLoansByCategory] = useState<{ [key in 'Hisa' | 'Jamii' | 'Standard' | 'Dharura']: number }>({
+    Hisa: 0,
+    Jamii: 0,
+    Standard: 0,
+    Dharura: 0
+  });
+  const [totalContributionsByCategory, setTotalContributionsByCategory] = useState<{ [key in 'Hisa' | 'Jamii' | 'Standard' | 'Dharura']: number }>({
+    Hisa: 0,
+    Jamii: 0,
+    Standard: 0,
+    Dharura: 0
+  });
+  const [totalLoansByCategory, setTotalLoansByCategory] = useState<{ [key in 'Hisa' | 'Jamii' | 'Standard' | 'Dharura']: number }>({
+    Hisa: 0,
+    Jamii: 0,
+    Standard: 0,
+    Dharura: 0
   });
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,30 +56,45 @@ export default function DashboardScreen() {
       const allMembers = await memberService.getAllUsers();
 
       let personalContrib = 0;
+      let personalLoan = 0;
       let transactions: Transaction[] = [];
+      let personalContribsByCategory = { Hisa: 0, Jamii: 0, Standard: 0, Dharura: 0 };
+      let personalLoansByCategory = { Hisa: 0, Jamii: 0, Standard: 0, Dharura: 0 };
+      let totalContribsByCategory = { Hisa: 0, Jamii: 0, Standard: 0, Dharura: 0 };
+      let totalLoansByCategory = { Hisa: 0, Jamii: 0, Standard: 0, Dharura: 0 };
 
       if (user) {
+        // 1. Fetch Personal Stats (For EVERYONE, including Admins)
+        const myStats = await transactionService.getMemberStats(user.uid);
+        personalContrib = myStats.totalContributions;
+        personalLoan = myStats.currentLoan;
+        personalContribsByCategory = await transactionService.getContributionBalanceByCategory(user.uid);
+        personalLoansByCategory = await transactionService.getLoanBalanceByCategory(user.uid);
+
+        // 2. Fetch Transactions List
         if (isAdmin) {
-          // Admin sees last 5 overall transactions
+          // Admin sees last 5 OVERALL transactions
           transactions = await transactionService.getAllTransactions();
           transactions = transactions.slice(0, 5);
+          // Fetch total category breakdowns for admin
+          totalContribsByCategory = await transactionService.getTotalContributionsByCategory();
+          totalLoansByCategory = await transactionService.getTotalLoansByCategory();
         } else {
           // Member sees their own last 5 transactions
           transactions = await transactionService.getMemberTransactions(user.uid, 5);
-
-          // Calculate personal contribution
-          const allUserTrans = await transactionService.getMemberTransactions(user.uid, 1000);
-          personalContrib = allUserTrans
-            .filter(t => t.type === 'Contribution')
-            .reduce((sum, t) => sum + t.amount, 0);
         }
       }
 
       setStats({
         ...dashboardTotals,
         totalMembers: allMembers.length,
-        personalContribution: personalContrib
+        personalContribution: personalContrib,
+        personalLoan: personalLoan
       });
+      setPersonalContributionsByCategory(personalContribsByCategory);
+      setPersonalLoansByCategory(personalLoansByCategory);
+      setTotalContributionsByCategory(totalContribsByCategory);
+      setTotalLoansByCategory(totalLoansByCategory);
       setRecentTransactions(transactions);
     } catch (error) {
       console.error('Error loading dashboard:', error);
@@ -135,7 +175,7 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Main Balance Card */}
+        {/* Main Balance Card - Personal Stats */}
         <LinearGradient
           colors={[Colors.primary, Colors.accent]}
           start={{ x: 0, y: 0 }}
@@ -145,10 +185,10 @@ export default function DashboardScreen() {
           <View style={styles.balanceHeader as ViewStyle}>
             <View>
               <Text style={styles.balanceLabel as TextStyle}>
-                {isAdmin ? "Vault Balance" : "My Contribution"}
+                My Total Savings
               </Text>
               <Text style={styles.balanceValue as TextStyle}>
-                TSh {(isAdmin ? stats.vaultBalance : stats.personalContribution).toLocaleString()}
+                TSh {stats.personalContribution.toLocaleString()}
               </Text>
             </View>
             <View style={styles.walletIcon as ViewStyle}>
@@ -160,14 +200,48 @@ export default function DashboardScreen() {
 
           <View style={styles.balanceFooter as ViewStyle}>
             <View>
-              <Text style={styles.footerLabel as TextStyle}>Loan Pool</Text>
-              <Text style={styles.footerValue as TextStyle}>TSh {stats.loanPool.toLocaleString()}</Text>
+              <Text style={styles.footerLabel as TextStyle}>My Current Debt</Text>
+              <Text style={styles.footerValue as TextStyle}>TSh {stats.personalLoan.toLocaleString()}</Text>
             </View>
-            <TouchableOpacity style={styles.quickPayBtn as ViewStyle}>
-              <Text style={styles.quickPayText as TextStyle}>Details</Text>
-            </TouchableOpacity>
+            <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}>
+              <Text style={{ color: 'white', fontSize: 10, fontWeight: '700' }}>{((stats.personalContribution > 0) ? ((stats.personalLoan / stats.personalContribution) * 100).toFixed(1) : 0)}% D/E Ratio</Text>
+            </View>
           </View>
         </LinearGradient>
+
+        {/* Personal Contributions by Category */}
+        <View style={styles.section as ViewStyle}>
+          <View style={styles.sectionHeader as ViewStyle}>
+            <Text style={styles.sectionTitle as TextStyle}>My Contributions</Text>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#10B981', borderLeftWidth: 4 }]}>
+              <Text style={styles.categoryLabel as TextStyle}>Hisa (Shares)</Text>
+              <Text style={styles.categoryValue as TextStyle}>TSh {personalContributionsByCategory.Hisa.toLocaleString()}</Text>
+            </View>
+            <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#3B82F6', borderLeftWidth: 4 }]}>
+              <Text style={styles.categoryLabel as TextStyle}>Jamii</Text>
+              <Text style={styles.categoryValue as TextStyle}>TSh {personalContributionsByCategory.Jamii.toLocaleString()}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Personal Loans by Category */}
+        <View style={styles.section as ViewStyle}>
+          <View style={styles.sectionHeader as ViewStyle}>
+            <Text style={styles.sectionTitle as TextStyle}>My Loans</Text>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#DC2626', borderLeftWidth: 4 }]}>
+              <Text style={styles.categoryLabel as TextStyle}>Standard (10%)</Text>
+              <Text style={styles.categoryValue as TextStyle}>TSh {personalLoansByCategory.Standard.toLocaleString()}</Text>
+            </View>
+            <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#F59E0B', borderLeftWidth: 4 }]}>
+              <Text style={styles.categoryLabel as TextStyle}>Dharura (0%)</Text>
+              <Text style={styles.categoryValue as TextStyle}>TSh {personalLoansByCategory.Dharura.toLocaleString()}</Text>
+            </View>
+          </View>
+        </View>
 
         {/* Action Quick Stats */}
         <View style={styles.section as ViewStyle}>
@@ -175,6 +249,24 @@ export default function DashboardScreen() {
             <Text style={styles.sectionTitle as TextStyle}>Society Overview</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statsScroll as ViewStyle}>
+            {isAdmin && (
+              <>
+                <StatCard
+                  title="Vault Balance"
+                  value={`TSh ${(stats.vaultBalance / 1000000).toFixed(1)}M`}
+                  icon="cash"
+                  color="#10B981"
+                  subtitle="Total Assets"
+                />
+                <StatCard
+                  title="Total Debt"
+                  value={`TSh ${(stats.loanPool / 1000000).toFixed(1)}M`}
+                  icon="trending-down"
+                  color="#F57C00"
+                  subtitle="Outstanding Loans"
+                />
+              </>
+            )}
             <StatCard
               title="Members"
               value={`${stats.totalMembers}`}
@@ -185,19 +277,50 @@ export default function DashboardScreen() {
             <StatCard
               title="Active Loans"
               value={`${stats.activeLoans}`}
-              icon="cash"
+              icon="document-text"
               color="#8B5CF6"
-              subtitle="Current out"
-            />
-            <StatCard
-              title="Society Growth"
-              value="Live"
-              icon="trending-up"
-              color="#10B981"
-              subtitle="Firestore Sync"
+              subtitle="Current contracts"
             />
           </ScrollView>
         </View>
+
+        {/* Admin: Total Contributions by Category */}
+        {isAdmin && (
+          <View style={styles.section as ViewStyle}>
+            <View style={styles.sectionHeader as ViewStyle}>
+              <Text style={styles.sectionTitle as TextStyle}>Total Contributions</Text>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#10B981', borderLeftWidth: 4 }]}>
+                <Text style={styles.categoryLabel as TextStyle}>Hisa (Shares)</Text>
+                <Text style={styles.categoryValue as TextStyle}>TSh {totalContributionsByCategory.Hisa.toLocaleString()}</Text>
+              </View>
+              <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#3B82F6', borderLeftWidth: 4 }]}>
+                <Text style={styles.categoryLabel as TextStyle}>Jamii</Text>
+                <Text style={styles.categoryValue as TextStyle}>TSh {totalContributionsByCategory.Jamii.toLocaleString()}</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Admin: Total Loans by Category */}
+        {isAdmin && (
+          <View style={styles.section as ViewStyle}>
+            <View style={styles.sectionHeader as ViewStyle}>
+              <Text style={styles.sectionTitle as TextStyle}>Total Loans Outstanding</Text>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#DC2626', borderLeftWidth: 4 }]}>
+                <Text style={styles.categoryLabel as TextStyle}>Standard (10%)</Text>
+                <Text style={styles.categoryValue as TextStyle}>TSh {totalLoansByCategory.Standard.toLocaleString()}</Text>
+              </View>
+              <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#F59E0B', borderLeftWidth: 4 }]}>
+                <Text style={styles.categoryLabel as TextStyle}>Dharura (0%)</Text>
+                <Text style={styles.categoryValue as TextStyle}>TSh {totalLoansByCategory.Dharura.toLocaleString()}</Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Recent Transactions Section */}
         <View style={styles.section as ViewStyle}>
@@ -508,5 +631,23 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     color: '#94A3B8',
+  },
+  categoryCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  categoryLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  categoryValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0F172A',
   },
 });

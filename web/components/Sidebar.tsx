@@ -1,6 +1,7 @@
 "use client";
 
 import {
+    BarChart3,
     ChevronLeft,
     ChevronRight,
     LayoutDashboard,
@@ -24,6 +25,7 @@ export default function Sidebar({ isMinimized, setIsMinimized }: SidebarProps) {
         { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
         { name: "Members", href: "/members", icon: Users },
         { name: "Transactions", href: "/transactions", icon: PlusCircle },
+        { name: "Reports", href: "/reports", icon: BarChart3 },
     ];
 
     const handleLogout = () => {

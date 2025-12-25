@@ -1,0 +1,9 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/api/cron/monthly-reminder/route": "/api/cron/monthly-reminder",
+  "/dashboard/page": "/dashboard",
+  "/members/page": "/members",
+  "/page": "/",
+  "/transactions/page": "/transactions"
+}

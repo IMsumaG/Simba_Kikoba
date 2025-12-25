@@ -16,11 +16,13 @@ export default function TransactionsPage() {
     const [members, setMembers] = useState<Member[]>([]);
     const [selectedMember, setSelectedMember] = useState<Member | null>(null);
     const [type, setType] = useState<'Contribution' | 'Loan' | 'Loan Repayment'>('Contribution');
+    const [category, setCategory] = useState<'Hisa' | 'Jamii' | 'Standard' | 'Dharura'>('Hisa');
     const [amount, setAmount] = useState("");
     const [loading, setLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
-    const [loanBalance, setLoanBalance] = useState(0);
+    const [standardLoanBalance, setStandardLoanBalance] = useState(0);
+    const [dharuraLoanBalance, setDhauraLoanBalance] = useState(0);
 
     useEffect(() => {
         fetchMembers();
@@ -49,16 +51,28 @@ export default function TransactionsPage() {
         try {
             const q = query(collection(db, "transactions"), where("memberId", "==", uid));
             const snapshot = await getDocs(q);
-            let balance = 0;
+            let standardBalance = 0;
+            let dharuraBalance = 0;
+
             snapshot.forEach(doc => {
                 const data = doc.data();
-                if (data.type === 'Loan') balance += data.amount;
-                if (data.type === 'Loan Repayment') balance -= data.amount;
+                if (data.type === 'Loan' && data.category === 'Standard') {
+                    standardBalance += data.amount;
+                }
+                if (data.type === 'Loan' && data.category === 'Dharura') {
+                    dharuraBalance += data.amount;
+                }
+                if (data.type === 'Loan Repayment') {
+                    if (data.category === 'Standard') {
+                        standardBalance -= data.amount;
+                    } else if (data.category === 'Dharura') {
+                        dharuraBalance -= data.amount;
+                    }
+                }
             });
-            setLoanBalance(balance);
-            if (balance <= 0 && type === 'Loan Repayment') {
-                setType('Contribution');
-            }
+
+            setStandardLoanBalance(Math.max(0, standardBalance));
+            setDhauraLoanBalance(Math.max(0, dharuraBalance));
         } catch (err) {
             console.error(err);
         }
@@ -78,13 +92,19 @@ export default function TransactionsPage() {
                 memberName: selectedMember.displayName,
                 amount: parseFloat(amount),
                 type: type,
+                category: category,
+                interestRate: (type === 'Loan' && category === 'Standard') ? 10 : 0,
                 date: new Date().toISOString(),
+                createdBy: selectedMember.uid,
+                status: 'Completed'
             });
 
             alert("Transaction recorded successfully!");
             setAmount("");
             setSelectedMember(null);
             setSearchTerm("");
+            setCategory('Hisa');
+            setType('Contribution');
         } catch (error) {
             alert("Failed to record transaction");
         } finally {
@@ -118,8 +138,14 @@ export default function TransactionsPage() {
                                     <button
                                         key={t.id}
                                         type="button"
-                                        disabled={t.id === 'Loan Repayment' && loanBalance <= 0}
-                                        onClick={() => setType(t.id as any)}
+                                        disabled={t.id === 'Loan Repayment' && standardLoanBalance <= 0 && dharuraLoanBalance <= 0}
+                                        onClick={() => {
+                                            setType(t.id as any);
+                                            // Reset category defaults when type changes
+                                            if (t.id === 'Contribution') setCategory('Hisa');
+                                            if (t.id === 'Loan') setCategory('Standard');
+                                            if (t.id === 'Loan Repayment') setCategory(standardLoanBalance > 0 ? 'Standard' : 'Dharura');
+                                        }}
                                         style={{
                                             display: 'flex',
                                             flexDirection: 'column',
@@ -130,8 +156,8 @@ export default function TransactionsPage() {
                                             border: '2px solid',
                                             borderColor: type === t.id ? t.color : 'var(--border)',
                                             backgroundColor: type === t.id ? `${t.color}08` : 'white',
-                                            opacity: (t.id === 'Loan Repayment' && loanBalance <= 0) ? 0.3 : 1,
-                                            cursor: (t.id === 'Loan Repayment' && loanBalance <= 0) ? 'not-allowed' : 'pointer',
+                                            opacity: (t.id === 'Loan Repayment' && standardLoanBalance <= 0 && dharuraLoanBalance <= 0) ? 0.3 : 1,
+                                            cursor: (t.id === 'Loan Repayment' && standardLoanBalance <= 0 && dharuraLoanBalance <= 0) ? 'not-allowed' : 'pointer',
                                             transition: 'all 0.2s'
                                         }}
                                     >
@@ -139,6 +165,96 @@ export default function TransactionsPage() {
                                         <span style={{ fontSize: '0.75rem', fontWeight: '800', color: type === t.id ? t.color : '#94A3B8' }}>{t.label}</span>
                                     </button>
                                 ))}
+                            </div>
+
+                            {/* Sub-Category Selection */}
+                            <div style={{ marginTop: '1.5rem', display: 'flex', gap: '1rem' }}>
+                                {type === 'Contribution' ? (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={() => setCategory('Hisa')}
+                                            style={{
+                                                flex: 1, padding: '0.75rem', borderRadius: '0.75rem', fontWeight: '700', fontSize: '0.875rem',
+                                                backgroundColor: category === 'Hisa' ? '#10B981' : '#F1F5F9',
+                                                color: category === 'Hisa' ? 'white' : '#64748B',
+                                                border: 'none', cursor: 'pointer', transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            Hisa (Shares)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setCategory('Jamii')}
+                                            style={{
+                                                flex: 1, padding: '0.75rem', borderRadius: '0.75rem', fontWeight: '700', fontSize: '0.875rem',
+                                                backgroundColor: category === 'Jamii' ? '#10B981' : '#F1F5F9',
+                                                color: category === 'Jamii' ? 'white' : '#64748B',
+                                                border: 'none', cursor: 'pointer', transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            Jamii
+                                        </button>
+                                    </>
+                                ) : type === 'Loan' ? (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={() => setCategory('Standard')}
+                                            style={{
+                                                flex: 1, padding: '0.75rem', borderRadius: '0.75rem', fontWeight: '700', fontSize: '0.875rem',
+                                                backgroundColor: category === 'Standard' ? '#EF4444' : '#F1F5F9',
+                                                color: category === 'Standard' ? 'white' : '#64748B',
+                                                border: 'none', cursor: 'pointer', transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            Standard (10% Interest)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setCategory('Dharura')}
+                                            style={{
+                                                flex: 1, padding: '0.75rem', borderRadius: '0.75rem', fontWeight: '700', fontSize: '0.875rem',
+                                                backgroundColor: category === 'Dharura' ? '#EF4444' : '#F1F5F9',
+                                                color: category === 'Dharura' ? 'white' : '#64748B',
+                                                border: 'none', cursor: 'pointer', transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            Dharura (No Interest)
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={() => setCategory('Standard')}
+                                            disabled={standardLoanBalance <= 0}
+                                            style={{
+                                                flex: 1, padding: '0.75rem', borderRadius: '0.75rem', fontWeight: '700', fontSize: '0.875rem',
+                                                backgroundColor: category === 'Standard' ? '#F59E0B' : '#F1F5F9',
+                                                color: category === 'Standard' ? 'white' : '#64748B',
+                                                border: 'none', cursor: standardLoanBalance > 0 ? 'pointer' : 'not-allowed', transition: 'all 0.2s',
+                                                opacity: standardLoanBalance > 0 ? 1 : 0.3
+                                            }}
+                                        >
+                                            Standard {standardLoanBalance > 0 ? `(TSh ${standardLoanBalance.toLocaleString()})` : '(Paid)'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setCategory('Dharura')}
+                                            disabled={dharuraLoanBalance <= 0}
+                                            style={{
+                                                flex: 1, padding: '0.75rem', borderRadius: '0.75rem', fontWeight: '700', fontSize: '0.875rem',
+                                                backgroundColor: category === 'Dharura' ? '#F59E0B' : '#F1F5F9',
+                                                color: category === 'Dharura' ? 'white' : '#64748B',
+                                                border: 'none', cursor: dharuraLoanBalance > 0 ? 'pointer' : 'not-allowed', transition: 'all 0.2s',
+                                                opacity: dharuraLoanBalance > 0 ? 1 : 0.3
+                                            }}
+                                        >
+                                            Dharura {dharuraLoanBalance > 0 ? `(TSh ${dharuraLoanBalance.toLocaleString()})` : '(Paid)'}
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
 
@@ -160,7 +276,11 @@ export default function TransactionsPage() {
                                         </div>
                                         <div style={{ flex: 1 }}>
                                             <p style={{ fontWeight: '700', fontSize: '0.875rem' }}>{selectedMember.displayName}</p>
-                                            {loanBalance > 0 && <p style={{ fontSize: '0.7rem', color: '#0EA5E9' }}>Debt: TSh {loanBalance.toLocaleString()}</p>}
+                                            {(type === 'Loan Repayment') && (
+                                                <p style={{ fontSize: '0.7rem', color: '#0EA5E9' }}>
+                                                    {category === 'Standard' ? `Standard Debt: TSh ${standardLoanBalance.toLocaleString()}` : `Dharura Debt: TSh ${dharuraLoanBalance.toLocaleString()}`}
+                                                </p>
+                                            )}
                                         </div>
                                         <button onClick={() => setSelectedMember(null)} style={{ color: 'var(--text-secondary)' }}>Change</button>
                                     </>

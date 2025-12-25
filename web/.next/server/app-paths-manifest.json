@@ -1,5 +1,9 @@
 {
-  "/page": "app/page.js",
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/cron/monthly-reminder/route": "app/api/cron/monthly-reminder/route.js",
   "/dashboard/page": "app/dashboard/page.js",
-  "/members/page": "app/members/page.js"
+  "/members/page": "app/members/page.js",
+  "/page": "app/page.js",
+  "/transactions/page": "app/transactions/page.js"
 }

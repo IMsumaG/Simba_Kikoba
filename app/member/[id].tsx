@@ -15,6 +15,18 @@ export default function MemberDetailScreen() {
         currentLoan: 0,
         totalLoans: 0
     });
+    const [contributionsByCategory, setContributionsByCategory] = useState<{ [key in 'Hisa' | 'Jamii' | 'Standard' | 'Dharura']: number }>({
+        Hisa: 0,
+        Jamii: 0,
+        Standard: 0,
+        Dharura: 0
+    });
+    const [loansByCategory, setLoansByCategory] = useState<{ [key in 'Hisa' | 'Jamii' | 'Standard' | 'Dharura']: number }>({
+        Hisa: 0,
+        Jamii: 0,
+        Standard: 0,
+        Dharura: 0
+    });
     const [transactions, setTransactions] = useState<Transaction[]>([]);
 
     useEffect(() => {
@@ -29,9 +41,13 @@ export default function MemberDetailScreen() {
             const memberId = Array.isArray(id) ? id[0] : id;
             const fetchedStats = await transactionService.getMemberStats(memberId);
             const fetchedTransactions = await transactionService.getMemberTransactions(memberId, 5);
+            const fetchedContributions = await transactionService.getContributionBalanceByCategory(memberId);
+            const fetchedLoans = await transactionService.getLoanBalanceByCategory(memberId);
 
             setStats(fetchedStats);
             setTransactions(fetchedTransactions);
+            setContributionsByCategory(fetchedContributions);
+            setLoansByCategory(fetchedLoans);
         } catch (error) {
             console.error('Error fetching member data:', error);
         } finally {
@@ -137,6 +153,36 @@ export default function MemberDetailScreen() {
                             </View>
                             <Text style={styles.summaryLabel as TextStyle}>Current Loan</Text>
                             <Text style={styles.summaryValue as TextStyle}>TSh {stats.currentLoan.toLocaleString()}</Text>
+                        </View>
+                    </View>
+
+                    {/* Contributions by Category */}
+                    <View style={styles.section as ViewStyle}>
+                        <Text style={styles.sectionTitle as TextStyle}>Contributions by Category</Text>
+                        <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
+                            <View style={[styles.categoryCard as ViewStyle, { flex: 1 }]}>
+                                <Text style={styles.categoryLabel as TextStyle}>Hisa (Shares)</Text>
+                                <Text style={styles.categoryValue as TextStyle}>TSh {contributionsByCategory.Hisa.toLocaleString()}</Text>
+                            </View>
+                            <View style={[styles.categoryCard as ViewStyle, { flex: 1 }]}>
+                                <Text style={styles.categoryLabel as TextStyle}>Jamii</Text>
+                                <Text style={styles.categoryValue as TextStyle}>TSh {contributionsByCategory.Jamii.toLocaleString()}</Text>
+                            </View>
+                        </View>
+                    </View>
+
+                    {/* Loans by Category */}
+                    <View style={styles.section as ViewStyle}>
+                        <Text style={styles.sectionTitle as TextStyle}>Loans by Category</Text>
+                        <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
+                            <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#DC2626', borderLeftWidth: 4 }]}>
+                                <Text style={styles.categoryLabel as TextStyle}>Standard (10%)</Text>
+                                <Text style={styles.categoryValue as TextStyle}>TSh {loansByCategory.Standard.toLocaleString()}</Text>
+                            </View>
+                            <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#F59E0B', borderLeftWidth: 4 }]}>
+                                <Text style={styles.categoryLabel as TextStyle}>Dharura (0%)</Text>
+                                <Text style={styles.categoryValue as TextStyle}>TSh {loansByCategory.Dharura.toLocaleString()}</Text>
+                            </View>
                         </View>
                     </View>
 
@@ -320,5 +366,23 @@ const styles = StyleSheet.create({
     },
     emptyText: {
         color: '#94A3B8',
+    },
+    categoryCard: {
+        backgroundColor: '#F8FAFC',
+        borderRadius: 12,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
+    },
+    categoryLabel: {
+        fontSize: 12,
+        color: '#64748B',
+        fontWeight: '600',
+        marginBottom: 8,
+    },
+    categoryValue: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#0F172A',
     },
 });
