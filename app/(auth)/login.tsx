@@ -7,6 +7,7 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleShe
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 import { auth } from '../../services/firebase';
+import { validateEmail, validatePassword } from '../../services/validationService';
 
 export default function LoginScreen() {
     const { t } = useTranslation();
@@ -18,17 +19,38 @@ export default function LoginScreen() {
     const [error, setError] = useState('');
 
     const handleLogin = async () => {
-        if (!email || !password) {
-            setError('Please fill in all fields');
+        // Validate inputs
+        const emailValidation = validateEmail(email);
+        if (!emailValidation.isValid) {
+            setError(emailValidation.error || 'Invalid email');
             return;
         }
+
+        const passwordValidation = validatePassword(password);
+        if (!passwordValidation.isValid) {
+            setError(passwordValidation.error || 'Invalid password');
+            return;
+        }
+
         setLoading(true);
         setError('');
         try {
-            await signInWithEmailAndPassword(auth, email, password);
+            await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
             router.replace('/(tabs)');
-        } catch (err: any) {
-            setError(err.message || 'Failed to login');
+        } catch (error) {
+            const err = error as any;
+            // Provide user-friendly error messages
+            if (err.code === 'auth/user-not-found') {
+                setError(t('auth.invalidEmail'));
+            } else if (err.code === 'auth/wrong-password') {
+                setError(t('common.password') + ' ' + t('common.error'));
+            } else if (err.code === 'auth/too-many-requests') {
+                setError(t('common.error'));
+            } else if (err.code === 'auth/invalid-email') {
+                setError(t('auth.invalidEmail'));
+            } else {
+                setError(err.message || t('common.error'));
+            }
             console.error(err);
         } finally {
             setLoading(false);
@@ -112,21 +134,24 @@ export default function LoginScreen() {
                             </TouchableOpacity>
                         </View>
 
-                        {/* Future: Biometrics placeholder */}
-                        <TouchableOpacity style={styles.forgotPassword}>
-                            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                        {/* Forgot Password */}
+                        <TouchableOpacity
+                            onPress={() => router.push('/forgot-password' as any)}
+                            style={styles.forgotPassword}
+                        >
+                            <Text style={styles.forgotPasswordText}>{t('auth.forgotPassword')}</Text>
                         </TouchableOpacity>
 
                         <View style={styles.footer}>
-                            <Text style={styles.footerText}>Don't have an account? </Text>
+                            <Text style={styles.footerText}>{t('auth.noAccount')} </Text>
                             <TouchableOpacity onPress={() => router.push('/signup' as any)}>
-                                <Text style={styles.linkText}>Sign Up</Text>
+                                <Text style={styles.linkText}>{t('common.signup')}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
                 </ScrollView>
             </SafeAreaView>
-        </KeyboardAvoidingView >
+        </KeyboardAvoidingView>
     );
 }
 

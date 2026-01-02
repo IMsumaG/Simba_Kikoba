@@ -18,6 +18,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 import { auth, db } from '../../services/firebase';
+import { groupCodeService } from '../../services/groupCodeService';
+import { validateEmail, validateGroupCodeFormat, validateName, validatePassword, validatePasswordMatch } from '../../services/validationService';
 
 export default function SignUpScreen() {
     const { t } = useTranslation();
@@ -26,47 +28,93 @@ export default function SignUpScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [groupCode, setGroupCode] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
     const handleSignUp = async () => {
-        if (!name || !email || !password || !confirmPassword) {
-            setError('Please fill in all fields');
+        // Validate name
+        const nameValidation = validateName(name);
+        if (!nameValidation.isValid) {
+            setError(nameValidation.error || 'Invalid name');
             return;
         }
-        if (password !== confirmPassword) {
-            setError('Passwords do not match');
+
+        // Validate email
+        const emailValidation = validateEmail(email);
+        if (!emailValidation.isValid) {
+            setError(emailValidation.error || 'Invalid email');
             return;
         }
-        if (password.length < 6) {
-            setError('Password should be at least 6 characters');
+
+        // Validate password
+        const passwordValidation = validatePassword(password);
+        if (!passwordValidation.isValid) {
+            setError(passwordValidation.error || 'Invalid password');
+            return;
+        }
+
+        // Validate password match
+        const passwordMatchValidation = validatePasswordMatch(password, confirmPassword);
+        if (!passwordMatchValidation.isValid) {
+            setError(passwordMatchValidation.error || 'Passwords do not match');
+            return;
+        }
+
+        // Validate group code format
+        const groupCodeValidation = validateGroupCodeFormat(groupCode);
+        if (!groupCodeValidation.isValid) {
+            setError(groupCodeValidation.error || 'Invalid group code');
             return;
         }
 
         setLoading(true);
         setError('');
         try {
-            // 1. Create user in Auth
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            // 1. Validate group code against Firebase
+            const codeValidation = await groupCodeService.validateGroupCode(groupCode);
+            if (!codeValidation.isValid) {
+                setError(codeValidation.error || 'Invalid group code');
+                setLoading(false);
+                return;
+            }
+
+            // 2. Create user in Auth
+            const userCredential = await createUserWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
             const user = userCredential.user;
 
-            // 2. Update profile with name
-            await updateProfile(user, { displayName: name });
+            // 3. Update profile with name
+            await updateProfile(user, { displayName: name.trim() });
 
-            // 3. Create user document in Firestore with 'Member' role
+            // 4. Create user document in Firestore with 'Member' role and group code
             await setDoc(doc(db, 'users', user.uid), {
                 uid: user.uid,
-                displayName: name,
-                email: email,
+                displayName: name.trim(),
+                email: email.trim().toLowerCase(),
                 role: 'Member',
+                groupCode: groupCode.trim().toUpperCase(),
                 createdAt: new Date().toISOString(),
+                status: 'Active',
             });
 
+            // 5. Increment redemption count for the group code
+            await groupCodeService.incrementRedemptionCount(groupCode);
+
             router.replace('/(tabs)');
-        } catch (err: any) {
-            setError(err.message || 'Failed to sign up');
+        } catch (error) {
+            const err = error as any;
+            // Provide user-friendly error messages
+            if (err.code === 'auth/email-already-in-use') {
+                setError(t('auth.alreadyHaveAccount'));
+            } else if (err.code === 'auth/weak-password') {
+                setError(t('auth.invalidPassword'));
+            } else if (err.code === 'auth/invalid-email') {
+                setError(t('auth.invalidEmail'));
+            } else {
+                setError(err.message || t('common.error'));
+            }
             console.error(err);
         } finally {
             setLoading(false);
@@ -89,14 +137,14 @@ export default function SignUpScreen() {
                             >
                                 <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
                             </TouchableOpacity>
-                            <Text style={styles.title}>Create Account</Text>
-                            <Text style={styles.subtitle}>Join KIKOBA Insights today</Text>
+                            <Text style={styles.title}>{t('common.signup')}</Text>
+                            <Text style={styles.subtitle}>{t('auth.join')}</Text>
                         </View>
 
                         {/* Form */}
                         <View style={styles.form}>
                             <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Full Name</Text>
+                                <Text style={styles.label}>{t('common.fullName')}</Text>
                                 <View style={styles.inputContainer}>
                                     <Ionicons name="person-outline" size={20} color={Colors.textSecondary} />
                                     <TextInput
@@ -148,7 +196,7 @@ export default function SignUpScreen() {
                             </View>
 
                             <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Confirm Password</Text>
+                                <Text style={styles.label}>{t('common.confirmPassword')}</Text>
                                 <View style={styles.inputContainer}>
                                     <Ionicons name="lock-closed-outline" size={20} color={Colors.textSecondary} />
                                     <TextInput
@@ -169,6 +217,22 @@ export default function SignUpScreen() {
                                 </View>
                             </View>
 
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>{t('common.groupCode')}</Text>
+                                <View style={styles.inputContainer}>
+                                    <Ionicons name="key-outline" size={20} color={Colors.textSecondary} />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="e.g., SIMB2025"
+                                        placeholderTextColor={Colors.textDisabled}
+                                        value={groupCode}
+                                        onChangeText={setGroupCode}
+                                        autoCapitalize="characters"
+                                    />
+                                </View>
+                                <Text style={styles.hint}>{t('auth.groupCodeHint')}</Text>
+                            </View>
+
                             {error ? (
                                 <Text style={styles.error}>{error}</Text>
                             ) : null}
@@ -182,7 +246,7 @@ export default function SignUpScreen() {
                                     <ActivityIndicator color="white" />
                                 ) : (
                                     <View style={styles.buttonContent}>
-                                        <Text style={styles.buttonText}>Sign Up</Text>
+                                        <Text style={styles.buttonText}>{t('common.signup')}</Text>
                                         <Ionicons name="person-add-outline" size={20} color="white" />
                                     </View>
                                 )}
@@ -190,9 +254,9 @@ export default function SignUpScreen() {
                         </View>
 
                         <View style={styles.footer}>
-                            <Text style={styles.footerText}>Already have an account? </Text>
+                            <Text style={styles.footerText}>{t('auth.alreadyHaveAccount')} </Text>
                             <TouchableOpacity onPress={() => router.push('/login' as any)}>
-                                <Text style={styles.linkText}>Login</Text>
+                                <Text style={styles.linkText}>{t('common.login')}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -309,5 +373,12 @@ const styles = StyleSheet.create({
         color: Colors.primary,
         fontWeight: 'bold',
         fontSize: 14,
+    },
+    hint: {
+        fontSize: 12,
+        color: Colors.textSecondary,
+        marginTop: 6,
+        marginLeft: 4,
+        fontStyle: 'italic',
     },
 });

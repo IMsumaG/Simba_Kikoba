@@ -1,8 +1,10 @@
 "use client";
 
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
-import { BarChart3, RefreshCw } from "lucide-react";
+import jsPDF from "jspdf";
+import { BarChart3, Download, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
+import * as XLSX from "xlsx";
 import AppLayout from "../../components/AppLayout";
 import { db } from "../../lib/firebase";
 
@@ -207,6 +209,175 @@ export default function ReportsPage() {
         }
     };
 
+    const handleExportPersonalReportPDF = () => {
+        if (!reportData) return;
+
+        const selectedMember = members.find(m => m.uid === selectedMemberId);
+        const memberName = selectedMember?.displayName || "Member";
+        const monthName = months.find(m => m.num === selectedMonth)?.name || "";
+
+        const doc = new jsPDF();
+        let yPosition = 20;
+
+        // Header
+        doc.setFontSize(24);
+        doc.setTextColor(245, 124, 0);
+        doc.text("KIKOBA", 20, yPosition);
+        
+        yPosition += 15;
+        doc.setFontSize(14);
+        doc.setTextColor(0, 0, 0);
+        doc.text("Taarifa za Mwanachama", 20, yPosition);
+
+        yPosition += 10;
+        doc.setFontSize(11);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`${monthName} ${selectedYear}`, 20, yPosition);
+
+        yPosition += 15;
+
+        // Member Info
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        doc.text("Taarifa za Mwanachama", 20, yPosition);
+        yPosition += 8;
+        doc.setFontSize(10);
+        doc.text(`Jina: ${memberName}`, 20, yPosition);
+        yPosition += 10;
+
+        // Sections
+        const sections = [
+            {
+                title: "Hisa (Shares)",
+                data: [
+                    { label: "Jumla ya Hisa", value: `TSh ${reportData.hisa.totalHisa.toLocaleString()}` }
+                ]
+            },
+            {
+                title: "Jamii",
+                data: [
+                    { label: "Jumla ya Jamii", value: `TSh ${reportData.jamii.toLocaleString()}` }
+                ]
+            },
+            {
+                title: "Mkopo - Standard (10% Interest)",
+                data: [
+                    { label: "Kiasi cha Mkopo", value: `TSh ${reportData.standardLoan.totalLoaned.toLocaleString()}` },
+                    { label: "Na Riba", value: `TSh ${reportData.standardLoan.totalWithInterest.toLocaleString()}` },
+                    { label: "Kilicholipwa", value: `TSh ${reportData.standardLoan.totalRepayments.toLocaleString()}` },
+                    { label: "Mkopo Uliobaki", value: `TSh ${reportData.standardLoan.remainingBalance.toLocaleString()}`, bold: true }
+                ]
+            },
+            {
+                title: "Dharura (Emergency)",
+                data: [
+                    { label: "Mkopo wa Dharura", value: `TSh ${reportData.dharuraLoan.totalLoaned.toLocaleString()}` },
+                    { label: "Kilicholipwa", value: `TSh ${reportData.dharuraLoan.totalRepayments.toLocaleString()}` },
+                    { label: "Mkopo Uliobaki", value: `TSh ${reportData.dharuraLoan.remainingBalance.toLocaleString()}`, bold: true }
+                ]
+            }
+        ];
+
+        sections.forEach(section => {
+            if (yPosition > 250) {
+                doc.addPage();
+                yPosition = 20;
+            }
+
+            doc.setFontSize(12);
+            doc.setTextColor(245, 124, 0);
+            doc.text(section.title, 20, yPosition);
+            yPosition += 8;
+
+            doc.setFontSize(10);
+            doc.setTextColor(0, 0, 0);
+
+            section.data.forEach(item => {
+                if (yPosition > 270) {
+                    doc.addPage();
+                    yPosition = 20;
+                }
+
+                if (item.bold) {
+                    doc.setFont("helvetica", "bold");
+                } else {
+                    doc.setFont("helvetica", "normal");
+                }
+
+                doc.text(item.label, 25, yPosition);
+                doc.text(item.value, 150, yPosition, { align: "right" });
+                yPosition += 7;
+            });
+
+            yPosition += 5;
+        });
+
+        // Footer
+        doc.setFontSize(9);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Generated: ${new Date().toLocaleDateString('en-US')}`, 20, doc.internal.pageSize.getHeight() - 10);
+
+        doc.save(`KIKOBA_Report_${memberName}_${monthName}_${selectedYear}.pdf`);
+    };
+
+    const handleExportGroupReportExcel = () => {
+        if (!groupReportData) return;
+
+        const monthName = months.find(m => m.num === selectedMonth)?.name || "";
+        const workbook = XLSX.utils.book_new();
+
+        // Prepare data
+        const reportData = groupReportData.members.map(member => ({
+            "Member Name": member.memberName,
+            "Email": member.memberEmail,
+            "Hisa (TSh)": member.hisa.totalHisa,
+            "Jamii (TSh)": member.jamii,
+            "Standard Loan (TSh)": member.standardLoan.totalLoaned,
+            "Standard Interest (TSh)": member.standardLoan.totalWithInterest - member.standardLoan.totalLoaned,
+            "Standard Repaid (TSh)": member.standardLoan.totalRepayments,
+            "Standard Remaining (TSh)": member.standardLoan.remainingBalance,
+            "Dharura Loan (TSh)": member.dharuraLoan.totalLoaned,
+            "Dharura Repaid (TSh)": member.dharuraLoan.totalRepayments,
+            "Dharura Remaining (TSh)": member.dharuraLoan.remainingBalance
+        }));
+
+        // Add summary row
+        const summary = {
+            "Member Name": "TOTAL",
+            "Email": "",
+            "Hisa (TSh)": reportData.reduce((sum, m) => sum + m["Hisa (TSh)"], 0),
+            "Jamii (TSh)": reportData.reduce((sum, m) => sum + m["Jamii (TSh)"], 0),
+            "Standard Loan (TSh)": reportData.reduce((sum, m) => sum + m["Standard Loan (TSh)"], 0),
+            "Standard Interest (TSh)": reportData.reduce((sum, m) => sum + m["Standard Interest (TSh)"], 0),
+            "Standard Repaid (TSh)": reportData.reduce((sum, m) => sum + m["Standard Repaid (TSh)"], 0),
+            "Standard Remaining (TSh)": reportData.reduce((sum, m) => sum + m["Standard Remaining (TSh)"], 0),
+            "Dharura Loan (TSh)": reportData.reduce((sum, m) => sum + m["Dharura Loan (TSh)"], 0),
+            "Dharura Repaid (TSh)": reportData.reduce((sum, m) => sum + m["Dharura Repaid (TSh)"], 0),
+            "Dharura Remaining (TSh)": reportData.reduce((sum, m) => sum + m["Dharura Remaining (TSh)"], 0)
+        };
+
+        const worksheetData = [...reportData, summary];
+        const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+
+        // Style the worksheet
+        worksheet["!cols"] = [
+            { wch: 20 },
+            { wch: 25 },
+            { wch: 15 },
+            { wch: 15 },
+            { wch: 18 },
+            { wch: 18 },
+            { wch: 16 },
+            { wch: 18 },
+            { wch: 16 },
+            { wch: 16 },
+            { wch: 18 }
+        ];
+
+        XLSX.utils.book_append_sheet(workbook, worksheet, `${monthName} ${selectedYear}`);
+        XLSX.writeFile(workbook, `KIKOBA_Group_Report_${monthName}_${selectedYear}.xlsx`);
+    };
+
     const handleRefresh = () => {
         setReportData(null);
         setGroupReportData(null);
@@ -402,10 +573,32 @@ export default function ReportsPage() {
                     {/* Personal Report Display */}
                     {reportData && (
                         <div className="card" style={{ padding: "2rem" }}>
-                            <h2 style={{ fontSize: "1.5rem", fontWeight: "900", marginBottom: "0.5rem", textAlign: "center" }}>KIKOBA</h2>
-                            <p style={{ textAlign: "center", color: "var(--text-secondary)", marginBottom: "2rem" }}>
-                                Taarifa za Mwanachama - {monthName} {selectedYear}
-                            </p>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+                                <div>
+                                    <h2 style={{ fontSize: "1.5rem", fontWeight: "900", marginBottom: "0.5rem" }}>KIKOBA</h2>
+                                    <p style={{ color: "var(--text-secondary)", marginBottom: "0.5rem" }}>
+                                        Taarifa za Mwanachama - {monthName} {selectedYear}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={handleExportPersonalReportPDF}
+                                    style={{
+                                        padding: "0.75rem 1.5rem",
+                                        borderRadius: "0.75rem",
+                                        backgroundColor: "#10B981",
+                                        color: "white",
+                                        border: "none",
+                                        fontWeight: "700",
+                                        cursor: "pointer",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "0.5rem"
+                                    }}
+                                >
+                                    <Download size={16} />
+                                    Export PDF
+                                </button>
+                            </div>
 
                             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem" }}>
                                 {/* Hisa Card */}
@@ -574,13 +767,35 @@ export default function ReportsPage() {
                     {/* Group Report Table */}
                     {groupReportData && (
                         <div className="card" style={{ padding: "2rem", overflow: "auto" }}>
-                            <h2 style={{ fontSize: "1.5rem", fontWeight: "900", marginBottom: "0.5rem", textAlign: "center" }}>KIKOBA</h2>
-                            <p style={{ textAlign: "center", color: "var(--text-secondary)", marginBottom: "1rem" }}>
-                                Taarifa za Kikoba - {monthName} {selectedYear}
-                            </p>
-                            <p style={{ textAlign: "center", fontSize: "0.875rem", color: "var(--text-secondary)", marginBottom: "2rem" }}>
-                                Wanachama Wenye Akaunti: {groupReportData.totalMembers}
-                            </p>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+                                <div>
+                                    <h2 style={{ fontSize: "1.5rem", fontWeight: "900", marginBottom: "0.5rem" }}>KIKOBA</h2>
+                                    <p style={{ color: "var(--text-secondary)", marginBottom: "0.5rem" }}>
+                                        Taarifa za Kikoba - {monthName} {selectedYear}
+                                    </p>
+                                    <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>
+                                        Wanachama Wenye Akaunti: {groupReportData.totalMembers}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={handleExportGroupReportExcel}
+                                    style={{
+                                        padding: "0.75rem 1.5rem",
+                                        borderRadius: "0.75rem",
+                                        backgroundColor: "#F59E0B",
+                                        color: "white",
+                                        border: "none",
+                                        fontWeight: "700",
+                                        cursor: "pointer",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "0.5rem"
+                                    }}
+                                >
+                                    <Download size={16} />
+                                    Export Excel
+                                </button>
+                            </div>
 
                             <table style={{ width: "100%", borderCollapse: "collapse" }}>
                                 <thead>
@@ -604,15 +819,15 @@ export default function ReportsPage() {
                                             }}
                                         >
                                             <td style={{ padding: "1rem", fontWeight: "700" }}>{member.memberName}</td>
-                                            <td style={{ padding: "1rem", textAlign: "right" }}>TSh {(member.hisa.totalHisa / 1000).toFixed(0)}k</td>
-                                            <td style={{ padding: "1rem", textAlign: "right" }}>TSh {(member.jamii / 1000).toFixed(0)}k</td>
-                                            <td style={{ padding: "1rem", textAlign: "right" }}>TSh {(member.standardLoan.totalLoaned / 1000).toFixed(0)}k</td>
+                                            <td style={{ padding: "1rem", textAlign: "right" }}>TSh {Math.round(member.hisa.totalHisa).toLocaleString()}</td>
+                                            <td style={{ padding: "1rem", textAlign: "right" }}>TSh {Math.round(member.jamii).toLocaleString()}</td>
+                                            <td style={{ padding: "1rem", textAlign: "right" }}>TSh {Math.round(member.standardLoan.totalLoaned).toLocaleString()}</td>
                                             <td style={{ padding: "1rem", textAlign: "right", color: member.standardLoan.remainingBalance > 0 ? "#EF4444" : "#10B981", fontWeight: "700" }}>
-                                                TSh {(member.standardLoan.remainingBalance / 1000).toFixed(0)}k
+                                                TSh {Math.round(member.standardLoan.remainingBalance).toLocaleString()}
                                             </td>
-                                            <td style={{ padding: "1rem", textAlign: "right" }}>TSh {(member.dharuraLoan.totalLoaned / 1000).toFixed(0)}k</td>
+                                            <td style={{ padding: "1rem", textAlign: "right" }}>TSh {Math.round(member.dharuraLoan.totalLoaned).toLocaleString()}</td>
                                             <td style={{ padding: "1rem", textAlign: "right", color: member.dharuraLoan.remainingBalance > 0 ? "#EF4444" : "#10B981", fontWeight: "700" }}>
-                                                TSh {(member.dharuraLoan.remainingBalance / 1000).toFixed(0)}k
+                                                TSh {Math.round(member.dharuraLoan.remainingBalance).toLocaleString()}
                                             </td>
                                         </tr>
                                     ))}

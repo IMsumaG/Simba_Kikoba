@@ -1,12 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, ScrollView, StatusBar, StyleSheet, Text, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 import { Transaction, transactionService } from '../../services/transactionService';
 
 export default function MemberDetailScreen() {
+    const { t } = useTranslation();
     const { id, name } = useLocalSearchParams();
     const router = useRouter();
     const [loading, setLoading] = useState(true);
@@ -57,20 +59,20 @@ export default function MemberDetailScreen() {
 
     const handleDeleteTransaction = async (transactionId: string) => {
         Alert.alert(
-            "Delete Transaction",
-            "Are you sure you want to remove this transaction? This will update the member's balance.",
+            t('members.deleteTransaction'),
+            t('members.deleteTransactionConfirm'),
             [
-                { text: "Cancel", style: "cancel" },
+                { text: t('common.cancel'), style: "cancel" },
                 {
-                    text: "Delete",
+                    text: t('common.save'),
                     style: "destructive",
                     onPress: async () => {
                         try {
                             await transactionService.deleteTransaction(transactionId);
                             fetchMemberData(); // Refresh stats and list
-                            Alert.alert("Success", "Transaction deleted.");
+                            Alert.alert(t('common.success'), t('transactions.success'));
                         } catch (error) {
-                            Alert.alert("Error", "Failed to delete transaction.");
+                            Alert.alert(t('common.error'), t('common.error'));
                         }
                     }
                 }
@@ -91,7 +93,9 @@ export default function MemberDetailScreen() {
                     />
                 </View>
                 <View style={styles.transactionTextContainer as ViewStyle}>
-                    <Text style={styles.transactionType as TextStyle}>{type}</Text>
+                    <Text style={styles.transactionType as TextStyle}>
+                        {type === 'Contribution' ? t('transactions.contribution') : (type === 'Loan' ? t('transactions.loan') : t('transactions.repayment'))}
+                    </Text>
                     <Text style={styles.transactionDate as TextStyle}>
                         {new Date(date).toLocaleDateString()}
                     </Text>
@@ -115,7 +119,7 @@ export default function MemberDetailScreen() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton as ViewStyle}>
                     <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle as TextStyle}>Member Profile</Text>
+                <Text style={styles.headerTitle as TextStyle}>{t('members.memberProfile')}</Text>
                 <View style={{ width: 40 }} />
             </View>
 
@@ -134,7 +138,7 @@ export default function MemberDetailScreen() {
                         <View style={styles.avatarLarge as ViewStyle}>
                             <Text style={styles.avatarTextLarge as TextStyle}>{String(name?.[0] || 'U')}</Text>
                         </View>
-                        <Text style={styles.profileName as TextStyle}>{name || 'Member'}</Text>
+                        <Text style={styles.profileName as TextStyle}>{name || t('common.member')}</Text>
                     </View>
 
                     {/* Financial Summary Cards */}
@@ -143,7 +147,7 @@ export default function MemberDetailScreen() {
                             <View style={[styles.summaryIcon as ViewStyle, { backgroundColor: '#DCFCE7' }]}>
                                 <Ionicons name="wallet-outline" size={20} color="#166534" />
                             </View>
-                            <Text style={styles.summaryLabel as TextStyle}>Total Contribution</Text>
+                            <Text style={styles.summaryLabel as TextStyle}>{t('members.totalContribution')}</Text>
                             <Text style={styles.summaryValue as TextStyle}>TSh {stats.totalContributions.toLocaleString()}</Text>
                         </View>
 
@@ -151,21 +155,21 @@ export default function MemberDetailScreen() {
                             <View style={[styles.summaryIcon as ViewStyle, { backgroundColor: '#FEE2E2' }]}>
                                 <Ionicons name="cash-outline" size={20} color="#991B1B" />
                             </View>
-                            <Text style={styles.summaryLabel as TextStyle}>Current Loan</Text>
+                            <Text style={styles.summaryLabel as TextStyle}>{t('members.currentLoan')}</Text>
                             <Text style={styles.summaryValue as TextStyle}>TSh {stats.currentLoan.toLocaleString()}</Text>
                         </View>
                     </View>
 
                     {/* Contributions by Category */}
                     <View style={styles.section as ViewStyle}>
-                        <Text style={styles.sectionTitle as TextStyle}>Contributions by Category</Text>
+                        <Text style={styles.sectionTitle as TextStyle}>{t('members.contributionsByCategory')}</Text>
                         <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
                             <View style={[styles.categoryCard as ViewStyle, { flex: 1 }]}>
-                                <Text style={styles.categoryLabel as TextStyle}>Hisa (Shares)</Text>
+                                <Text style={styles.categoryLabel as TextStyle}>{t('dashboard.hisa')} ({t('reports.memberAccount')})</Text>
                                 <Text style={styles.categoryValue as TextStyle}>TSh {contributionsByCategory.Hisa.toLocaleString()}</Text>
                             </View>
                             <View style={[styles.categoryCard as ViewStyle, { flex: 1 }]}>
-                                <Text style={styles.categoryLabel as TextStyle}>Jamii</Text>
+                                <Text style={styles.categoryLabel as TextStyle}>{t('dashboard.jamii')}</Text>
                                 <Text style={styles.categoryValue as TextStyle}>TSh {contributionsByCategory.Jamii.toLocaleString()}</Text>
                             </View>
                         </View>
@@ -173,14 +177,14 @@ export default function MemberDetailScreen() {
 
                     {/* Loans by Category */}
                     <View style={styles.section as ViewStyle}>
-                        <Text style={styles.sectionTitle as TextStyle}>Loans by Category</Text>
+                        <Text style={styles.sectionTitle as TextStyle}>{t('members.loansByCategory')}</Text>
                         <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
                             <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#DC2626', borderLeftWidth: 4 }]}>
-                                <Text style={styles.categoryLabel as TextStyle}>Standard (10%)</Text>
+                                <Text style={styles.categoryLabel as TextStyle}>{t('dashboard.standard')}</Text>
                                 <Text style={styles.categoryValue as TextStyle}>TSh {loansByCategory.Standard.toLocaleString()}</Text>
                             </View>
                             <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#F59E0B', borderLeftWidth: 4 }]}>
-                                <Text style={styles.categoryLabel as TextStyle}>Dharura (0%)</Text>
+                                <Text style={styles.categoryLabel as TextStyle}>{t('dashboard.dharura')}</Text>
                                 <Text style={styles.categoryValue as TextStyle}>TSh {loansByCategory.Dharura.toLocaleString()}</Text>
                             </View>
                         </View>
@@ -188,7 +192,7 @@ export default function MemberDetailScreen() {
 
                     {/* Recent Transactions */}
                     <View style={styles.section as ViewStyle}>
-                        <Text style={styles.sectionTitle as TextStyle}>Last 5 Transactions</Text>
+                        <Text style={styles.sectionTitle as TextStyle}>{t('members.last5Transactions')}</Text>
                         {transactions.length > 0 ? (
                             transactions.map((item, index) => (
                                 <TransactionItem
@@ -201,7 +205,7 @@ export default function MemberDetailScreen() {
                             ))
                         ) : (
                             <View style={styles.emptyBox as ViewStyle}>
-                                <Text style={styles.emptyText as TextStyle}>No transactions found</Text>
+                                <Text style={styles.emptyText as TextStyle}>{t('members.noMembers')}</Text>
                             </View>
                         )}
                     </View>

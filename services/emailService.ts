@@ -1,66 +1,144 @@
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import { Secrets } from '../constants/Secrets';
-import { db } from './firebase';
+import { getAuth } from 'firebase/auth';
 
-export const EMAIL_CONFIG = {
-    SERVICE_ID: Secrets.EMAILJS.SERVICE_ID,
-    TEMPLATE_ID: Secrets.EMAILJS.TEMPLATE_ID,
-    PUBLIC_KEY: Secrets.EMAILJS.PUBLIC_KEY,
-    PRIVATE_KEY: Secrets.EMAILJS.PRIVATE_KEY,
-};
+// DEPRECATED: EmailJS configuration moved to backend
+// The mobile app now calls the backend API endpoint instead
+// All email sending is handled by the Next.js backend using Nodemailer
 
+/**
+ * Sends monthly reminder emails to all admins
+ * This function calls the backend API which uses Nodemailer for email delivery
+ * 
+ * SECURITY: Backend handles email delivery with secure credentials
+ * No EmailJS keys are exposed on the client-side
+ */
 export async function sendEmailReminderToAllAdmins() {
     try {
-        const q = query(collection(db, 'users'), where('role', '==', 'Admin'));
-        const querySnapshot = await getDocs(q);
+        const auth = getAuth();
+        const currentUser = auth.currentUser;
 
-        const admins: { email: string; name: string }[] = [];
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            if (data.email) {
-                admins.push({ email: data.email, name: data.displayName || 'Admin' });
-            }
+        if (!currentUser) {
+            console.error('❌ No authenticated user found');
+            throw new Error('User must be authenticated to send reminders');
+        }
+
+        // Get the user's ID token
+        const idToken = await currentUser.getIdToken();
+
+        console.log('Calling backend email service...');
+
+        // Call the backend API
+        const response = await fetch('/api/email/send-reminders', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${idToken}`,
+            },
         });
 
-        if (admins.length === 0) {
-            console.log('No admins found to send emails to.');
-            return;
+        const result = await response.json();
+
+        if (!response.ok) {
+            console.error(`❌ Backend API error (${response.status}):`, result.error || result.details);
+            throw new Error(result.error || 'Failed to send reminder emails');
         }
 
-        if (EMAIL_CONFIG.SERVICE_ID === 'YOUR_EMAILJS_SERVICE_ID') {
-            console.log('EmailJS config not set. Skipping email send.');
-            return;
+        console.log(`✅ Email reminder request processed successfully:`, result.message);
+        console.log(`   - Admins notified: ${result.successCount}/${result.adminsCount}`);
+
+        if (result.failureCount > 0) {
+            console.warn(`   - Failed emails: ${result.failureCount}`);
         }
 
-        for (const admin of admins) {
-            const data = {
-                service_id: EMAIL_CONFIG.SERVICE_ID,
-                template_id: EMAIL_CONFIG.TEMPLATE_ID,
-                user_id: EMAIL_CONFIG.PUBLIC_KEY,
-                accessToken: EMAIL_CONFIG.PRIVATE_KEY, // EmailJS uses 'accessToken' for the private key in REST API
-                template_params: {
-                    to_email: admin.email,
-                    to_name: admin.name,
-                    message: 'This is a monthly reminder to remind all KIKOBA members to pay their loans and monthly contributions.',
-                },
-            };
-
-            const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data),
-            });
-
-            if (response.ok) {
-                console.log(`Email sent successfully to ${admin.email}`);
-            } else {
-                const error = await response.text();
-                console.error(`Email failed to send to ${admin.email}:`, error);
-            }
-        }
+        return result;
     } catch (error) {
         console.error('Error in sendEmailReminderToAllAdmins:', error);
+        throw error;
     }
 }
+
+/**
+ * Sends contribution reminders to all members/admins (single email with BCC)
+ */
+export async function sendContributionReminder() {
+    try {
+        const auth = getAuth();
+        const currentUser = auth.currentUser;
+
+        if (!currentUser) {
+            throw new Error('User must be authenticated to send reminders');
+        }
+
+        const idToken = await currentUser.getIdToken();
+
+        console.log('Sending contribution reminder...');
+
+        const response = await fetch('/api/email/send-contribution-reminders', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${idToken}`,
+            },
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || 'Failed to send contribution reminders');
+        }
+
+        console.log(`✅ Contribution reminder sent to ${result.recipientCount} members`);
+        return result;
+    } catch (error) {
+        console.error('Error in sendContributionReminder:', error);
+        throw error;
+    }
+}
+
+/**
+ * Sends loan repayment reminders to members with outstanding loans
+ */
+export async function sendLoanReminder() {
+    try {
+        const auth = getAuth();
+        const currentUser = auth.currentUser;
+
+        if (!currentUser) {
+            throw new Error('User must be authenticated to send reminders');
+        }
+
+        const idToken = await currentUser.getIdToken();
+
+        console.log('Sending loan reminders...');
+
+        const response = await fetch('/api/email/send-loan-reminders', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${idToken}`,
+            },
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || 'Failed to send loan reminders');
+        }
+
+        console.log(`✅ Loan reminders sent to ${result.successCount} members`);
+        return result;
+    } catch (error) {
+        console.error('Error in sendLoanReminder:', error);
+        throw error;
+    }
+}
+
+/**
+ * DEPRECATED: Old EmailJS direct call removed
+ * Use sendEmailReminderToAllAdmins() which calls the backend instead
+ */
+export const EMAIL_CONFIG = {
+    // Email configuration is now handled on the backend
+    // See /web/lib/emailService.ts and .env.local for backend configuration
+    DEPRECATED: true,
+};
+

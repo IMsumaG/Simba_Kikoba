@@ -1,4 +1,4 @@
-import emailjs from '@emailjs/nodejs';
+import { sendMonthlyReminder } from '@/lib/emailService';
 import admin from 'firebase-admin';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -66,28 +66,32 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ success: true, message: 'No admins found' });
         }
 
-        // 2. Send emails via EmailJS Node.js SDK
-        const emailPromises = admins.map(adminUser => {
-            return emailjs.send(
-                process.env.EMAILJS_SERVICE_ID!,
-                process.env.EMAILJS_TEMPLATE_ID!,
-                {
-                    to_email: adminUser.email,
-                    to_name: adminUser.name,
-                    message: 'Kupitia mfumo wa KIKOBA Insights: Tafadhali kumbuka kufanya malipo ya marejesho na michango ya mwezi ifikapo mwisho wa mwezi huu.',
-                },
-                {
-                    publicKey: process.env.EMAILJS_PUBLIC_KEY!,
-                    privateKey: process.env.EMAILJS_PRIVATE_KEY!,
-                }
-            );
-        });
+        // 2. Send emails via Nodemailer
+        const emailResults = await Promise.allSettled(
+            admins.map(adminUser => sendMonthlyReminder(adminUser.email, adminUser.name))
+        );
 
-        await Promise.all(emailPromises);
+        const successCount = emailResults.filter(result => result.status === 'fulfilled' && result.value).length;
+        const failureCount = emailResults.filter(result => result.status === 'rejected' || !result.value).length;
+
+        console.log(`Email sending results: ${successCount} succeeded, ${failureCount} failed`);
+
+        if (failureCount > 0) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: `Sent reminders to ${successCount}/${admins.length} admins. ${failureCount} failed.`,
+                    successCount,
+                    failureCount,
+                },
+                { status: 207 } // 207 Multi-Status
+            );
+        }
 
         return NextResponse.json({
             success: true,
             message: `Successfully sent reminders to ${admins.length} admins.`,
+            count: admins.length,
         });
     } catch (error: any) {
         console.error('Cron Job Failed:', error);

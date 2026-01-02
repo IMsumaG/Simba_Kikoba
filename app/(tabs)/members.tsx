@@ -2,8 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Alert, FlatList, Modal, StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { Alert, FlatList, Modal, StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { SkeletonLoader } from '../../components/SkeletonLoader';
 import { Colors } from '../../constants/Colors';
 import { useAuth } from '../../services/AuthContext';
 import { memberService, UserProfile } from '../../services/memberService';
@@ -11,7 +12,7 @@ import { memberService, UserProfile } from '../../services/memberService';
 export default function MembersScreen() {
     const t = useTranslation().t;
     const router = useRouter();
-    const { role: currentUserRole } = useAuth();
+    const { role: currentUserRole, user } = useAuth();
     const isAdmin = currentUserRole === 'Admin';
     const [search, setSearch] = useState('');
     const [members, setMembers] = useState<UserProfile[]>([]);
@@ -21,6 +22,7 @@ export default function MembersScreen() {
     const [statusModalVisible, setStatusModalVisible] = useState(false);
 
     const fetchMembers = async () => {
+        if (!user) return;
         try {
             const data = await memberService.getAllUsers();
             setMembers(data);
@@ -39,21 +41,21 @@ export default function MembersScreen() {
 
     const handleDeleteMember = (member: UserProfile) => {
         Alert.alert(
-            'Delete Member',
-            `Are you sure you want to delete ${member.displayName}? This action cannot be undone.`,
+            t('members.deleteMember'),
+            t('members.deleteConfirm', { name: member.displayName }),
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: t('common.cancel'), style: 'cancel' },
                 {
-                    text: 'Delete',
+                    text: t('common.save'), // Or 'Futa' but let's use a generic 'Save' or similar if no 'Delete' in common
                     style: 'destructive',
                     onPress: async () => {
                         try {
                             await memberService.deleteMember(member.uid);
                             setMembers(prev => prev.filter(m => m.uid !== member.uid));
-                            Alert.alert('Success', 'Member deleted successfully');
+                            Alert.alert(t('common.success'), t('members.deleteSuccess'));
                         } catch (error) {
                             console.error(error);
-                            Alert.alert('Error', 'Failed to delete member');
+                            Alert.alert(t('common.error'), t('common.error'));
                         }
                     }
                 }
@@ -69,10 +71,10 @@ export default function MembersScreen() {
                 m.uid === selectedMember.uid ? { ...m, status: status as any } : m
             ));
             setStatusModalVisible(false);
-            Alert.alert('Success', 'Status updated successfully');
+            Alert.alert(t('common.success'), t('members.statusUpdated'));
         } catch (error) {
             console.error(error);
-            Alert.alert('Error', 'Failed to update status');
+            Alert.alert(t('common.error'), t('common.error'));
         }
     };
 
@@ -97,7 +99,7 @@ export default function MembersScreen() {
                 <Text style={styles.memberEmail as TextStyle}>{item.email}</Text>
                 <View style={[styles.statusBadge as ViewStyle, { backgroundColor: item.status === 'Inactive' ? '#FEE2E2' : '#DCFCE7' }]}>
                     <Text style={[styles.statusText as TextStyle, { color: item.status === 'Inactive' ? '#991B1B' : '#166534' }]}>
-                        {item.status || 'Active'}
+                        {item.status === 'Inactive' ? t('members.inactive') : t('members.active')}
                     </Text>
                 </View>
             </View>
@@ -142,7 +144,9 @@ export default function MembersScreen() {
             </View>
 
             {loading ? (
-                <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 40 }} />
+                <View style={{ paddingHorizontal: 24, paddingTop: 24, gap: 12 }}>
+                    <SkeletonLoader height={64} count={6} marginVertical={12} borderRadius={16} />
+                </View>
             ) : (
                 <FlatList
                     data={filteredMembers}
@@ -156,7 +160,7 @@ export default function MembersScreen() {
                     }}
                     ListEmptyComponent={
                         <View style={styles.emptyContainer as ViewStyle}>
-                            <Text style={styles.emptyText as TextStyle}>No members found</Text>
+                            <Text style={styles.emptyText as TextStyle}>{t('members.noMembers')}</Text>
                         </View>
                     }
                 />
@@ -175,17 +179,17 @@ export default function MembersScreen() {
                     onPress={() => setStatusModalVisible(false)}
                 >
                     <View style={styles.modalContent as ViewStyle}>
-                        <Text style={styles.modalTitle as TextStyle}>Update Status</Text>
-                        <Text style={styles.modalSubtitle as TextStyle}>Select status for {selectedMember?.displayName}</Text>
+                        <Text style={styles.modalTitle as TextStyle}>{t('members.updateStatus')}</Text>
+                        <Text style={styles.modalSubtitle as TextStyle}>{t('members.selectStatus', { name: selectedMember?.displayName })}</Text>
 
                         <TouchableOpacity style={styles.statusOption as ViewStyle} onPress={() => handleUpdateStatus('Active')}>
                             <Ionicons name="checkmark-circle-outline" size={24} color="#166534" />
-                            <Text style={styles.statusOptionText as TextStyle}>Active</Text>
+                            <Text style={styles.statusOptionText as TextStyle}>{t('members.active')}</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity style={styles.statusOption as ViewStyle} onPress={() => handleUpdateStatus('Inactive')}>
                             <Ionicons name="close-circle-outline" size={24} color="#991B1B" />
-                            <Text style={styles.statusOptionText as TextStyle}>Inactive</Text>
+                            <Text style={styles.statusOptionText as TextStyle}>{t('members.inactive')}</Text>
                         </TouchableOpacity>
                     </View>
                 </TouchableOpacity>

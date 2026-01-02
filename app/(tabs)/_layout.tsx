@@ -56,7 +56,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="transactions"
         options={{
-          title: 'Add',
+          title: t('common.submit'),
           href: isAdmin ? '/transactions' : null,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "add-circle" : "add-circle-outline"} size={24} color={color} />
@@ -67,7 +67,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="reports"
         options={{
-          title: 'Reports',
+          title: t('reports.title'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "document-text" : "document-text-outline"} size={24} color={color} />
           ),
@@ -77,7 +77,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: t('profile.title'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} />
           ),

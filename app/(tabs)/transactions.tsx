@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, FlatList, Modal, ScrollView, StatusBar, StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { SkeletonLoader } from '../../components/SkeletonLoader';
 import { Colors } from '../../constants/Colors';
 import { useAuth } from '../../services/AuthContext';
 import { memberService, UserProfile } from '../../services/memberService';
@@ -28,6 +29,7 @@ export default function TransactionsScreen() {
 
     // Member Selection State
     const [members, setMembers] = useState<UserProfile[]>([]);
+    const [membersLoading, setMembersLoading] = useState(false);
     const [showMemberModal, setShowMemberModal] = useState(false);
     const [search, setSearch] = useState('');
 
@@ -38,22 +40,26 @@ export default function TransactionsScreen() {
     }, [isAdmin]);
 
     const fetchMembers = async () => {
+        if (!currentUser) return;
+        setMembersLoading(true);
         try {
             const data = await memberService.getAllUsers();
             setMembers(data);
         } catch (error) {
             console.error(error);
+        } finally {
+            setMembersLoading(false);
         }
     };
 
     const handleSave = async () => {
         if (!amount || isNaN(Number(amount))) {
-            Alert.alert('Error', 'Please enter a valid amount');
+            Alert.alert(t('common.error'), t('common.error')); // Placeholder or generic error
             return;
         }
 
         if (isAdmin && !selectedMember) {
-            Alert.alert('Error', 'Please select a member');
+            Alert.alert(t('common.error'), t('transactions.selectMember'));
             return;
         }
 
@@ -71,12 +77,12 @@ export default function TransactionsScreen() {
                 status: 'Completed'
             });
 
-            Alert.alert('Success', `${type} added successfully`);
+            Alert.alert(t('common.success'), t('transactions.success'));
             setAmount('');
             setSelectedMember(null);
         } catch (error) {
             console.error(error);
-            Alert.alert('Error', `Failed to add ${type}`);
+            Alert.alert(t('common.error'), t('transactions.error'));
         } finally {
             setLoading(false);
         }
@@ -94,7 +100,7 @@ export default function TransactionsScreen() {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent as ViewStyle}
             >
-                <Text style={styles.title as TextStyle}>Initiate Transaction</Text>
+                <Text style={styles.title as TextStyle}>{t('transactions.title')}</Text>
 
                 <View style={styles.form as ViewStyle}>
                     {/* Member Selection (Admin Only) */}
@@ -112,8 +118,8 @@ export default function TransactionsScreen() {
                             </View>
                             <Text style={styles.memberText as TextStyle}>
                                 {isAdmin
-                                    ? (selectedMember?.displayName || 'Select Member/Admin')
-                                    : (currentUser?.displayName || 'Self')
+                                    ? (selectedMember?.displayName || t('transactions.selectMember'))
+                                    : (currentUser?.displayName || t('common.member'))
                                 }
                             </Text>
                             {isAdmin && <Ionicons name="chevron-down" size={20} color="#94A3B8" />}
@@ -123,7 +129,7 @@ export default function TransactionsScreen() {
                     {/* Transaction Type */}
                     <View style={styles.inputGroup as ViewStyle}>
                         <Text style={styles.label as TextStyle}>
-                            Transaction Type
+                            {t('transactions.type')}
                         </Text>
                         <View style={styles.typeGrid as ViewStyle}>
                             {(['Contribution', 'Loan', 'Loan Repayment'] as const).map((row) => {
@@ -151,10 +157,10 @@ export default function TransactionsScreen() {
                                             styles.typeText as TextStyle,
                                             type === row ? (styles.typeTextActive as TextStyle) : (styles.typeTextInactive as TextStyle)
                                         ]}>
-                                            {isRepay ? 'Repay' : row}
+                                            {isRepay ? t('transactions.repay') : (row === 'Contribution' ? t('transactions.contribution') : t('transactions.loan'))}
                                         </Text>
                                         {isDisabled && (
-                                            <Text style={{ fontSize: 8, color: '#94A3B8', marginTop: 2 }}>No Loan</Text>
+                                            <Text style={{ fontSize: 8, color: '#94A3B8', marginTop: 2, textAlign: 'center' }}>{t('transactions.noLoan')}</Text>
                                         )}
                                     </TouchableOpacity>
                                 );
@@ -170,13 +176,13 @@ export default function TransactionsScreen() {
                                             onPress={() => setCategory('Hisa')}
                                             style={[styles.subTypeBtn, category === 'Hisa' ? styles.subTypeBtnActive : styles.subTypeBtnInactive]}
                                         >
-                                            <Text style={[styles.subTypeText, category === 'Hisa' ? { color: 'white' } : { color: '#64748B' }]}>Hisa (Shares)</Text>
+                                            <Text style={[styles.subTypeText, category === 'Hisa' ? { color: 'white' } : { color: '#64748B' }, { textAlign: 'center' }]}>{t('dashboard.hisa')}</Text>
                                         </TouchableOpacity>
                                         <TouchableOpacity
                                             onPress={() => setCategory('Jamii')}
                                             style={[styles.subTypeBtn, category === 'Jamii' ? styles.subTypeBtnActive : styles.subTypeBtnInactive]}
                                         >
-                                            <Text style={[styles.subTypeText, category === 'Jamii' ? { color: 'white' } : { color: '#64748B' }]}>Jamii</Text>
+                                            <Text style={[styles.subTypeText, category === 'Jamii' ? { color: 'white' } : { color: '#64748B' }, { textAlign: 'center' }]}>{t('dashboard.jamii')}</Text>
                                         </TouchableOpacity>
                                     </>
                                 ) : (
@@ -185,13 +191,13 @@ export default function TransactionsScreen() {
                                             onPress={() => setCategory('Standard')}
                                             style={[styles.subTypeBtn, category === 'Standard' ? styles.subTypeBtnActiveRed : styles.subTypeBtnInactive]}
                                         >
-                                            <Text style={[styles.subTypeText, category === 'Standard' ? { color: 'white' } : { color: '#64748B' }]}>Standard (10%)</Text>
+                                            <Text style={[styles.subTypeText, category === 'Standard' ? { color: 'white' } : { color: '#64748B' }, { textAlign: 'center' }]}>{t('dashboard.standard')}</Text>
                                         </TouchableOpacity>
                                         <TouchableOpacity
                                             onPress={() => setCategory('Dharura')}
                                             style={[styles.subTypeBtn, category === 'Dharura' ? styles.subTypeBtnActiveRed : styles.subTypeBtnInactive]}
                                         >
-                                            <Text style={[styles.subTypeText, category === 'Dharura' ? { color: 'white' } : { color: '#64748B' }]}>Dharura (0%)</Text>
+                                            <Text style={[styles.subTypeText, category === 'Dharura' ? { color: 'white' } : { color: '#64748B' }, { textAlign: 'center' }]}>{t('dashboard.dharura')}</Text>
                                         </TouchableOpacity>
                                     </>
                                 )}
@@ -201,7 +207,7 @@ export default function TransactionsScreen() {
                         {/* Loan Repayment Category Selection */}
                         {type === 'Loan Repayment' && (
                             <View style={{ marginTop: 16 }}>
-                                <Text style={styles.label as TextStyle}>Repayment Category</Text>
+                                <Text style={styles.label as TextStyle}>{t('transactions.repaymentCategory')}</Text>
                                 <View style={{ flexDirection: 'row', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
                                     {(['Standard', 'Dharura'] as const).map((cat) => {
                                         const hasBalance = loanBalanceByCategory[cat] > 0;
@@ -221,11 +227,11 @@ export default function TransactionsScreen() {
                                                 ]}
                                             >
                                                 <View>
-                                                    <Text style={[styles.subTypeText, category === cat && hasBalance ? { color: 'white' } : { color: '#64748B' }]}>
-                                                        {cat} {cat === 'Standard' ? '(10%)' : '(0%)'}
+                                                    <Text style={[styles.subTypeText, category === cat && hasBalance ? { color: 'white' } : { color: '#64748B' }, { textAlign: 'center' }]}>
+                                                        {cat === 'Standard' ? t('dashboard.standard') : t('dashboard.dharura')}
                                                     </Text>
-                                                    <Text style={{ fontSize: 12, color: hasBalance ? '#10B981' : '#EF4444', marginTop: 4 }}>
-                                                        Balance: {loanBalanceByCategory[cat].toFixed(2)}
+                                                    <Text style={{ fontSize: 12, color: hasBalance ? '#10B981' : '#EF4444', marginTop: 4, textAlign: 'center' }}>
+                                                        {t('transactions.balance')}: {loanBalanceByCategory[cat].toFixed(2)}
                                                     </Text>
                                                 </View>
                                             </TouchableOpacity>
@@ -265,7 +271,7 @@ export default function TransactionsScreen() {
                             <ActivityIndicator color="white" />
                         ) : (
                             <>
-                                <Text style={styles.saveBtnText as TextStyle}>Submit Transaction</Text>
+                                <Text style={styles.saveBtnText as TextStyle}>{t('transactions.submit')}</Text>
                                 <Ionicons name="checkmark-circle" size={24} color="white" />
                             </>
                         )}
@@ -280,51 +286,57 @@ export default function TransactionsScreen() {
                         <TouchableOpacity onPress={() => setShowMemberModal(false)}>
                             <Ionicons name="close" size={28} color="#0F172A" />
                         </TouchableOpacity>
-                        <Text style={styles.modalTitle as TextStyle}>Select Recipient</Text>
+                        <Text style={styles.modalTitle as TextStyle}>{t('transactions.selectRecipient')}</Text>
                         <View style={{ width: 28 }} />
                     </View>
 
                     <View style={styles.searchBar as ViewStyle}>
                         <Ionicons name="search" size={20} color="#94A3B8" />
                         <TextInput
-                            placeholder="Search names..."
+                            placeholder={t('transactions.searchNames')}
                             style={styles.modalSearchInput as TextStyle}
                             value={search}
                             onChangeText={setSearch}
                         />
                     </View>
 
-                    <FlatList
-                        data={filteredMembers}
-                        keyExtractor={item => item.uid}
-                        renderItem={({ item }) => (
-                            <TouchableOpacity
-                                style={styles.memberListItem as ViewStyle}
-                                onPress={async () => {
-                                    setSelectedMember(item);
-                                    setShowMemberModal(false);
-                                    // Fetch their loan balance and balance by category
-                                    const stats = await transactionService.getMemberStats(item.uid);
-                                    const balanceByCategory = await transactionService.getLoanBalanceByCategory(item.uid);
-                                    setMemberLoanBalance(stats.currentLoan);
-                                    setLoanBalanceByCategory(balanceByCategory);
-                                    if (stats.currentLoan <= 0 && type === 'Loan Repayment') {
-                                        setType('Contribution'); // Reset if they don't have a loan
-                                    }
-                                }}
-                            >
-                                <View style={styles.avatarMini as ViewStyle}>
-                                    <Text style={styles.avatarTextMini as TextStyle}>{item.displayName?.[0]}</Text>
-                                </View>
-                                <View>
-                                    <Text style={styles.memberNameMain as TextStyle}>{item.displayName}</Text>
-                                    <Text style={styles.memberRole as TextStyle}>{item.role}</Text>
-                                </View>
-                            </TouchableOpacity>
-                        )}
-                        ItemSeparatorComponent={() => <View style={styles.separator as ViewStyle} />}
-                        contentContainerStyle={{ padding: 24 }}
-                    />
+                    {membersLoading ? (
+                        <View style={{ padding: 24, gap: 12 }}>
+                            <SkeletonLoader height={56} count={5} marginVertical={8} borderRadius={16} />
+                        </View>
+                    ) : (
+                        <FlatList
+                            data={filteredMembers}
+                            keyExtractor={item => item.uid}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity
+                                    style={styles.memberListItem as ViewStyle}
+                                    onPress={async () => {
+                                        setSelectedMember(item);
+                                        setShowMemberModal(false);
+                                        // Fetch their loan balance and balance by category
+                                        const stats = await transactionService.getMemberStats(item.uid);
+                                        const balanceByCategory = await transactionService.getLoanBalanceByCategory(item.uid);
+                                        setMemberLoanBalance(stats.currentLoan);
+                                        setLoanBalanceByCategory(balanceByCategory);
+                                        if (stats.currentLoan <= 0 && type === 'Loan Repayment') {
+                                            setType('Contribution'); // Reset if they don't have a loan
+                                        }
+                                    }}
+                                >
+                                    <View style={styles.avatarMini as ViewStyle}>
+                                        <Text style={styles.avatarTextMini as TextStyle}>{item.displayName?.[0]}</Text>
+                                    </View>
+                                    <View>
+                                        <Text style={styles.memberNameMain as TextStyle}>{item.displayName}</Text>
+                                        <Text style={styles.memberRole as TextStyle}>{item.role === 'Admin' ? t('common.admin') : t('common.member')}</Text>
+                                    </View>
+                                </TouchableOpacity>
+                            )}
+                            ItemSeparatorComponent={() => <View style={styles.separator as ViewStyle} />}
+                            contentContainerStyle={{ padding: 24 }}
+                        />
+                    )}
                 </SafeAreaView>
             </Modal>
         </SafeAreaView>
@@ -404,10 +416,11 @@ const styles = StyleSheet.create({
     },
     typeCard: {
         flex: 1,
-        paddingVertical: 16,
+        paddingVertical: 20,
         borderRadius: 20,
         borderWidth: 1,
         alignItems: 'center',
+        justifyContent: 'center',
     },
     typeCardActive: {
         backgroundColor: '#EA580C',
@@ -427,6 +440,7 @@ const styles = StyleSheet.create({
         fontSize: 12,
         textTransform: 'uppercase',
         letterSpacing: 1,
+        textAlign: 'center',
     },
     typeTextActive: {
         color: 'white',
@@ -565,5 +579,6 @@ const styles = StyleSheet.create({
     subTypeText: {
         fontSize: 14,
         fontWeight: '700',
+        textAlign: 'center',
     }
 });

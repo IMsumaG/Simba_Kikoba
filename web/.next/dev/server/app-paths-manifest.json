@@ -1,7 +1,9 @@
 {
+  "/api/email/send-contribution-reminders/route": "app/api/email/send-contribution-reminders/route.js",
   "/dashboard/page": "app/dashboard/page.js",
   "/members/page": "app/members/page.js",
   "/page": "app/page.js",
+  "/reminders/page": "app/reminders/page.js",
   "/reports/page": "app/reports/page.js",
   "/transactions/page": "app/transactions/page.js"
 }

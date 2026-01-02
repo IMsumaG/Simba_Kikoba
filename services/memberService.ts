@@ -1,14 +1,9 @@
 import { collection, deleteDoc, doc, getDocs, updateDoc } from 'firebase/firestore';
+import type { UserProfile } from '../types';
 import { db } from './firebase';
 
-export interface UserProfile {
-    uid: string;
-    displayName: string;
-    email: string;
-    role: 'Admin' | 'Member';
-    status?: 'Active' | 'Inactive' | 'Pending';
-    createdAt: string;
-}
+// Re-export types for backwards compatibility
+export type { UserProfile };
 
 export const memberService = {
     // Get all users from Firestore

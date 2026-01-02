@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, RefreshControl, ScrollView, StatusBar, StyleSheet, Text, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
@@ -12,6 +13,7 @@ import { Transaction, transactionService } from '../../services/transactionServi
 export default function DashboardScreen() {
   const { role, user } = useAuth();
   const { t } = useTranslation();
+  const router = useRouter();
   const isAdmin = role === 'Admin';
 
   const [stats, setStats] = useState({
@@ -51,6 +53,7 @@ export default function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchDashboardData = async () => {
+    if (!user) return;
     try {
       const dashboardTotals = await transactionService.getDashboardTotals();
       const allMembers = await memberService.getAllUsers();
@@ -165,12 +168,15 @@ export default function DashboardScreen() {
         {/* Header */}
         <View style={styles.header as ViewStyle}>
           <View>
-            <Text style={styles.welcomeText as TextStyle}>{t('common.welcomeBack') || 'Welcome back,'}</Text>
+            <Text style={styles.welcomeText as TextStyle}>{t('common.welcomeBack')}</Text>
             <Text style={styles.userName as TextStyle}>
-              {user?.displayName?.split(' ')[0] || 'User'}
+              {user?.displayName?.split(' ')[0] || t('common.member')}
             </Text>
           </View>
-          <TouchableOpacity style={styles.headerIconBtn as ViewStyle}>
+          <TouchableOpacity
+            style={styles.headerIconBtn as ViewStyle}
+            onPress={() => router.push('/profile' as any)}
+          >
             <Ionicons name="settings-outline" size={24} color={Colors.textPrimary} />
           </TouchableOpacity>
         </View>
@@ -185,7 +191,7 @@ export default function DashboardScreen() {
           <View style={styles.balanceHeader as ViewStyle}>
             <View>
               <Text style={styles.balanceLabel as TextStyle}>
-                My Total Savings
+                {t('dashboard.myTotalSavings')}
               </Text>
               <Text style={styles.balanceValue as TextStyle}>
                 TSh {stats.personalContribution.toLocaleString()}
@@ -200,11 +206,11 @@ export default function DashboardScreen() {
 
           <View style={styles.balanceFooter as ViewStyle}>
             <View>
-              <Text style={styles.footerLabel as TextStyle}>My Current Debt</Text>
+              <Text style={styles.footerLabel as TextStyle}>{t('dashboard.myCurrentDebt')}</Text>
               <Text style={styles.footerValue as TextStyle}>TSh {stats.personalLoan.toLocaleString()}</Text>
             </View>
             <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}>
-              <Text style={{ color: 'white', fontSize: 10, fontWeight: '700' }}>{((stats.personalContribution > 0) ? ((stats.personalLoan / stats.personalContribution) * 100).toFixed(1) : 0)}% D/E Ratio</Text>
+              <Text style={{ color: 'white', fontSize: 10, fontWeight: '700' }}>{((stats.personalContribution > 0) ? ((stats.personalLoan / stats.personalContribution) * 100).toFixed(1) : 0)}% {t('dashboard.deRatio')}</Text>
             </View>
           </View>
         </LinearGradient>
@@ -212,15 +218,15 @@ export default function DashboardScreen() {
         {/* Personal Contributions by Category */}
         <View style={styles.section as ViewStyle}>
           <View style={styles.sectionHeader as ViewStyle}>
-            <Text style={styles.sectionTitle as TextStyle}>My Contributions</Text>
+            <Text style={styles.sectionTitle as TextStyle}>{t('dashboard.myContributions')}</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#10B981', borderLeftWidth: 4 }]}>
-              <Text style={styles.categoryLabel as TextStyle}>Hisa (Shares)</Text>
+              <Text style={styles.categoryLabel as TextStyle}>{t('dashboard.hisa')}</Text>
               <Text style={styles.categoryValue as TextStyle}>TSh {personalContributionsByCategory.Hisa.toLocaleString()}</Text>
             </View>
             <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#3B82F6', borderLeftWidth: 4 }]}>
-              <Text style={styles.categoryLabel as TextStyle}>Jamii</Text>
+              <Text style={styles.categoryLabel as TextStyle}>{t('dashboard.jamii')}</Text>
               <Text style={styles.categoryValue as TextStyle}>TSh {personalContributionsByCategory.Jamii.toLocaleString()}</Text>
             </View>
           </View>
@@ -229,15 +235,15 @@ export default function DashboardScreen() {
         {/* Personal Loans by Category */}
         <View style={styles.section as ViewStyle}>
           <View style={styles.sectionHeader as ViewStyle}>
-            <Text style={styles.sectionTitle as TextStyle}>My Loans</Text>
+            <Text style={styles.sectionTitle as TextStyle}>{t('dashboard.myLoans')}</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#DC2626', borderLeftWidth: 4 }]}>
-              <Text style={styles.categoryLabel as TextStyle}>Standard (10%)</Text>
+              <Text style={styles.categoryLabel as TextStyle}>{t('dashboard.standard')}</Text>
               <Text style={styles.categoryValue as TextStyle}>TSh {personalLoansByCategory.Standard.toLocaleString()}</Text>
             </View>
             <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#F59E0B', borderLeftWidth: 4 }]}>
-              <Text style={styles.categoryLabel as TextStyle}>Dharura (0%)</Text>
+              <Text style={styles.categoryLabel as TextStyle}>{t('dashboard.dharura')}</Text>
               <Text style={styles.categoryValue as TextStyle}>TSh {personalLoansByCategory.Dharura.toLocaleString()}</Text>
             </View>
           </View>
@@ -246,40 +252,40 @@ export default function DashboardScreen() {
         {/* Action Quick Stats */}
         <View style={styles.section as ViewStyle}>
           <View style={styles.sectionHeader as ViewStyle}>
-            <Text style={styles.sectionTitle as TextStyle}>Society Overview</Text>
+            <Text style={styles.sectionTitle as TextStyle}>{t('dashboard.societyOverview')}</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statsScroll as ViewStyle}>
             {isAdmin && (
               <>
                 <StatCard
-                  title="Vault Balance"
+                  title={t('dashboard.vaultBalance')}
                   value={`TSh ${(stats.vaultBalance / 1000000).toFixed(1)}M`}
                   icon="cash"
                   color="#10B981"
-                  subtitle="Total Assets"
+                  subtitle={t('dashboard.totalAssets')}
                 />
                 <StatCard
-                  title="Total Debt"
+                  title={t('dashboard.totalDebt')}
                   value={`TSh ${(stats.loanPool / 1000000).toFixed(1)}M`}
                   icon="trending-down"
                   color="#F57C00"
-                  subtitle="Outstanding Loans"
+                  subtitle={t('dashboard.outstandingLoans')}
                 />
               </>
             )}
             <StatCard
-              title="Members"
+              title={t('members.list')}
               value={`${stats.totalMembers}`}
               icon="people"
               color="#3B82F6"
-              subtitle="Active society"
+              subtitle={t('dashboard.activeSociety')}
             />
             <StatCard
-              title="Active Loans"
+              title={t('dashboard.currentContracts')}
               value={`${stats.activeLoans}`}
               icon="document-text"
               color="#8B5CF6"
-              subtitle="Current contracts"
+              subtitle={t('dashboard.currentContracts')}
             />
           </ScrollView>
         </View>
@@ -288,15 +294,15 @@ export default function DashboardScreen() {
         {isAdmin && (
           <View style={styles.section as ViewStyle}>
             <View style={styles.sectionHeader as ViewStyle}>
-              <Text style={styles.sectionTitle as TextStyle}>Total Contributions</Text>
+              <Text style={styles.sectionTitle as TextStyle}>{t('dashboard.totalContributions')}</Text>
             </View>
             <View style={{ flexDirection: 'row', gap: 12 }}>
               <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#10B981', borderLeftWidth: 4 }]}>
-                <Text style={styles.categoryLabel as TextStyle}>Hisa (Shares)</Text>
+                <Text style={styles.categoryLabel as TextStyle}>{t('dashboard.hisa')}</Text>
                 <Text style={styles.categoryValue as TextStyle}>TSh {totalContributionsByCategory.Hisa.toLocaleString()}</Text>
               </View>
               <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#3B82F6', borderLeftWidth: 4 }]}>
-                <Text style={styles.categoryLabel as TextStyle}>Jamii</Text>
+                <Text style={styles.categoryLabel as TextStyle}>{t('dashboard.jamii')}</Text>
                 <Text style={styles.categoryValue as TextStyle}>TSh {totalContributionsByCategory.Jamii.toLocaleString()}</Text>
               </View>
             </View>
@@ -307,15 +313,15 @@ export default function DashboardScreen() {
         {isAdmin && (
           <View style={styles.section as ViewStyle}>
             <View style={styles.sectionHeader as ViewStyle}>
-              <Text style={styles.sectionTitle as TextStyle}>Total Loans Outstanding</Text>
+              <Text style={styles.sectionTitle as TextStyle}>{t('dashboard.totalDebt')}</Text>
             </View>
             <View style={{ flexDirection: 'row', gap: 12 }}>
               <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#DC2626', borderLeftWidth: 4 }]}>
-                <Text style={styles.categoryLabel as TextStyle}>Standard (10%)</Text>
+                <Text style={styles.categoryLabel as TextStyle}>{t('dashboard.standard')}</Text>
                 <Text style={styles.categoryValue as TextStyle}>TSh {totalLoansByCategory.Standard.toLocaleString()}</Text>
               </View>
               <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#F59E0B', borderLeftWidth: 4 }]}>
-                <Text style={styles.categoryLabel as TextStyle}>Dharura (0%)</Text>
+                <Text style={styles.categoryLabel as TextStyle}>{t('dashboard.dharura')}</Text>
                 <Text style={styles.categoryValue as TextStyle}>TSh {totalLoansByCategory.Dharura.toLocaleString()}</Text>
               </View>
             </View>
@@ -326,7 +332,7 @@ export default function DashboardScreen() {
         <View style={styles.section as ViewStyle}>
           <View style={styles.sectionHeader as ViewStyle}>
             <Text style={styles.sectionTitle as TextStyle}>
-              {isAdmin ? "Overall Recent Activities" : "My Recent Activities"}
+              {isAdmin ? t('dashboard.overallRecentActivities') : t('dashboard.myRecentActivities')}
             </Text>
           </View>
           {loading ? (
@@ -335,7 +341,7 @@ export default function DashboardScreen() {
             recentTransactions.map((item, index) => (
               <TransactionItem
                 key={item.id || index}
-                type={item.type}
+                type={item.type === 'Contribution' ? t('transactions.contribution') : (item.type === 'Loan' ? t('transactions.loan') : t('transactions.repayment'))}
                 amount={item.amount}
                 date={item.date}
                 memberName={item.memberName}
@@ -343,37 +349,99 @@ export default function DashboardScreen() {
             ))
           ) : (
             <View style={styles.emptyBox as ViewStyle}>
-              <Text style={styles.emptyText as TextStyle}>No transactions yet</Text>
+              <Text style={styles.emptyText as TextStyle}>{t('dashboard.noTransactions')}</Text>
             </View>
           )}
         </View>
 
-        {/* Admin Tools - For Manual Alerts */}
+        {/* Admin Tools - Email Reminders */}
         {isAdmin && (
           <View style={styles.section as ViewStyle}>
             <View style={styles.sectionHeader as ViewStyle}>
-              <Text style={styles.sectionTitle as TextStyle}>Admin Controls</Text>
+              <Text style={styles.sectionTitle as TextStyle}>{t('dashboard.sendReminders') || 'Send Reminders'}</Text>
             </View>
 
+            {/* Contribution Reminder Button */}
             <TouchableOpacity
               onPress={async () => {
-                try {
-                  await import('../../services/emailService').then(m => m.sendEmailReminderToAllAdmins());
-                  Alert.alert("Success", "Manual email reminders have been sent successfully!");
-                } catch (error) {
-                  console.error(error);
-                  Alert.alert("Error", "Failed to send manual reminders.");
-                }
+                Alert.alert(
+                  t('common.confirm'),
+                  t('dashboard.confirmContributionReminder'),
+                  [
+                    { text: t('common.cancel'), onPress: () => {}, style: 'cancel' },
+                    {
+                      text: t('common.send'),
+                      onPress: async () => {
+                        try {
+                          setLoading(true);
+                          const result = await import('../../services/emailService').then(m => m.sendContributionReminder());
+                          Alert.alert(
+                            t('common.success'),
+                            `Contribution reminder sent to ${result.recipientCount} members`
+                          );
+                        } catch (error: any) {
+                          Alert.alert(t('common.error'), error.message || 'Failed to send reminders');
+                        } finally {
+                          setLoading(false);
+                        }
+                      },
+                    },
+                  ]
+                );
               }}
-              style={styles.adminActionBtn as ViewStyle}
+              disabled={loading}
+              style={[styles.adminActionBtn as ViewStyle, { opacity: loading ? 0.6 : 1 }]}
             >
               <View style={styles.adminActionLeft as ViewStyle}>
-                <View style={styles.adminActionIconContainer as ViewStyle}>
-                  <Ionicons name="mail-unread" size={24} color="white" />
+                <View style={[styles.adminActionIconContainer as ViewStyle, { backgroundColor: '#10B981' }]}>
+                  {loading ? <ActivityIndicator color="white" /> : <Ionicons name="cash" size={24} color="white" />}
                 </View>
                 <View>
-                  <Text style={styles.adminActionTitle as TextStyle}>Send Manual Reminder</Text>
-                  <Text style={styles.adminActionSubtitle as TextStyle}>Push emails to all admins now</Text>
+                  <Text style={styles.adminActionTitle as TextStyle}>{t('dashboard.contributionReminder')}</Text>
+                  <Text style={styles.adminActionSubtitle as TextStyle}>{t('dashboard.remindMembers')}</Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="white" />
+            </TouchableOpacity>
+
+            {/* Loan Repayment Reminder Button */}
+            <TouchableOpacity
+              onPress={async () => {
+                Alert.alert(
+                  t('common.confirm'),
+                  t('dashboard.confirmLoanReminder'),
+                  [
+                    { text: t('common.cancel'), onPress: () => {}, style: 'cancel' },
+                    {
+                      text: t('common.send'),
+                      onPress: async () => {
+                        try {
+                          setLoading(true);
+                          const result = await import('../../services/emailService').then(m => m.sendLoanReminder());
+                          Alert.alert(
+                            t('common.success'),
+                            `Loan reminders sent to ${result.successCount} members with outstanding loans`
+                          );
+                        } catch (error: any) {
+                          Alert.alert(t('common.error'), error.message || 'Failed to send reminders');
+                        } finally {
+                          setLoading(false);
+                        }
+                      },
+                    },
+                  ]
+                );
+              }}
+              disabled={loading}
+              style={[styles.adminActionBtn as ViewStyle, { opacity: loading ? 0.6 : 1, marginTop: 12 }]}
+            >
+              <View style={styles.adminActionLeft as ViewStyle}>
+                <View style={[styles.adminActionIconContainer as ViewStyle, { backgroundColor: '#E74C3C' }]}>
+                  {loading ? <ActivityIndicator color="white" /> : <Ionicons name="alert-circle" size={24} color="white" />}
+                </View>
+                <View>
+                  <Text style={styles.adminActionTitle as TextStyle}>{t('dashboard.loanReminder')}</Text>
+                  <Text style={styles.adminActionSubtitle as TextStyle}>{t('dashboard.remindAboutLoans')}</Text>
                 </View>
               </View>
               <Ionicons name="chevron-forward" size={20} color="white" />

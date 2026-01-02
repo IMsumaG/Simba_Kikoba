@@ -6,6 +6,7 @@ import {
     ChevronRight,
     LayoutDashboard,
     LogOut,
+    Mail,
     PlusCircle,
     Users
 } from "lucide-react";
@@ -26,6 +27,7 @@ export default function Sidebar({ isMinimized, setIsMinimized }: SidebarProps) {
         { name: "Members", href: "/members", icon: Users },
         { name: "Transactions", href: "/transactions", icon: PlusCircle },
         { name: "Reports", href: "/reports", icon: BarChart3 },
+        { name: "Reminders", href: "/reminders", icon: Mail },
     ];
 
     const handleLogout = () => {

@@ -1,24 +1,57 @@
 import { addDoc, collection, getDocs, orderBy, query, where } from 'firebase/firestore';
+import type { DashboardTotals, GroupMonthlyReport, MemberStats, MonthlyReport, Transaction } from '../types';
+import { activityLogger } from './activityLogger';
 import { db } from './firebase';
-import { memberService } from './memberService';
+import { memberService, UserProfile } from './memberService';
 
-export interface Transaction {
-    id?: string;
-    type: 'Contribution' | 'Loan' | 'Loan Repayment';
-    category?: 'Hisa' | 'Jamii' | 'Standard' | 'Dharura';
-    interestRate?: number;
-    amount: number;
-    memberId: string;
-    memberName: string;
-    date: string;
-    createdBy: string;
-    status: 'Completed' | 'Pending';
-}
+// Re-export types for backwards compatibility
+export type { DashboardTotals, GroupMonthlyReport, MemberStats, MonthlyReport, Transaction };
 
 export const transactionService = {
     // Add a new transaction
-    async addTransaction(transaction: Omit<Transaction, 'id'>) {
-        return await addDoc(collection(db, 'transactions'), transaction);
+    async addTransaction(transaction: Omit<Transaction, 'id'>, currentUser?: UserProfile, groupCode?: string) {
+        try {
+            const docRef = await addDoc(collection(db, 'transactions'), transaction);
+            
+            // Log activity if user and groupCode are provided
+            if (currentUser && groupCode) {
+                try {
+                    await activityLogger.logTransactionCreated(
+                        currentUser.uid,
+                        currentUser,
+                        { ...transaction, id: docRef.id },
+                        groupCode
+                    );
+                } catch (error) {
+                    console.warn('Failed to log activity:', error);
+                    // Don't fail the transaction if activity logging fails
+                }
+            }
+            
+            return docRef;
+        } catch (error) {
+            // Log failed activity if user and groupCode are provided
+            if (currentUser && groupCode) {
+                try {
+                    await activityLogger.logFailedActivity(
+                        'transaction_created',
+                        currentUser.uid,
+                        currentUser,
+                        'transaction',
+                        'pending',
+                        error,
+                        groupCode,
+                        {
+                            transactionAmount: transaction.amount,
+                            transactionType: transaction.type,
+                        }
+                    );
+                } catch (logError) {
+                    console.warn('Failed to log activity error:', logError);
+                }
+            }
+            throw error;
+        }
     },
 
     // Get all transactions

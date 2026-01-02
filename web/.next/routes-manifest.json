@@ -59,6 +59,12 @@
       "namedRegex": "^/members(?:/)?$"
     },
     {
+      "page": "/reports",
+      "regex": "^/reports(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/reports(?:/)?$"
+    },
+    {
       "page": "/transactions",
       "regex": "^/transactions(?:/)?$",
       "routeKeys": {},

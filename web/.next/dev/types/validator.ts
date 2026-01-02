@@ -74,6 +74,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../app/reminders/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/reminders">> = Specific
+  const handler = {} as typeof import("../../../app/reminders/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../app/reports/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/reports">> = Specific
@@ -96,6 +105,33 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/cron/monthly-reminder">> = Specific
   const handler = {} as typeof import("../../../app/api/cron/monthly-reminder/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/email/send-contribution-reminders/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/email/send-contribution-reminders">> = Specific
+  const handler = {} as typeof import("../../../app/api/email/send-contribution-reminders/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/email/send-loan-reminders/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/email/send-loan-reminders">> = Specific
+  const handler = {} as typeof import("../../../app/api/email/send-loan-reminders/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/email/send-reminders/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/email/send-reminders">> = Specific
+  const handler = {} as typeof import("../../../app/api/email/send-reminders/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

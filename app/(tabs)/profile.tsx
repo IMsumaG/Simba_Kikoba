@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import i18n from '../../i18n';
 import { useAuth } from '../../services/AuthContext';
 import { auth } from '../../services/firebase';
+import type { MenuItemProps } from '../../types';
 
 export default function ProfileScreen() {
     const { user, role } = useAuth();
@@ -20,13 +21,13 @@ export default function ProfileScreen() {
         i18n.changeLanguage(nextLang);
     };
 
-    const MenuItem = ({ icon, title, value, onPress, color = '#64748B', isLast = false }: any) => (
+    const MenuItem: React.FC<MenuItemProps> = ({ icon, title, value, onPress, color = '#64748B', isLast = false }) => (
         <TouchableOpacity
             onPress={onPress}
             style={[styles.menuItem, !isLast && styles.menuItemBorder]}
         >
             <View style={styles.menuIconContainer}>
-                <Ionicons name={icon} size={22} color={color} />
+                <Ionicons name={icon as any} size={22} color={color} />
             </View>
             <View style={styles.menuTextContainer}>
                 <Text style={styles.menuTitle}>{title}</Text>
@@ -51,40 +52,37 @@ export default function ProfileScreen() {
                         <View style={styles.avatar}>
                             <Text style={styles.avatarText}>{user?.displayName?.[0] || 'U'}</Text>
                         </View>
-                        <TouchableOpacity style={styles.cameraBtn}>
-                            <Ionicons name="camera" size={18} color="white" />
-                        </TouchableOpacity>
                     </View>
                     <Text style={styles.userName}>{user?.displayName || 'User'}</Text>
                     <View style={styles.roleBadge}>
-                        <Text style={styles.roleText}>{role || 'Member'}</Text>
+                        <Text style={styles.roleText}>{role || t('common.member')}</Text>
                     </View>
                 </View>
 
-                <Text style={styles.sectionTitle}>General Settings</Text>
+                <Text style={styles.sectionTitle}>{t('settings.general')}</Text>
                 <View style={styles.menuGroup}>
                     <MenuItem
                         icon="language"
                         title={t('settings.language')}
-                        value={i18n.language === 'en' ? 'English' : 'Kiswahili'}
+                        value={i18n.language === 'en' ? t('settings.english') : t('settings.swahili')}
                         onPress={toggleLanguage}
                         color="#F57C00"
                     />
                     <MenuItem
                         icon="notifications"
-                        title="Push Notifications"
-                        value="Enabled"
+                        title={t('settings.notifications')}
+                        value={t('common.success')}
                         color="#3B82F6"
                     />
                     <MenuItem
                         icon="shield-checkmark"
-                        title="Privacy & Security"
+                        title={t('settings.privacy')}
                         color="#10B981"
                         isLast
                     />
                 </View>
 
-                <Text style={styles.sectionTitle}>Account</Text>
+                <Text style={styles.sectionTitle}>{t('settings.account')}</Text>
                 <View style={styles.menuGroup}>
                     <MenuItem
                         icon="log-out"
@@ -96,7 +94,7 @@ export default function ProfileScreen() {
                 </View>
 
                 <TouchableOpacity style={styles.footer as ViewStyle}>
-                    <Text style={styles.versionText}>KIKOBA Insights v1.0.0</Text>
+                    <Text style={styles.versionText}>KIKOBA Insights {t('settings.version')} 1.0.0</Text>
                 </TouchableOpacity>
             </ScrollView>
         </SafeAreaView>
@@ -142,19 +140,6 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 40,
         fontWeight: '900',
-    },
-    cameraBtn: {
-        position: 'absolute',
-        bottom: 0,
-        right: 0,
-        backgroundColor: '#0F172A',
-        width: 40,
-        height: 40,
-        borderRadius: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 4,
-        borderColor: 'white',
     },
     userName: {
         color: '#0F172A',

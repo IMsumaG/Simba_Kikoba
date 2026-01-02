@@ -12,6 +12,7 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$lucid
 var __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$chevron$2d$right$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__ChevronRight$3e$__ = __turbopack_context__.i("[project]/web/node_modules/lucide-react/dist/esm/icons/chevron-right.js [app-client] (ecmascript) <export default as ChevronRight>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$layout$2d$dashboard$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__LayoutDashboard$3e$__ = __turbopack_context__.i("[project]/web/node_modules/lucide-react/dist/esm/icons/layout-dashboard.js [app-client] (ecmascript) <export default as LayoutDashboard>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$log$2d$out$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__LogOut$3e$__ = __turbopack_context__.i("[project]/web/node_modules/lucide-react/dist/esm/icons/log-out.js [app-client] (ecmascript) <export default as LogOut>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$mail$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Mail$3e$__ = __turbopack_context__.i("[project]/web/node_modules/lucide-react/dist/esm/icons/mail.js [app-client] (ecmascript) <export default as Mail>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$circle$2d$plus$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__PlusCircle$3e$__ = __turbopack_context__.i("[project]/web/node_modules/lucide-react/dist/esm/icons/circle-plus.js [app-client] (ecmascript) <export default as PlusCircle>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$users$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Users$3e$__ = __turbopack_context__.i("[project]/web/node_modules/lucide-react/dist/esm/icons/users.js [app-client] (ecmascript) <export default as Users>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/web/node_modules/next/dist/client/app-dir/link.js [app-client] (ecmascript)");
@@ -47,6 +48,11 @@ function Sidebar({ isMinimized, setIsMinimized }) {
             name: "Reports",
             href: "/reports",
             icon: __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$chart$2d$column$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__BarChart3$3e$__["BarChart3"]
+        },
+        {
+            name: "Reminders",
+            href: "/reminders",
+            icon: __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$mail$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Mail$3e$__["Mail"]
         }
     ];
     const handleLogout = ()=>{
@@ -98,12 +104,12 @@ function Sidebar({ isMinimized, setIsMinimized }) {
                                     color: "white"
                                 }, void 0, false, {
                                     fileName: "[project]/web/components/Sidebar.tsx",
-                                    lineNumber: 55,
+                                    lineNumber: 57,
                                     columnNumber: 29
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/web/components/Sidebar.tsx",
-                                lineNumber: 54,
+                                lineNumber: 56,
                                 columnNumber: 25
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
@@ -115,13 +121,13 @@ function Sidebar({ isMinimized, setIsMinimized }) {
                                 children: "KIKOBA"
                             }, void 0, false, {
                                 fileName: "[project]/web/components/Sidebar.tsx",
-                                lineNumber: 57,
+                                lineNumber: 59,
                                 columnNumber: 25
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/web/components/Sidebar.tsx",
-                        lineNumber: 53,
+                        lineNumber: 55,
                         columnNumber: 21
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -136,24 +142,24 @@ function Sidebar({ isMinimized, setIsMinimized }) {
                             size: 18
                         }, void 0, false, {
                             fileName: "[project]/web/components/Sidebar.tsx",
-                            lineNumber: 69,
+                            lineNumber: 71,
                             columnNumber: 36
                         }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$chevron$2d$left$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__ChevronLeft$3e$__["ChevronLeft"], {
                             size: 18
                         }, void 0, false, {
                             fileName: "[project]/web/components/Sidebar.tsx",
-                            lineNumber: 69,
+                            lineNumber: 71,
                             columnNumber: 65
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/web/components/Sidebar.tsx",
-                        lineNumber: 60,
+                        lineNumber: 62,
                         columnNumber: 17
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/web/components/Sidebar.tsx",
-                lineNumber: 51,
+                lineNumber: 53,
                 columnNumber: 13
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("nav", {
@@ -186,7 +192,7 @@ function Sidebar({ isMinimized, setIsMinimized }) {
                                 }
                             }, void 0, false, {
                                 fileName: "[project]/web/components/Sidebar.tsx",
-                                lineNumber: 94,
+                                lineNumber: 96,
                                 columnNumber: 29
                             }, this),
                             !isMinimized && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -197,19 +203,19 @@ function Sidebar({ isMinimized, setIsMinimized }) {
                                 children: item.name
                             }, void 0, false, {
                                 fileName: "[project]/web/components/Sidebar.tsx",
-                                lineNumber: 95,
+                                lineNumber: 97,
                                 columnNumber: 46
                             }, this)
                         ]
                     }, item.href, true, {
                         fileName: "[project]/web/components/Sidebar.tsx",
-                        lineNumber: 77,
+                        lineNumber: 79,
                         columnNumber: 25
                     }, this);
                 })
             }, void 0, false, {
                 fileName: "[project]/web/components/Sidebar.tsx",
-                lineNumber: 73,
+                lineNumber: 75,
                 columnNumber: 13
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -237,7 +243,7 @@ function Sidebar({ isMinimized, setIsMinimized }) {
                             }
                         }, void 0, false, {
                             fileName: "[project]/web/components/Sidebar.tsx",
-                            lineNumber: 115,
+                            lineNumber: 117,
                             columnNumber: 21
                         }, this),
                         !isMinimized && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -248,24 +254,24 @@ function Sidebar({ isMinimized, setIsMinimized }) {
                             children: "Logout"
                         }, void 0, false, {
                             fileName: "[project]/web/components/Sidebar.tsx",
-                            lineNumber: 116,
+                            lineNumber: 118,
                             columnNumber: 38
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/web/components/Sidebar.tsx",
-                    lineNumber: 102,
+                    lineNumber: 104,
                     columnNumber: 17
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/web/components/Sidebar.tsx",
-                lineNumber: 101,
+                lineNumber: 103,
                 columnNumber: 13
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/web/components/Sidebar.tsx",
-        lineNumber: 36,
+        lineNumber: 38,
         columnNumber: 9
     }, this);
 }
@@ -405,14 +411,19 @@ __turbopack_context__.s([
 var __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/web/node_modules/next/dist/compiled/react/jsx-dev-runtime.js [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$firebase$2f$firestore$2f$dist$2f$esm$2f$index$2e$esm$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/web/node_modules/firebase/firestore/dist/esm/index.esm.js [app-client] (ecmascript) <locals>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f40$firebase$2f$firestore$2f$dist$2f$index$2e$esm$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/web/node_modules/@firebase/firestore/dist/index.esm.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$jspdf$2f$dist$2f$jspdf$2e$es$2e$min$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/web/node_modules/jspdf/dist/jspdf.es.min.js [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$chart$2d$column$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__BarChart3$3e$__ = __turbopack_context__.i("[project]/web/node_modules/lucide-react/dist/esm/icons/chart-column.js [app-client] (ecmascript) <export default as BarChart3>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$download$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Download$3e$__ = __turbopack_context__.i("[project]/web/node_modules/lucide-react/dist/esm/icons/download.js [app-client] (ecmascript) <export default as Download>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$refresh$2d$cw$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__RefreshCw$3e$__ = __turbopack_context__.i("[project]/web/node_modules/lucide-react/dist/esm/icons/refresh-cw.js [app-client] (ecmascript) <export default as RefreshCw>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/web/node_modules/next/dist/compiled/react/index.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$xlsx$2f$xlsx$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/web/node_modules/xlsx/xlsx.mjs [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$components$2f$AppLayout$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/web/components/AppLayout.tsx [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$lib$2f$firebase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/web/lib/firebase.ts [app-client] (ecmascript)");
 ;
 var _s = __turbopack_context__.k.signature();
 "use client";
+;
+;
 ;
 ;
 ;
@@ -608,6 +619,206 @@ function ReportsPage() {
             setLoading(false);
         }
     };
+    const handleExportPersonalReportPDF = ()=>{
+        if (!reportData) return;
+        const selectedMember = members.find((m)=>m.uid === selectedMemberId);
+        const memberName = selectedMember?.displayName || "Member";
+        const monthName = months.find((m)=>m.num === selectedMonth)?.name || "";
+        const doc = new __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$jspdf$2f$dist$2f$jspdf$2e$es$2e$min$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"]();
+        let yPosition = 20;
+        // Header
+        doc.setFontSize(24);
+        doc.setTextColor(245, 124, 0);
+        doc.text("KIKOBA", 20, yPosition);
+        yPosition += 15;
+        doc.setFontSize(14);
+        doc.setTextColor(0, 0, 0);
+        doc.text("Taarifa za Mwanachama", 20, yPosition);
+        yPosition += 10;
+        doc.setFontSize(11);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`${monthName} ${selectedYear}`, 20, yPosition);
+        yPosition += 15;
+        // Member Info
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        doc.text("Taarifa za Mwanachama", 20, yPosition);
+        yPosition += 8;
+        doc.setFontSize(10);
+        doc.text(`Jina: ${memberName}`, 20, yPosition);
+        yPosition += 10;
+        // Sections
+        const sections = [
+            {
+                title: "Hisa (Shares)",
+                data: [
+                    {
+                        label: "Jumla ya Hisa",
+                        value: `TSh ${reportData.hisa.totalHisa.toLocaleString()}`
+                    }
+                ]
+            },
+            {
+                title: "Jamii",
+                data: [
+                    {
+                        label: "Jumla ya Jamii",
+                        value: `TSh ${reportData.jamii.toLocaleString()}`
+                    }
+                ]
+            },
+            {
+                title: "Mkopo - Standard (10% Interest)",
+                data: [
+                    {
+                        label: "Kiasi cha Mkopo",
+                        value: `TSh ${reportData.standardLoan.totalLoaned.toLocaleString()}`
+                    },
+                    {
+                        label: "Na Riba",
+                        value: `TSh ${reportData.standardLoan.totalWithInterest.toLocaleString()}`
+                    },
+                    {
+                        label: "Kilicholipwa",
+                        value: `TSh ${reportData.standardLoan.totalRepayments.toLocaleString()}`
+                    },
+                    {
+                        label: "Mkopo Uliobaki",
+                        value: `TSh ${reportData.standardLoan.remainingBalance.toLocaleString()}`,
+                        bold: true
+                    }
+                ]
+            },
+            {
+                title: "Dharura (Emergency)",
+                data: [
+                    {
+                        label: "Mkopo wa Dharura",
+                        value: `TSh ${reportData.dharuraLoan.totalLoaned.toLocaleString()}`
+                    },
+                    {
+                        label: "Kilicholipwa",
+                        value: `TSh ${reportData.dharuraLoan.totalRepayments.toLocaleString()}`
+                    },
+                    {
+                        label: "Mkopo Uliobaki",
+                        value: `TSh ${reportData.dharuraLoan.remainingBalance.toLocaleString()}`,
+                        bold: true
+                    }
+                ]
+            }
+        ];
+        sections.forEach((section)=>{
+            if (yPosition > 250) {
+                doc.addPage();
+                yPosition = 20;
+            }
+            doc.setFontSize(12);
+            doc.setTextColor(245, 124, 0);
+            doc.text(section.title, 20, yPosition);
+            yPosition += 8;
+            doc.setFontSize(10);
+            doc.setTextColor(0, 0, 0);
+            section.data.forEach((item)=>{
+                if (yPosition > 270) {
+                    doc.addPage();
+                    yPosition = 20;
+                }
+                if (item.bold) {
+                    doc.setFont("helvetica", "bold");
+                } else {
+                    doc.setFont("helvetica", "normal");
+                }
+                doc.text(item.label, 25, yPosition);
+                doc.text(item.value, 150, yPosition, {
+                    align: "right"
+                });
+                yPosition += 7;
+            });
+            yPosition += 5;
+        });
+        // Footer
+        doc.setFontSize(9);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Generated: ${new Date().toLocaleDateString('en-US')}`, 20, doc.internal.pageSize.getHeight() - 10);
+        doc.save(`KIKOBA_Report_${memberName}_${monthName}_${selectedYear}.pdf`);
+    };
+    const handleExportGroupReportExcel = ()=>{
+        if (!groupReportData) return;
+        const monthName = months.find((m)=>m.num === selectedMonth)?.name || "";
+        const workbook = __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$xlsx$2f$xlsx$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["utils"].book_new();
+        // Prepare data
+        const reportData = groupReportData.members.map((member)=>({
+                "Member Name": member.memberName,
+                "Email": member.memberEmail,
+                "Hisa (TSh)": member.hisa.totalHisa,
+                "Jamii (TSh)": member.jamii,
+                "Standard Loan (TSh)": member.standardLoan.totalLoaned,
+                "Standard Interest (TSh)": member.standardLoan.totalWithInterest - member.standardLoan.totalLoaned,
+                "Standard Repaid (TSh)": member.standardLoan.totalRepayments,
+                "Standard Remaining (TSh)": member.standardLoan.remainingBalance,
+                "Dharura Loan (TSh)": member.dharuraLoan.totalLoaned,
+                "Dharura Repaid (TSh)": member.dharuraLoan.totalRepayments,
+                "Dharura Remaining (TSh)": member.dharuraLoan.remainingBalance
+            }));
+        // Add summary row
+        const summary = {
+            "Member Name": "TOTAL",
+            "Email": "",
+            "Hisa (TSh)": reportData.reduce((sum, m)=>sum + m["Hisa (TSh)"], 0),
+            "Jamii (TSh)": reportData.reduce((sum, m)=>sum + m["Jamii (TSh)"], 0),
+            "Standard Loan (TSh)": reportData.reduce((sum, m)=>sum + m["Standard Loan (TSh)"], 0),
+            "Standard Interest (TSh)": reportData.reduce((sum, m)=>sum + m["Standard Interest (TSh)"], 0),
+            "Standard Repaid (TSh)": reportData.reduce((sum, m)=>sum + m["Standard Repaid (TSh)"], 0),
+            "Standard Remaining (TSh)": reportData.reduce((sum, m)=>sum + m["Standard Remaining (TSh)"], 0),
+            "Dharura Loan (TSh)": reportData.reduce((sum, m)=>sum + m["Dharura Loan (TSh)"], 0),
+            "Dharura Repaid (TSh)": reportData.reduce((sum, m)=>sum + m["Dharura Repaid (TSh)"], 0),
+            "Dharura Remaining (TSh)": reportData.reduce((sum, m)=>sum + m["Dharura Remaining (TSh)"], 0)
+        };
+        const worksheetData = [
+            ...reportData,
+            summary
+        ];
+        const worksheet = __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$xlsx$2f$xlsx$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["utils"].json_to_sheet(worksheetData);
+        // Style the worksheet
+        worksheet["!cols"] = [
+            {
+                wch: 20
+            },
+            {
+                wch: 25
+            },
+            {
+                wch: 15
+            },
+            {
+                wch: 15
+            },
+            {
+                wch: 18
+            },
+            {
+                wch: 18
+            },
+            {
+                wch: 16
+            },
+            {
+                wch: 18
+            },
+            {
+                wch: 16
+            },
+            {
+                wch: 16
+            },
+            {
+                wch: 18
+            }
+        ];
+        __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$xlsx$2f$xlsx$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["utils"].book_append_sheet(workbook, worksheet, `${monthName} ${selectedYear}`);
+        __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$xlsx$2f$xlsx$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["writeFile"](workbook, `KIKOBA_Group_Report_${monthName}_${selectedYear}.xlsx`);
+    };
     const handleRefresh = ()=>{
         setReportData(null);
         setGroupReportData(null);
@@ -635,7 +846,7 @@ function ReportsPage() {
                                 children: "Reports & Analytics"
                             }, void 0, false, {
                                 fileName: "[project]/web/app/reports/page.tsx",
-                                lineNumber: 222,
+                                lineNumber: 393,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -645,13 +856,13 @@ function ReportsPage() {
                                 children: "Monthly member and group financial reports"
                             }, void 0, false, {
                                 fileName: "[project]/web/app/reports/page.tsx",
-                                lineNumber: 223,
+                                lineNumber: 394,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/web/app/reports/page.tsx",
-                        lineNumber: 221,
+                        lineNumber: 392,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -673,20 +884,20 @@ function ReportsPage() {
                                 size: 16
                             }, void 0, false, {
                                 fileName: "[project]/web/app/reports/page.tsx",
-                                lineNumber: 240,
+                                lineNumber: 411,
                                 columnNumber: 21
                             }, this),
                             "Refresh"
                         ]
                     }, void 0, true, {
                         fileName: "[project]/web/app/reports/page.tsx",
-                        lineNumber: 225,
+                        lineNumber: 396,
                         columnNumber: 17
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/web/app/reports/page.tsx",
-                lineNumber: 220,
+                lineNumber: 391,
                 columnNumber: 13
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -713,7 +924,7 @@ function ReportsPage() {
                         children: "Personal Report"
                     }, void 0, false, {
                         fileName: "[project]/web/app/reports/page.tsx",
-                        lineNumber: 247,
+                        lineNumber: 418,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -731,13 +942,13 @@ function ReportsPage() {
                         children: "Group Report"
                     }, void 0, false, {
                         fileName: "[project]/web/app/reports/page.tsx",
-                        lineNumber: 262,
+                        lineNumber: 433,
                         columnNumber: 17
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/web/app/reports/page.tsx",
-                lineNumber: 246,
+                lineNumber: 417,
                 columnNumber: 13
             }, this),
             activeTab === "personal" ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Fragment"], {
@@ -758,7 +969,7 @@ function ReportsPage() {
                                 children: "Select Period & Member"
                             }, void 0, false, {
                                 fileName: "[project]/web/app/reports/page.tsx",
-                                lineNumber: 283,
+                                lineNumber: 454,
                                 columnNumber: 25
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -782,7 +993,7 @@ function ReportsPage() {
                                                 children: "Month"
                                             }, void 0, false, {
                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                lineNumber: 286,
+                                                lineNumber: 457,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -802,18 +1013,18 @@ function ReportsPage() {
                                                         children: m.name
                                                     }, m.num, false, {
                                                         fileName: "[project]/web/app/reports/page.tsx",
-                                                        lineNumber: 303,
+                                                        lineNumber: 474,
                                                         columnNumber: 41
                                                     }, this))
                                             }, void 0, false, {
                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                lineNumber: 289,
+                                                lineNumber: 460,
                                                 columnNumber: 33
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/web/app/reports/page.tsx",
-                                        lineNumber: 285,
+                                        lineNumber: 456,
                                         columnNumber: 29
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -830,7 +1041,7 @@ function ReportsPage() {
                                                 children: "Year"
                                             }, void 0, false, {
                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                lineNumber: 309,
+                                                lineNumber: 480,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -852,7 +1063,7 @@ function ReportsPage() {
                                                         children: "← Prev"
                                                     }, void 0, false, {
                                                         fileName: "[project]/web/app/reports/page.tsx",
-                                                        lineNumber: 313,
+                                                        lineNumber: 484,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -869,7 +1080,7 @@ function ReportsPage() {
                                                         }
                                                     }, void 0, false, {
                                                         fileName: "[project]/web/app/reports/page.tsx",
-                                                        lineNumber: 326,
+                                                        lineNumber: 497,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -885,19 +1096,19 @@ function ReportsPage() {
                                                         children: "Next →"
                                                     }, void 0, false, {
                                                         fileName: "[project]/web/app/reports/page.tsx",
-                                                        lineNumber: 339,
+                                                        lineNumber: 510,
                                                         columnNumber: 37
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                lineNumber: 312,
+                                                lineNumber: 483,
                                                 columnNumber: 33
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/web/app/reports/page.tsx",
-                                        lineNumber: 308,
+                                        lineNumber: 479,
                                         columnNumber: 29
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -914,7 +1125,7 @@ function ReportsPage() {
                                                 children: "Member"
                                             }, void 0, false, {
                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                lineNumber: 356,
+                                                lineNumber: 527,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -934,24 +1145,24 @@ function ReportsPage() {
                                                         children: m.displayName
                                                     }, m.uid, false, {
                                                         fileName: "[project]/web/app/reports/page.tsx",
-                                                        lineNumber: 373,
+                                                        lineNumber: 544,
                                                         columnNumber: 41
                                                     }, this))
                                             }, void 0, false, {
                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                lineNumber: 359,
+                                                lineNumber: 530,
                                                 columnNumber: 33
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/web/app/reports/page.tsx",
-                                        lineNumber: 355,
+                                        lineNumber: 526,
                                         columnNumber: 29
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/web/app/reports/page.tsx",
-                                lineNumber: 284,
+                                lineNumber: 455,
                                 columnNumber: 25
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -976,20 +1187,20 @@ function ReportsPage() {
                                         size: 16
                                     }, void 0, false, {
                                         fileName: "[project]/web/app/reports/page.tsx",
-                                        lineNumber: 397,
+                                        lineNumber: 568,
                                         columnNumber: 29
                                     }, this),
                                     loading ? "Generating..." : "Generate Report"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/web/app/reports/page.tsx",
-                                lineNumber: 379,
+                                lineNumber: 550,
                                 columnNumber: 25
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/web/app/reports/page.tsx",
-                        lineNumber: 282,
+                        lineNumber: 453,
                         columnNumber: 21
                     }, this),
                     reportData && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -998,34 +1209,83 @@ function ReportsPage() {
                             padding: "2rem"
                         },
                         children: [
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                 style: {
-                                    fontSize: "1.5rem",
-                                    fontWeight: "900",
-                                    marginBottom: "0.5rem",
-                                    textAlign: "center"
-                                },
-                                children: "KIKOBA"
-                            }, void 0, false, {
-                                fileName: "[project]/web/app/reports/page.tsx",
-                                lineNumber: 405,
-                                columnNumber: 29
-                            }, this),
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                style: {
-                                    textAlign: "center",
-                                    color: "var(--text-secondary)",
-                                    marginBottom: "2rem"
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    marginBottom: "1.5rem"
                                 },
                                 children: [
-                                    "Taarifa za Mwanachama - ",
-                                    monthName,
-                                    " ",
-                                    selectedYear
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
+                                                style: {
+                                                    fontSize: "1.5rem",
+                                                    fontWeight: "900",
+                                                    marginBottom: "0.5rem"
+                                                },
+                                                children: "KIKOBA"
+                                            }, void 0, false, {
+                                                fileName: "[project]/web/app/reports/page.tsx",
+                                                lineNumber: 578,
+                                                columnNumber: 37
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                style: {
+                                                    color: "var(--text-secondary)",
+                                                    marginBottom: "0.5rem"
+                                                },
+                                                children: [
+                                                    "Taarifa za Mwanachama - ",
+                                                    monthName,
+                                                    " ",
+                                                    selectedYear
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/web/app/reports/page.tsx",
+                                                lineNumber: 579,
+                                                columnNumber: 37
+                                            }, this)
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/web/app/reports/page.tsx",
+                                        lineNumber: 577,
+                                        columnNumber: 33
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                        onClick: handleExportPersonalReportPDF,
+                                        style: {
+                                            padding: "0.75rem 1.5rem",
+                                            borderRadius: "0.75rem",
+                                            backgroundColor: "#10B981",
+                                            color: "white",
+                                            border: "none",
+                                            fontWeight: "700",
+                                            cursor: "pointer",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: "0.5rem"
+                                        },
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$download$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Download$3e$__["Download"], {
+                                                size: 16
+                                            }, void 0, false, {
+                                                fileName: "[project]/web/app/reports/page.tsx",
+                                                lineNumber: 598,
+                                                columnNumber: 37
+                                            }, this),
+                                            "Export PDF"
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/web/app/reports/page.tsx",
+                                        lineNumber: 583,
+                                        columnNumber: 33
+                                    }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/web/app/reports/page.tsx",
-                                lineNumber: 406,
+                                lineNumber: 576,
                                 columnNumber: 29
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1053,7 +1313,7 @@ function ReportsPage() {
                                                 children: "Hisa (Shares)"
                                             }, void 0, false, {
                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                lineNumber: 413,
+                                                lineNumber: 606,
                                                 columnNumber: 37
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1070,7 +1330,7 @@ function ReportsPage() {
                                                         children: "Total Hisa:"
                                                     }, void 0, false, {
                                                         fileName: "[project]/web/app/reports/page.tsx",
-                                                        lineNumber: 415,
+                                                        lineNumber: 608,
                                                         columnNumber: 41
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1083,19 +1343,19 @@ function ReportsPage() {
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/web/app/reports/page.tsx",
-                                                        lineNumber: 416,
+                                                        lineNumber: 609,
                                                         columnNumber: 41
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                lineNumber: 414,
+                                                lineNumber: 607,
                                                 columnNumber: 37
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/web/app/reports/page.tsx",
-                                        lineNumber: 412,
+                                        lineNumber: 605,
                                         columnNumber: 33
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1116,7 +1376,7 @@ function ReportsPage() {
                                                 children: "Jamii"
                                             }, void 0, false, {
                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                lineNumber: 422,
+                                                lineNumber: 615,
                                                 columnNumber: 37
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1133,7 +1393,7 @@ function ReportsPage() {
                                                         children: "Total Jamii:"
                                                     }, void 0, false, {
                                                         fileName: "[project]/web/app/reports/page.tsx",
-                                                        lineNumber: 424,
+                                                        lineNumber: 617,
                                                         columnNumber: 41
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1146,19 +1406,19 @@ function ReportsPage() {
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/web/app/reports/page.tsx",
-                                                        lineNumber: 425,
+                                                        lineNumber: 618,
                                                         columnNumber: 41
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                lineNumber: 423,
+                                                lineNumber: 616,
                                                 columnNumber: 37
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/web/app/reports/page.tsx",
-                                        lineNumber: 421,
+                                        lineNumber: 614,
                                         columnNumber: 33
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1179,7 +1439,7 @@ function ReportsPage() {
                                                 children: "Standard Loan (10% Interest)"
                                             }, void 0, false, {
                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                lineNumber: 431,
+                                                lineNumber: 624,
                                                 columnNumber: 37
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1202,7 +1462,7 @@ function ReportsPage() {
                                                                 children: "Amount Loaned:"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                                lineNumber: 434,
+                                                                lineNumber: 627,
                                                                 columnNumber: 45
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1215,13 +1475,13 @@ function ReportsPage() {
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                                lineNumber: 435,
+                                                                lineNumber: 628,
                                                                 columnNumber: 45
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/web/app/reports/page.tsx",
-                                                        lineNumber: 433,
+                                                        lineNumber: 626,
                                                         columnNumber: 41
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1236,7 +1496,7 @@ function ReportsPage() {
                                                                 children: "With Interest:"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                                lineNumber: 438,
+                                                                lineNumber: 631,
                                                                 columnNumber: 45
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1249,13 +1509,13 @@ function ReportsPage() {
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                                lineNumber: 439,
+                                                                lineNumber: 632,
                                                                 columnNumber: 45
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/web/app/reports/page.tsx",
-                                                        lineNumber: 437,
+                                                        lineNumber: 630,
                                                         columnNumber: 41
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1270,7 +1530,7 @@ function ReportsPage() {
                                                                 children: "Repaid:"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                                lineNumber: 442,
+                                                                lineNumber: 635,
                                                                 columnNumber: 45
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1283,13 +1543,13 @@ function ReportsPage() {
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                                lineNumber: 443,
+                                                                lineNumber: 636,
                                                                 columnNumber: 45
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/web/app/reports/page.tsx",
-                                                        lineNumber: 441,
+                                                        lineNumber: 634,
                                                         columnNumber: 41
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1308,7 +1568,7 @@ function ReportsPage() {
                                                                 children: "Remaining:"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                                lineNumber: 446,
+                                                                lineNumber: 639,
                                                                 columnNumber: 45
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1321,25 +1581,25 @@ function ReportsPage() {
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                                lineNumber: 447,
+                                                                lineNumber: 640,
                                                                 columnNumber: 45
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/web/app/reports/page.tsx",
-                                                        lineNumber: 445,
+                                                        lineNumber: 638,
                                                         columnNumber: 41
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                lineNumber: 432,
+                                                lineNumber: 625,
                                                 columnNumber: 37
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/web/app/reports/page.tsx",
-                                        lineNumber: 430,
+                                        lineNumber: 623,
                                         columnNumber: 33
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1360,7 +1620,7 @@ function ReportsPage() {
                                                 children: "Dharura (Emergency)"
                                             }, void 0, false, {
                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                lineNumber: 454,
+                                                lineNumber: 647,
                                                 columnNumber: 37
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1383,7 +1643,7 @@ function ReportsPage() {
                                                                 children: "Amount Loaned:"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                                lineNumber: 457,
+                                                                lineNumber: 650,
                                                                 columnNumber: 45
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1396,13 +1656,13 @@ function ReportsPage() {
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                                lineNumber: 458,
+                                                                lineNumber: 651,
                                                                 columnNumber: 45
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/web/app/reports/page.tsx",
-                                                        lineNumber: 456,
+                                                        lineNumber: 649,
                                                         columnNumber: 41
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1417,7 +1677,7 @@ function ReportsPage() {
                                                                 children: "Repaid:"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                                lineNumber: 461,
+                                                                lineNumber: 654,
                                                                 columnNumber: 45
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1430,13 +1690,13 @@ function ReportsPage() {
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                                lineNumber: 462,
+                                                                lineNumber: 655,
                                                                 columnNumber: 45
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/web/app/reports/page.tsx",
-                                                        lineNumber: 460,
+                                                        lineNumber: 653,
                                                         columnNumber: 41
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1455,7 +1715,7 @@ function ReportsPage() {
                                                                 children: "Remaining:"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                                lineNumber: 465,
+                                                                lineNumber: 658,
                                                                 columnNumber: 45
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1468,37 +1728,37 @@ function ReportsPage() {
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                                lineNumber: 466,
+                                                                lineNumber: 659,
                                                                 columnNumber: 45
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/web/app/reports/page.tsx",
-                                                        lineNumber: 464,
+                                                        lineNumber: 657,
                                                         columnNumber: 41
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                lineNumber: 455,
+                                                lineNumber: 648,
                                                 columnNumber: 37
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/web/app/reports/page.tsx",
-                                        lineNumber: 453,
+                                        lineNumber: 646,
                                         columnNumber: 33
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/web/app/reports/page.tsx",
-                                lineNumber: 410,
+                                lineNumber: 603,
                                 columnNumber: 29
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/web/app/reports/page.tsx",
-                        lineNumber: 404,
+                        lineNumber: 575,
                         columnNumber: 25
                     }, this)
                 ]
@@ -1520,7 +1780,7 @@ function ReportsPage() {
                                 children: "Select Period"
                             }, void 0, false, {
                                 fileName: "[project]/web/app/reports/page.tsx",
-                                lineNumber: 478,
+                                lineNumber: 671,
                                 columnNumber: 25
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1544,7 +1804,7 @@ function ReportsPage() {
                                                 children: "Month"
                                             }, void 0, false, {
                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                lineNumber: 481,
+                                                lineNumber: 674,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -1564,18 +1824,18 @@ function ReportsPage() {
                                                         children: m.name
                                                     }, m.num, false, {
                                                         fileName: "[project]/web/app/reports/page.tsx",
-                                                        lineNumber: 498,
+                                                        lineNumber: 691,
                                                         columnNumber: 41
                                                     }, this))
                                             }, void 0, false, {
                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                lineNumber: 484,
+                                                lineNumber: 677,
                                                 columnNumber: 33
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/web/app/reports/page.tsx",
-                                        lineNumber: 480,
+                                        lineNumber: 673,
                                         columnNumber: 29
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1592,7 +1852,7 @@ function ReportsPage() {
                                                 children: "Year"
                                             }, void 0, false, {
                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                lineNumber: 504,
+                                                lineNumber: 697,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1614,7 +1874,7 @@ function ReportsPage() {
                                                         children: "← Prev"
                                                     }, void 0, false, {
                                                         fileName: "[project]/web/app/reports/page.tsx",
-                                                        lineNumber: 508,
+                                                        lineNumber: 701,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -1631,7 +1891,7 @@ function ReportsPage() {
                                                         }
                                                     }, void 0, false, {
                                                         fileName: "[project]/web/app/reports/page.tsx",
-                                                        lineNumber: 521,
+                                                        lineNumber: 714,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1647,25 +1907,25 @@ function ReportsPage() {
                                                         children: "Next →"
                                                     }, void 0, false, {
                                                         fileName: "[project]/web/app/reports/page.tsx",
-                                                        lineNumber: 534,
+                                                        lineNumber: 727,
                                                         columnNumber: 37
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                lineNumber: 507,
+                                                lineNumber: 700,
                                                 columnNumber: 33
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/web/app/reports/page.tsx",
-                                        lineNumber: 503,
+                                        lineNumber: 696,
                                         columnNumber: 29
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/web/app/reports/page.tsx",
-                                lineNumber: 479,
+                                lineNumber: 672,
                                 columnNumber: 25
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1690,20 +1950,20 @@ function ReportsPage() {
                                         size: 16
                                     }, void 0, false, {
                                         fileName: "[project]/web/app/reports/page.tsx",
-                                        lineNumber: 569,
+                                        lineNumber: 762,
                                         columnNumber: 29
                                     }, this),
                                     loading ? "Generating..." : "Generate Group Report"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/web/app/reports/page.tsx",
-                                lineNumber: 551,
+                                lineNumber: 744,
                                 columnNumber: 25
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/web/app/reports/page.tsx",
-                        lineNumber: 477,
+                        lineNumber: 670,
                         columnNumber: 21
                     }, this),
                     groupReportData && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1713,50 +1973,97 @@ function ReportsPage() {
                             overflow: "auto"
                         },
                         children: [
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                 style: {
-                                    fontSize: "1.5rem",
-                                    fontWeight: "900",
-                                    marginBottom: "0.5rem",
-                                    textAlign: "center"
-                                },
-                                children: "KIKOBA"
-                            }, void 0, false, {
-                                fileName: "[project]/web/app/reports/page.tsx",
-                                lineNumber: 577,
-                                columnNumber: 29
-                            }, this),
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                style: {
-                                    textAlign: "center",
-                                    color: "var(--text-secondary)",
-                                    marginBottom: "1rem"
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    marginBottom: "1.5rem"
                                 },
                                 children: [
-                                    "Taarifa za Kikoba - ",
-                                    monthName,
-                                    " ",
-                                    selectedYear
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
+                                                style: {
+                                                    fontSize: "1.5rem",
+                                                    fontWeight: "900",
+                                                    marginBottom: "0.5rem"
+                                                },
+                                                children: "KIKOBA"
+                                            }, void 0, false, {
+                                                fileName: "[project]/web/app/reports/page.tsx",
+                                                lineNumber: 772,
+                                                columnNumber: 37
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                style: {
+                                                    color: "var(--text-secondary)",
+                                                    marginBottom: "0.5rem"
+                                                },
+                                                children: [
+                                                    "Taarifa za Kikoba - ",
+                                                    monthName,
+                                                    " ",
+                                                    selectedYear
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/web/app/reports/page.tsx",
+                                                lineNumber: 773,
+                                                columnNumber: 37
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                style: {
+                                                    fontSize: "0.875rem",
+                                                    color: "var(--text-secondary)"
+                                                },
+                                                children: [
+                                                    "Wanachama Wenye Akaunti: ",
+                                                    groupReportData.totalMembers
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/web/app/reports/page.tsx",
+                                                lineNumber: 776,
+                                                columnNumber: 37
+                                            }, this)
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/web/app/reports/page.tsx",
+                                        lineNumber: 771,
+                                        columnNumber: 33
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                        onClick: handleExportGroupReportExcel,
+                                        style: {
+                                            padding: "0.75rem 1.5rem",
+                                            borderRadius: "0.75rem",
+                                            backgroundColor: "#F59E0B",
+                                            color: "white",
+                                            border: "none",
+                                            fontWeight: "700",
+                                            cursor: "pointer",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: "0.5rem"
+                                        },
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$download$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Download$3e$__["Download"], {
+                                                size: 16
+                                            }, void 0, false, {
+                                                fileName: "[project]/web/app/reports/page.tsx",
+                                                lineNumber: 795,
+                                                columnNumber: 37
+                                            }, this),
+                                            "Export Excel"
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/web/app/reports/page.tsx",
+                                        lineNumber: 780,
+                                        columnNumber: 33
+                                    }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/web/app/reports/page.tsx",
-                                lineNumber: 578,
-                                columnNumber: 29
-                            }, this),
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                style: {
-                                    textAlign: "center",
-                                    fontSize: "0.875rem",
-                                    color: "var(--text-secondary)",
-                                    marginBottom: "2rem"
-                                },
-                                children: [
-                                    "Wanachama Wenye Akaunti: ",
-                                    groupReportData.totalMembers
-                                ]
-                            }, void 0, true, {
-                                fileName: "[project]/web/app/reports/page.tsx",
-                                lineNumber: 581,
+                                lineNumber: 770,
                                 columnNumber: 29
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("table", {
@@ -1781,7 +2088,7 @@ function ReportsPage() {
                                                     children: "Member Name"
                                                 }, void 0, false, {
                                                     fileName: "[project]/web/app/reports/page.tsx",
-                                                    lineNumber: 588,
+                                                    lineNumber: 803,
                                                     columnNumber: 41
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -1794,7 +2101,7 @@ function ReportsPage() {
                                                     children: "Hisa"
                                                 }, void 0, false, {
                                                     fileName: "[project]/web/app/reports/page.tsx",
-                                                    lineNumber: 589,
+                                                    lineNumber: 804,
                                                     columnNumber: 41
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -1807,7 +2114,7 @@ function ReportsPage() {
                                                     children: "Jamii"
                                                 }, void 0, false, {
                                                     fileName: "[project]/web/app/reports/page.tsx",
-                                                    lineNumber: 590,
+                                                    lineNumber: 805,
                                                     columnNumber: 41
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -1820,7 +2127,7 @@ function ReportsPage() {
                                                     children: "Std Loan"
                                                 }, void 0, false, {
                                                     fileName: "[project]/web/app/reports/page.tsx",
-                                                    lineNumber: 591,
+                                                    lineNumber: 806,
                                                     columnNumber: 41
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -1833,7 +2140,7 @@ function ReportsPage() {
                                                     children: "Std Remaining"
                                                 }, void 0, false, {
                                                     fileName: "[project]/web/app/reports/page.tsx",
-                                                    lineNumber: 592,
+                                                    lineNumber: 807,
                                                     columnNumber: 41
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -1846,7 +2153,7 @@ function ReportsPage() {
                                                     children: "Dhar Loan"
                                                 }, void 0, false, {
                                                     fileName: "[project]/web/app/reports/page.tsx",
-                                                    lineNumber: 593,
+                                                    lineNumber: 808,
                                                     columnNumber: 41
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -1859,18 +2166,18 @@ function ReportsPage() {
                                                     children: "Dhar Remaining"
                                                 }, void 0, false, {
                                                     fileName: "[project]/web/app/reports/page.tsx",
-                                                    lineNumber: 594,
+                                                    lineNumber: 809,
                                                     columnNumber: 41
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/web/app/reports/page.tsx",
-                                            lineNumber: 587,
+                                            lineNumber: 802,
                                             columnNumber: 37
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/web/app/reports/page.tsx",
-                                        lineNumber: 586,
+                                        lineNumber: 801,
                                         columnNumber: 33
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("tbody", {
@@ -1888,7 +2195,7 @@ function ReportsPage() {
                                                         children: member.memberName
                                                     }, void 0, false, {
                                                         fileName: "[project]/web/app/reports/page.tsx",
-                                                        lineNumber: 606,
+                                                        lineNumber: 821,
                                                         columnNumber: 45
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1898,12 +2205,11 @@ function ReportsPage() {
                                                         },
                                                         children: [
                                                             "TSh ",
-                                                            (member.hisa.totalHisa / 1000).toFixed(0),
-                                                            "k"
+                                                            Math.round(member.hisa.totalHisa).toLocaleString()
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/web/app/reports/page.tsx",
-                                                        lineNumber: 607,
+                                                        lineNumber: 822,
                                                         columnNumber: 45
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1913,12 +2219,11 @@ function ReportsPage() {
                                                         },
                                                         children: [
                                                             "TSh ",
-                                                            (member.jamii / 1000).toFixed(0),
-                                                            "k"
+                                                            Math.round(member.jamii).toLocaleString()
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/web/app/reports/page.tsx",
-                                                        lineNumber: 608,
+                                                        lineNumber: 823,
                                                         columnNumber: 45
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1928,12 +2233,11 @@ function ReportsPage() {
                                                         },
                                                         children: [
                                                             "TSh ",
-                                                            (member.standardLoan.totalLoaned / 1000).toFixed(0),
-                                                            "k"
+                                                            Math.round(member.standardLoan.totalLoaned).toLocaleString()
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/web/app/reports/page.tsx",
-                                                        lineNumber: 609,
+                                                        lineNumber: 824,
                                                         columnNumber: 45
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1945,12 +2249,11 @@ function ReportsPage() {
                                                         },
                                                         children: [
                                                             "TSh ",
-                                                            (member.standardLoan.remainingBalance / 1000).toFixed(0),
-                                                            "k"
+                                                            Math.round(member.standardLoan.remainingBalance).toLocaleString()
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/web/app/reports/page.tsx",
-                                                        lineNumber: 610,
+                                                        lineNumber: 825,
                                                         columnNumber: 45
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1960,12 +2263,11 @@ function ReportsPage() {
                                                         },
                                                         children: [
                                                             "TSh ",
-                                                            (member.dharuraLoan.totalLoaned / 1000).toFixed(0),
-                                                            "k"
+                                                            Math.round(member.dharuraLoan.totalLoaned).toLocaleString()
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/web/app/reports/page.tsx",
-                                                        lineNumber: 613,
+                                                        lineNumber: 828,
                                                         columnNumber: 45
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$web$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1977,35 +2279,34 @@ function ReportsPage() {
                                                         },
                                                         children: [
                                                             "TSh ",
-                                                            (member.dharuraLoan.remainingBalance / 1000).toFixed(0),
-                                                            "k"
+                                                            Math.round(member.dharuraLoan.remainingBalance).toLocaleString()
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/web/app/reports/page.tsx",
-                                                        lineNumber: 614,
+                                                        lineNumber: 829,
                                                         columnNumber: 45
                                                     }, this)
                                                 ]
                                             }, member.memberId, true, {
                                                 fileName: "[project]/web/app/reports/page.tsx",
-                                                lineNumber: 599,
+                                                lineNumber: 814,
                                                 columnNumber: 41
                                             }, this))
                                     }, void 0, false, {
                                         fileName: "[project]/web/app/reports/page.tsx",
-                                        lineNumber: 597,
+                                        lineNumber: 812,
                                         columnNumber: 33
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/web/app/reports/page.tsx",
-                                lineNumber: 585,
+                                lineNumber: 800,
                                 columnNumber: 29
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/web/app/reports/page.tsx",
-                        lineNumber: 576,
+                        lineNumber: 769,
                         columnNumber: 25
                     }, this)
                 ]
@@ -2013,7 +2314,7 @@ function ReportsPage() {
         ]
     }, void 0, true, {
         fileName: "[project]/web/app/reports/page.tsx",
-        lineNumber: 219,
+        lineNumber: 390,
         columnNumber: 9
     }, this);
 }
