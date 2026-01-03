@@ -8,6 +8,7 @@
  */
 export interface UserProfile {
     uid: string;
+    memberId?: string; // Format: SBK001, SBK002, etc.
     displayName: string;
     email: string;
     role: 'Admin' | 'Member';
@@ -25,7 +26,8 @@ export interface Transaction {
     type: 'Contribution' | 'Loan' | 'Loan Repayment';
     category?: 'Hisa' | 'Jamii' | 'Standard' | 'Dharura';
     interestRate?: number;
-    amount: number;
+    amount: number; // Total amount (includes interest for Standard loans)
+    originalAmount?: number; // Principal amount before interest (for loans)
     memberId: string;
     memberName: string;
     date: string;
@@ -229,4 +231,37 @@ export interface PaymentRecord {
     date: string;
     paymentMethod?: 'Cash' | 'Bank Transfer' | 'Mobile Money';
     confirmationNumber?: string;
+}
+
+/**
+ * Bulk Upload Types
+ */
+export interface BulkUploadRow {
+    date: string;
+    memberId: string;
+    fullName: string;
+    hisaAmount: number;
+    jamiiAmount: number;
+}
+
+export interface BulkUploadValidationResult {
+    isValid: boolean;
+    errors: string[];
+    warnings: string[];
+    validRows: BulkUploadRow[];
+    invalidRows: { row: BulkUploadRow; errors: string[] }[];
+    duplicateRows: BulkUploadRow[];
+}
+
+export interface BulkUploadProcessResult {
+    success: boolean;
+    totalRows: number;
+    successCount: number;
+    failedCount: number;
+    skippedCount: number;
+    details: {
+        row: BulkUploadRow;
+        status: 'success' | 'failed' | 'skipped';
+        message?: string;
+    }[];
 }

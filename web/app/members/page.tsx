@@ -8,6 +8,7 @@ import { db } from "../../lib/firebase";
 
 interface UserProfile {
     uid: string;
+    memberId?: string; // Added Member ID
     displayName: string;
     email: string;
     role: 'Admin' | 'Member';
@@ -60,9 +61,38 @@ export default function MembersPage() {
         }
     };
 
+    const handleGenerateIds = async () => {
+        if (!confirm("This will generate unique Member IDs (SBK###) for all users who don't have one.\n\nContinue?")) return;
+
+        try {
+            setLoading(true);
+            const response = await fetch('/api/admin/generate-ids', {
+                method: 'POST',
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                let msg = `Success! Generated IDs for ${result.count} members.`;
+                if (result.errors?.length > 0) {
+                    msg += `\n\nWarning: ${result.errors.length} errors occurred:\n${result.errors.join('\n')}`;
+                }
+                alert(msg);
+                fetchMembers(); // Refresh list
+            } else {
+                alert(`Error: ${result.error || 'Failed to generate IDs'}`);
+            }
+        } catch (error) {
+            console.error(error);
+            alert("An error occurred while generating IDs.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const filteredMembers = members.filter(m =>
         m.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        m.email?.toLowerCase().includes(searchTerm.toLowerCase())
+        m.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        m.memberId?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -72,23 +102,40 @@ export default function MembersPage() {
                     <h1 style={{ fontSize: '2rem', fontWeight: '900', letterSpacing: '-0.5px' }}>Member Directory</h1>
                     <p style={{ color: 'var(--text-secondary)' }}>Manage access levels and account status</p>
                 </div>
-                <div style={{ position: 'relative', width: '320px' }}>
-                    <input
-                        type="text"
-                        placeholder="Search by name or email..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <button
+                        onClick={handleGenerateIds}
                         style={{
-                            width: '100%',
                             padding: '0.875rem 1rem',
                             borderRadius: '0.75rem',
-                            border: '1px solid var(--border)',
-                            outline: 'none',
-                            backgroundColor: 'white',
+                            backgroundColor: '#0F172A',
+                            color: 'white',
+                            fontWeight: 'bold',
                             fontSize: '0.875rem',
-                            boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+                            border: 'none',
+                            cursor: 'pointer'
                         }}
-                    />
+                    >
+                        Generate IDs
+                    </button>
+                    <div style={{ position: 'relative', width: '320px' }}>
+                        <input
+                            type="text"
+                            placeholder="Search by name, email or ID..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '0.875rem 1rem',
+                                borderRadius: '0.75rem',
+                                border: '1px solid var(--border)',
+                                outline: 'none',
+                                backgroundColor: 'white',
+                                fontSize: '0.875rem',
+                                boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+                            }}
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -96,6 +143,7 @@ export default function MembersPage() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                     <thead>
                         <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid var(--border)' }}>
+                            <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>ID</th>
                             <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Member</th>
                             <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Current Role</th>
                             <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Status</th>
@@ -104,10 +152,15 @@ export default function MembersPage() {
                     </thead>
                     <tbody>
                         {loading ? (
-                            <tr><td colSpan={4} style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading members...</td></tr>
+                            <tr><td colSpan={5} style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading members...</td></tr>
                         ) : filteredMembers.length > 0 ? (
                             filteredMembers.map((member) => (
                                 <tr key={member.uid} style={{ borderBottom: '1px solid var(--border)', transition: 'background-color 0.2s' }}>
+                                    <td style={{ padding: '1.25rem 1.5rem', fontWeight: 'bold', color: '#64748B', fontFamily: 'monospace' }}>
+                                        {member.memberId ? (
+                                            <span style={{ backgroundColor: '#DBEAFE', color: '#1E40AF', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem' }}>{member.memberId}</span>
+                                        ) : '-'}
+                                    </td>
                                     <td style={{ padding: '1.25rem 1.5rem' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                             <div style={{
@@ -207,7 +260,7 @@ export default function MembersPage() {
                                 </tr>
                             ))
                         ) : (
-                            <tr><td colSpan={4} style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-secondary)' }}>No members found matching your search.</td></tr>
+                            <tr><td colSpan={5} style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-secondary)' }}>No members found matching your search.</td></tr>
                         )}
                     </tbody>
                 </table>

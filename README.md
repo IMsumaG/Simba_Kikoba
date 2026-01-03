@@ -1,6 +1,6 @@
-# KIKOBA - Community Savings Group Management System
+# Simba Bingwa Kikoba Endelevu (SBK)
 
-**KIKOBA** is a comprehensive React Native/Expo mobile application with a Next.js web admin dashboard designed for managing community savings groups (Vikoba). It handles member management, transaction tracking (contributions, loans, repayments), and provides detailed reporting and audit logs.
+**Simba Bingwa Kikoba Endelevu (SBK)** is a comprehensive React Native/Expo mobile application with a Next.js web admin dashboard designed for managing community savings groups (Vikoba). It handles member management, transaction tracking (contributions, loans, repayments), and provides detailed reporting and audit logs.
 
 ---
 
@@ -8,22 +8,25 @@
 
 1. [Features](#features)
 2. [Project Quick Start](#project-quick-start)
-3. [Email Reminder System](#email-reminder-system)
-   - [Setup](#email-system-setup)
-   - [Usage](#email-system-usage)
-   - [Migration Guide](#email-migration-guide)
-4. [Security & Type Safety](#security--type-safety)
-5. [Firestore Security Rules](#firestore-security-rules)
-6. [Deployment Instructions](#deployment-instructions)
-7. [Project Structure](#project-structure)
-8. [Testing & Troubleshooting](#testing--troubleshooting)
+3. [Member ID System](#member-id-system)
+4. [Bulk Transaction Upload](#bulk-transaction-upload)
+5. [Standard Loan Interest (10%)](#standard-loan-interest-10)
+6. [Email Reminder System](#email-reminder-system)
+7. [Firestore Security Rules](#firestore-security-rules)
+8. [Security & Type Safety](#security--type-safety)
+9. [Deployment Instructions](#deployment-instructions)
+10. [Project Structure](#project-structure)
+11. [Testing & Troubleshooting](#testing--troubleshooting)
 
 ---
 
 ## 🚀 Features
 
 - ✅ **Member Management**: Authentication and role-based access (Admins & Members).
-- ✅ **Transaction Tracking**: Record contributions (HISA, JAMII), loans (Standard, Dharura), and repayments.
+- ✅ **Member ID System**: Automatic generation of IDs (SBK001, SBK002) for all members.
+- ✅ **Bulk Upload**: Batch process contributions from Excel files.
+- ✅ **Transaction Tracking**: Record contributions (Hisa, Jamii), loans (Standard, Dharura), and repayments.
+- ✅ **Interest Logic**: Automatic 10% interest application for Standard loans.
 - ✅ **Email Reminder System**: Automated and manual reminders for contributions and loan repayments.
 - ✅ **Reporting**: Monthly statistics and reports for both individuals and the entire group.
 - ✅ **Audit Trail**: Detailed activity logging for all administrative actions.
@@ -82,91 +85,101 @@ npm install
 cd ..
 ```
 
-### 4. Running the Apps
-```bash
-# Start Mobile App
-npx expo start
+---
 
-# Start Web App
-cd web
-npm run dev
-```
+## 🆔 Member ID System
+
+- **Format**: `SBK001`, `SBK002`, `SBK003`, etc.
+- **Generation**: New members get an ID automatically upon signup.
+- **Admin Tools**: On the **Members** screen (both Web and Mobile), admins can click **"Generate IDs"** to assign sequential IDs to any existing members who lack one.
+- **Display**: Shown prominently on Member details and Profile screens.
+
+---
+
+## 📊 Bulk Transaction Upload
+
+Admins can batch-import monthly contributions (Hisa & Jamii) using an Excel file.
+
+### Excel Template Format
+| Date       | Member ID | Full name      | HISA Amount | Jamii Amount |
+|------------|-----------|----------------|-------------|--------------|
+| 2026-01-15 | SBK001    | John Doe       | 30000       | 5000         |
+| 2026-01-15 | SBK002    | Jane Smith     | 30000       | 5000         |
+
+### Usage (Mobile)
+1. Navigate to **Transactions** screen.
+2. Tap **"Bulk Upload"**.
+3. Select your Excel file.
+4. Preview the validation results (checks for valid Member IDs and amounts).
+5. Click **"Process"** to create all transactions at once.
+
+---
+
+## 📉 Standard Loan Interest (10%)
+
+All Standard loans automatically accrue a **10% interest** charge at the time of creation.
+
+- **Storage**: The principal is stored in `originalAmount` and the total (principal + 10%) is stored in `amount`.
+- **Display**: UI shows a live interest preview during creation.
+- **Active Loans**: The dashboard counts "Active Loans" only for members with an outstanding balance > 0.
+- **Migration**: For historical data, an admin can run the **"Migrate Standard Loans"** tool in the **Profile** (Mobile) or **Reminders** (Web) section to apply the 10% rate retroactively to old loans.
 
 ---
 
 ## 📧 Email Reminder System
 
 A dual-reminder system that sends:
-1. **Contribution Reminders**: To all members about monthly HISA (30,000) and JAMII (5,000) contributions.
+1. **Contribution Reminders**: To all members about monthly HISA and JAMII contributions (30,000 & 5,000).
 2. **Loan Repayment Reminders**: To members with outstanding loans, showing their current balance.
 
-### Setup
-1. Configure Gmail App Password (if using Gmail).
-2. Add credentials to `web/.env.local`.
-3. Verify connection in the admin dashboard.
-
-### Usage
 - **Mobile**: Dashboard → Send Reminders section (Admin only).
 - **Web**: Reminders page in the sidebar menu.
-
-### Email Migration Guide
-We have migrated from **EmailJS** (client-side) to **Nodemailer** (server-side) for better security and zero cost.
-- **Old way**: Mobile → EmailJS API (Public keys exposed).
-- **New way**: Mobile → Next.js API → SMTP (Credentials secure on server).
-
----
-
-## 🔒 Security & Type Safety
-
-### 1. Credential Security
-- No hardcoded secrets. All API keys and private keys are stored in environment variables.
-- `.env` files are ignored by git.
-
-### 2. Input Validation
-Comprehensive validation service implemented for:
-- Email formats
-- Passwords (strength and matching)
-- Amounts (numeric limits)
-- Group codes and phone numbers
-
-### 3. Type Safety
-- 100% TypeScript coverage.
-- Centralized types in `types/index.ts`.
-- No `any` types in core logic.
 
 ---
 
 ## 🔐 Firestore Security Rules
 
-To ensure data integrity and security, use the following rules in your Firebase Console:
+To ensure data integrity and security, use the following rules in your Firebase Console. These rules allow Admins to manage Member IDs and Transactions while protecting individual user privacy.
 
 ```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    // Users collection - users can read/write their own document
+    // Admin users can update ANY document (needed for Member ID generation)
     match /users/{userId} {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == userId;
+      allow update, delete: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
     }
-    match /members/{memberId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && 
-                     get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
-    }
+    
+    // Transactions collection - authenticated users can read, only admins can write
     match /transactions/{transactionId} {
       allow read: if request.auth != null;
       allow write: if request.auth != null && 
-                     get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
     }
+
+    // GroupCodes collection - allow read for group code validation
     match /groupCodes/{code} {
       allow read: if true;
       allow update: if request.auth != null;
     }
+
+    // Activity Logs - Only admins can read, members can create
     match /activityLogs/{logId} {
       allow read: if request.auth != null && 
-                     get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
       allow create: if request.auth != null;
       allow update, delete: if false;
+    }
+    
+    // Default catch-all rule
+    match /{document=**} {
+      allow read: if request.auth != null;
+      allow write: if false;
     }
   }
 }
@@ -179,7 +192,7 @@ service cloud.firestore {
 ### Vercel (Web Admin)
 1. Import the repository to Vercel.
 2. Set **Root Directory** to `web`.
-3. Configure all environment variables listed in the Quick Start.
+3. Configure all environment variables.
 4. Deployment will trigger automatically on push to `master`.
 
 ### EAS Build (Mobile App)
@@ -197,11 +210,9 @@ Maono_App/
 ├── app/                  # Mobile UI (Expo Router)
 ├── components/           # Reusable React Native components
 ├── services/             # API and business logic
-├── types/                # TypeScript definitions
 ├── web/                  # Next.js Admin Dashboard
 │   ├── app/              # Web pages and API routes
-│   ├── lib/              # Web-specific logic
-│   └── components/       # Web components
+│   └── lib/              # Web-specific logic
 └── i18n/                 # Internationalization (EN/SW)
 ```
 
@@ -213,14 +224,7 @@ Maono_App/
 1. **Firebase Permission Denied**: Verify Firestore rules are published.
 2. **Emails Not Sending**: Check `EMAIL_PASSWORD` (use App Password for Gmail).
 3. **Invalid Token**: Ensure you are logged in as an Admin.
-4. **Build Errors**: Run `npx tsc --noEmit` to check for TypeScript errors.
-
-### Success Criteria
-- [ ] Users can sign up and log in.
-- [ ] Admins can record transactions for any member.
-- [ ] Activity logs capture all crucial actions.
-- [ ] Emails are received by members with correct data.
-- [ ] Dashboard displays accurate totals.
+4. **Member IDs Missing**: Use the "Generate IDs" tool in the Members/Profile screen.
 
 ---
 

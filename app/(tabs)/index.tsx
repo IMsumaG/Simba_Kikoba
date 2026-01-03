@@ -129,30 +129,50 @@ export default function DashboardScreen() {
     </View>
   );
 
-  const TransactionItem = ({ type, amount, date, memberName }: any) => (
-    <View style={styles.transactionItem as ViewStyle}>
-      <View style={styles.transactionLeft as ViewStyle}>
-        <View
-          style={[styles.transactionIcon as ViewStyle, { backgroundColor: type === 'Contribution' ? '#DCFCE7' : (type === 'Loan' ? '#FEE2E2' : '#FEF3C7') }]}
-        >
-          <Ionicons
-            name={type === 'Contribution' ? 'arrow-down-outline' : (type === 'Loan' ? 'arrow-up-outline' : 'refresh-outline')}
-            size={20}
-            color={type === 'Contribution' ? '#166534' : (type === 'Loan' ? '#991B1B' : '#92400E')}
-          />
+  const TransactionItem = ({ type, amount, date, memberName }: any) => {
+    let sign = '';
+    let color = '';
+    let displayType = '';
+
+    if (type === 'Contribution') {
+      sign = '+';
+      color = '#059669'; // Green
+      displayType = t('transactions.contribution');
+    } else if (type === 'Loan') {
+      sign = '-';
+      color = '#DC2626'; // Red
+      displayType = t('transactions.loan');
+    } else {
+      sign = '+';
+      color = '#D97706'; // Orange
+      displayType = t('transactions.repayment');
+    }
+
+    return (
+      <View style={styles.transactionItem as ViewStyle}>
+        <View style={styles.transactionLeft as ViewStyle}>
+          <View
+            style={[styles.transactionIcon as ViewStyle, { backgroundColor: type === 'Contribution' ? '#DCFCE7' : (type === 'Loan' ? '#FEE2E2' : '#FEF3C7') }]}
+          >
+            <Ionicons
+              name={type === 'Contribution' ? 'arrow-down-outline' : (type === 'Loan' ? 'arrow-up-outline' : 'refresh-outline')}
+              size={20}
+              color={type === 'Contribution' ? '#166534' : (type === 'Loan' ? '#991B1B' : '#92400E')}
+            />
+          </View>
+          <View style={styles.transactionTextContainer as ViewStyle}>
+            <Text style={styles.transactionType as TextStyle}>{displayType}</Text>
+            <Text style={styles.transactionDate as TextStyle}>
+              {isAdmin ? `by ${memberName || 'Unknown'} • ` : ''}{new Date(date).toLocaleDateString()}
+            </Text>
+          </View>
         </View>
-        <View style={styles.transactionTextContainer as ViewStyle}>
-          <Text style={styles.transactionType as TextStyle}>{type}</Text>
-          <Text style={styles.transactionDate as TextStyle}>
-            {isAdmin ? `by ${memberName || 'Unknown'} • ` : ''}{new Date(date).toLocaleDateString()}
-          </Text>
-        </View>
+        <Text style={[styles.transactionAmount as TextStyle, { color }]}>
+          {sign} TSh {amount.toLocaleString()}
+        </Text>
       </View>
-      <Text style={[styles.transactionAmount as TextStyle, { color: type === 'Contribution' ? '#059669' : (type === 'Loan' ? '#DC2626' : '#D97706') }]}>
-        {type === 'Contribution' ? '+' : '-'} TSh {amount.toLocaleString()}
-      </Text>
-    </View>
-  );
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container as ViewStyle}>
@@ -281,11 +301,11 @@ export default function DashboardScreen() {
               subtitle={t('dashboard.activeSociety')}
             />
             <StatCard
-              title={t('dashboard.currentContracts')}
+              title={t('dashboard.activeLoans')}
               value={`${stats.activeLoans}`}
               icon="document-text"
               color="#8B5CF6"
-              subtitle={t('dashboard.currentContracts')}
+              subtitle={t('dashboard.activeLoans')}
             />
           </ScrollView>
         </View>
@@ -341,7 +361,7 @@ export default function DashboardScreen() {
             recentTransactions.map((item, index) => (
               <TransactionItem
                 key={item.id || index}
-                type={item.type === 'Contribution' ? t('transactions.contribution') : (item.type === 'Loan' ? t('transactions.loan') : t('transactions.repayment'))}
+                type={item.type}
                 amount={item.amount}
                 date={item.date}
                 memberName={item.memberName}
@@ -368,7 +388,7 @@ export default function DashboardScreen() {
                   t('common.confirm'),
                   t('dashboard.confirmContributionReminder'),
                   [
-                    { text: t('common.cancel'), onPress: () => {}, style: 'cancel' },
+                    { text: t('common.cancel'), onPress: () => { }, style: 'cancel' },
                     {
                       text: t('common.send'),
                       onPress: async () => {
@@ -401,7 +421,6 @@ export default function DashboardScreen() {
                   <Text style={styles.adminActionSubtitle as TextStyle}>{t('dashboard.remindMembers')}</Text>
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="white" />
             </TouchableOpacity>
 
             {/* Loan Repayment Reminder Button */}
@@ -411,7 +430,7 @@ export default function DashboardScreen() {
                   t('common.confirm'),
                   t('dashboard.confirmLoanReminder'),
                   [
-                    { text: t('common.cancel'), onPress: () => {}, style: 'cancel' },
+                    { text: t('common.cancel'), onPress: () => { }, style: 'cancel' },
                     {
                       text: t('common.send'),
                       onPress: async () => {
@@ -444,7 +463,6 @@ export default function DashboardScreen() {
                   <Text style={styles.adminActionSubtitle as TextStyle}>{t('dashboard.remindAboutLoans')}</Text>
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="white" />
             </TouchableOpacity>
           </View>
         )}

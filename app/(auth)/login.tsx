@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 import { auth } from '../../services/firebase';
@@ -67,10 +67,14 @@ export default function LoginScreen() {
                     <View style={styles.content}>
                         {/* Logo & Header */}
                         <View style={styles.header}>
-                            <View style={styles.logo}>
-                                <Ionicons name="trending-up" size={40} color="white" />
+                            <View style={[styles.logo, { backgroundColor: 'transparent' }]}>
+                                <Image
+                                    source={require('../../assets/images/sbk-logo.png')}
+                                    style={{ width: '100%', height: '100%' }}
+                                    resizeMode="contain"
+                                />
                             </View>
-                            <Text style={styles.title}>KIKOBA Insights</Text>
+                            <Text style={styles.title}>Simba Bingwa Kikoba Endelevu</Text>
                             <Text style={styles.subtitle}>{t('common.login')}</Text>
                         </View>
 

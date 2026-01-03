@@ -65,7 +65,7 @@ export const en = {
         totalAssets: "Total Assets",
         outstandingLoans: "Outstanding Loans",
         activeSociety: "Active society",
-        currentContracts: "Current contracts",
+        activeLoans: "Active Loans",
         overallRecentActivities: "Overall Recent Activities",
         myRecentActivities: "My Recent Activities",
         noTransactions: "No transactions yet",

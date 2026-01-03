@@ -2,7 +2,7 @@
 
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { Eye, EyeOff, TrendingUp } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
@@ -64,19 +64,16 @@ export default function LoginPage() {
             <div className="card" style={{ width: '100%', maxWidth: '400px', padding: '2.5rem' }}>
                 <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
                     <div style={{
-                        backgroundColor: 'var(--primary)',
-                        width: '64px',
-                        height: '64px',
-                        borderRadius: '1.25rem',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
+                        width: 'auto',
+                        height: 'auto',
                         marginBottom: '1.5rem',
-                        boxShadow: '0 10px 15px -3px rgba(245, 124, 0, 0.3)'
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
                     }}>
-                        <TrendingUp size={36} color="white" />
+                        <img src="/sbk-logo.png" alt="SBK Logo" style={{ width: '120px', height: '120px', objectFit: 'contain' }} />
                     </div>
-                    <h1 style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--text-primary)' }}>KIKOBA Insights</h1>
+                    <h1 style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--text-primary)' }}>Simba Bingwa Kikoba Endelevu</h1>
                     <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>Admin Portal</p>
                 </div>
 

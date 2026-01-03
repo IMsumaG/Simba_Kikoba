@@ -127,7 +127,7 @@ export default function ReportsScreen() {
                     </head>
                     <body>
                         <div class="header">
-                            <div class="logo">KIKOBA</div>
+                            <div class="logo">Simba Bingwa Kikoba Endelevu</div>
                             <div class="title">${t('reports.monthlyReport')}</div>
                             <div class="subtitle">${t('reports.month')} ${monthName} ${selectedYear}</div>
                         </div>
@@ -269,7 +269,7 @@ export default function ReportsScreen() {
                     </head>
                     <body>
                         <div class="header">
-                            <div class="logo">KIKOBA</div>
+                            <div class="logo">Simba Bingwa Kikoba Endelevu</div>
                             <div class="title">${t('reports.group')}</div>
                             <div class="subtitle">${t('reports.month')} ${monthName} ${selectedYear}</div>
                             <div class="subtitle">${t('reports.memberAccount')}: ${groupReportData.totalMembers}</div>

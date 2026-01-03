@@ -87,10 +87,21 @@ export default function TransactionsPage() {
 
         setIsSubmitting(true);
         try {
+            const enteredAmount = parseFloat(amount);
+            let finalAmount = enteredAmount;
+            let originalAmount = enteredAmount;
+
+            // Calculate interest for Standard loans
+            if (type === 'Loan' && category === 'Standard') {
+                finalAmount = enteredAmount * 1.1; // Add 10% interest
+                originalAmount = enteredAmount;
+            }
+
             await addDoc(collection(db, "transactions"), {
                 memberId: selectedMember.uid,
                 memberName: selectedMember.displayName,
-                amount: parseFloat(amount),
+                amount: finalAmount, // Total amount with interest for Standard loans
+                originalAmount: type === 'Loan' ? originalAmount : undefined,
                 type: type,
                 category: category,
                 interestRate: (type === 'Loan' && category === 'Standard') ? 10 : 0,
@@ -116,258 +127,381 @@ export default function TransactionsPage() {
         m.displayName?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    // Bulk Upload State
+    const [isBulkMode, setIsBulkMode] = useState(false);
+    const [bulkValidation, setBulkValidation] = useState<any>(null);
+    const [bulkProcessing, setBulkProcessing] = useState(false);
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            setLoading(true);
+            const { bulkUploadService } = await import('../../lib/bulkUploadService');
+            const rows = await bulkUploadService.parseExcelFile(file);
+            const validation = await bulkUploadService.validateBulkData(rows);
+            setBulkValidation(validation);
+        } catch (error) {
+            console.error(error);
+            alert("Error parsing file. Ensure it is a valid Excel file.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDownloadTemplate = async () => {
+        try {
+            const { bulkUploadService } = await import('../../lib/bulkUploadService');
+            const XLSX = await import('xlsx');
+
+            const rows = await bulkUploadService.generateTemplate();
+            const ws = XLSX.utils.json_to_sheet(rows);
+            ws['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 15 }];
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Template");
+            XLSX.writeFile(wb, "Maono_Batch_Template.xlsx");
+        } catch (error: any) {
+            console.error(error);
+            alert("Failed to download template: " + error.message);
+        }
+    };
+
+    const handleBulkProcess = async () => {
+        if (!bulkValidation || !bulkValidation.validRows.length) return;
+
+        setBulkProcessing(true);
+        try {
+            const { bulkUploadService } = await import('../../lib/bulkUploadService');
+            // Mock getting current user ID or use generic
+            const result = await bulkUploadService.processBulkTransactions(bulkValidation.validRows, "web-admin");
+
+            alert(`Processed ${result.successCount} transactions successfully.`);
+            setBulkValidation(null);
+            setIsBulkMode(false);
+            // Refresh member data
+            fetchMembers();
+            if (selectedMember) fetchMemberLoanBalance(selectedMember.uid);
+        } catch (error) {
+            console.error(error);
+            alert("Error processing transactions");
+        } finally {
+            setBulkProcessing(false);
+        }
+    };
+
     return (
         <AppLayout>
-            <div style={{ marginBottom: '2.5rem' }}>
-                <h1 style={{ fontSize: '2rem', fontWeight: '900', letterSpacing: '-0.5px' }}>New Transaction</h1>
-                <p style={{ color: 'var(--text-secondary)' }}>Record financial activities for society members</p>
-            </div>
+            <div style={{ padding: '2rem' }}>
+                {/* Header & Tabs */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                    <div>
+                        <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#0F172A' }}>Transactions</h1>
+                        <p style={{ color: '#64748B' }}>Record financial activities</p>
+                    </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem', alignItems: 'start' }}>
-                {/* Form Selection */}
-                <div className="card" style={{ padding: '2.5rem' }}>
-                    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                        <div>
-                            <label style={{ fontSize: '0.875rem', fontWeight: '800', color: 'var(--text-secondary)', display: 'block', marginBottom: '1rem' }}>TRANSACTION TYPE</label>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-                                {[
-                                    { id: 'Contribution', icon: ArrowDownLeft, label: 'Deposit', color: '#10B981' },
-                                    { id: 'Loan', icon: ArrowUpRight, label: 'Loan', color: '#EF4444' },
-                                    { id: 'Loan Repayment', icon: RefreshCw, label: 'Repay', color: '#F57C00' },
-                                ].map((t) => (
-                                    <button
-                                        key={t.id}
-                                        type="button"
-                                        disabled={t.id === 'Loan Repayment' && standardLoanBalance <= 0 && dharuraLoanBalance <= 0}
-                                        onClick={() => {
-                                            setType(t.id as any);
-                                            // Reset category defaults when type changes
-                                            if (t.id === 'Contribution') setCategory('Hisa');
-                                            if (t.id === 'Loan') setCategory('Standard');
-                                            if (t.id === 'Loan Repayment') setCategory(standardLoanBalance > 0 ? 'Standard' : 'Dharura');
-                                        }}
-                                        style={{
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            alignItems: 'center',
-                                            gap: '8px',
-                                            padding: '1rem',
-                                            borderRadius: '1rem',
-                                            border: '2px solid',
-                                            borderColor: type === t.id ? t.color : 'var(--border)',
-                                            backgroundColor: type === t.id ? `${t.color}08` : 'white',
-                                            opacity: (t.id === 'Loan Repayment' && standardLoanBalance <= 0 && dharuraLoanBalance <= 0) ? 0.3 : 1,
-                                            cursor: (t.id === 'Loan Repayment' && standardLoanBalance <= 0 && dharuraLoanBalance <= 0) ? 'not-allowed' : 'pointer',
-                                            transition: 'all 0.2s'
-                                        }}
-                                    >
-                                        <t.icon size={24} color={type === t.id ? t.color : '#94A3B8'} />
-                                        <span style={{ fontSize: '0.75rem', fontWeight: '800', color: type === t.id ? t.color : '#94A3B8' }}>{t.label}</span>
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Sub-Category Selection */}
-                            <div style={{ marginTop: '1.5rem', display: 'flex', gap: '1rem' }}>
-                                {type === 'Contribution' ? (
-                                    <>
-                                        <button
-                                            type="button"
-                                            onClick={() => setCategory('Hisa')}
-                                            style={{
-                                                flex: 1, padding: '0.75rem', borderRadius: '0.75rem', fontWeight: '700', fontSize: '0.875rem',
-                                                backgroundColor: category === 'Hisa' ? '#10B981' : '#F1F5F9',
-                                                color: category === 'Hisa' ? 'white' : '#64748B',
-                                                border: 'none', cursor: 'pointer', transition: 'all 0.2s'
-                                            }}
-                                        >
-                                            Hisa (Shares)
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setCategory('Jamii')}
-                                            style={{
-                                                flex: 1, padding: '0.75rem', borderRadius: '0.75rem', fontWeight: '700', fontSize: '0.875rem',
-                                                backgroundColor: category === 'Jamii' ? '#10B981' : '#F1F5F9',
-                                                color: category === 'Jamii' ? 'white' : '#64748B',
-                                                border: 'none', cursor: 'pointer', transition: 'all 0.2s'
-                                            }}
-                                        >
-                                            Jamii
-                                        </button>
-                                    </>
-                                ) : type === 'Loan' ? (
-                                    <>
-                                        <button
-                                            type="button"
-                                            onClick={() => setCategory('Standard')}
-                                            style={{
-                                                flex: 1, padding: '0.75rem', borderRadius: '0.75rem', fontWeight: '700', fontSize: '0.875rem',
-                                                backgroundColor: category === 'Standard' ? '#EF4444' : '#F1F5F9',
-                                                color: category === 'Standard' ? 'white' : '#64748B',
-                                                border: 'none', cursor: 'pointer', transition: 'all 0.2s'
-                                            }}
-                                        >
-                                            Standard (10% Interest)
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setCategory('Dharura')}
-                                            style={{
-                                                flex: 1, padding: '0.75rem', borderRadius: '0.75rem', fontWeight: '700', fontSize: '0.875rem',
-                                                backgroundColor: category === 'Dharura' ? '#EF4444' : '#F1F5F9',
-                                                color: category === 'Dharura' ? 'white' : '#64748B',
-                                                border: 'none', cursor: 'pointer', transition: 'all 0.2s'
-                                            }}
-                                        >
-                                            Dharura (No Interest)
-                                        </button>
-                                    </>
-                                ) : (
-                                    <>
-                                        <button
-                                            type="button"
-                                            onClick={() => setCategory('Standard')}
-                                            disabled={standardLoanBalance <= 0}
-                                            style={{
-                                                flex: 1, padding: '0.75rem', borderRadius: '0.75rem', fontWeight: '700', fontSize: '0.875rem',
-                                                backgroundColor: category === 'Standard' ? '#F59E0B' : '#F1F5F9',
-                                                color: category === 'Standard' ? 'white' : '#64748B',
-                                                border: 'none', cursor: standardLoanBalance > 0 ? 'pointer' : 'not-allowed', transition: 'all 0.2s',
-                                                opacity: standardLoanBalance > 0 ? 1 : 0.3
-                                            }}
-                                        >
-                                            Standard {standardLoanBalance > 0 ? `(TSh ${standardLoanBalance.toLocaleString()})` : '(Paid)'}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setCategory('Dharura')}
-                                            disabled={dharuraLoanBalance <= 0}
-                                            style={{
-                                                flex: 1, padding: '0.75rem', borderRadius: '0.75rem', fontWeight: '700', fontSize: '0.875rem',
-                                                backgroundColor: category === 'Dharura' ? '#F59E0B' : '#F1F5F9',
-                                                color: category === 'Dharura' ? 'white' : '#64748B',
-                                                border: 'none', cursor: dharuraLoanBalance > 0 ? 'pointer' : 'not-allowed', transition: 'all 0.2s',
-                                                opacity: dharuraLoanBalance > 0 ? 1 : 0.3
-                                            }}
-                                        >
-                                            Dharura {dharuraLoanBalance > 0 ? `(TSh ${dharuraLoanBalance.toLocaleString()})` : '(Paid)'}
-                                        </button>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-
-                        <div>
-                            <label style={{ fontSize: '0.875rem', fontWeight: '800', color: 'var(--text-secondary)', display: 'block', marginBottom: '1rem' }}>SELECT MEMBER</label>
-                            <div style={{
-                                padding: '1rem',
-                                borderRadius: '1rem',
-                                border: '1px solid var(--border)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '12px',
-                                backgroundColor: selectedMember ? '#F0F9FF' : 'var(--background-muted)'
-                            }}>
-                                {selectedMember ? (
-                                    <>
-                                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#0EA5E9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                                            {selectedMember.displayName[0]}
-                                        </div>
-                                        <div style={{ flex: 1 }}>
-                                            <p style={{ fontWeight: '700', fontSize: '0.875rem' }}>{selectedMember.displayName}</p>
-                                            {(type === 'Loan Repayment') && (
-                                                <p style={{ fontSize: '0.7rem', color: '#0EA5E9' }}>
-                                                    {category === 'Standard' ? `Standard Debt: TSh ${standardLoanBalance.toLocaleString()}` : `Dharura Debt: TSh ${dharuraLoanBalance.toLocaleString()}`}
-                                                </p>
-                                            )}
-                                        </div>
-                                        <button onClick={() => setSelectedMember(null)} style={{ color: 'var(--text-secondary)' }}>Change</button>
-                                    </>
-                                ) : (
-                                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <UserSearch size={18} /> Search and select from the list
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-
-                        <div>
-                            <label style={{ fontSize: '0.875rem', fontWeight: '800', color: 'var(--text-secondary)', display: 'block', marginBottom: '1rem' }}>AMOUNT (TSH)</label>
-                            <input
-                                type="number"
-                                value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
-                                placeholder="e.g. 50000"
-                                style={{
-                                    width: '100%',
-                                    padding: '1rem',
-                                    borderRadius: '1rem',
-                                    border: '1px solid var(--border)',
-                                    fontSize: '1.25rem',
-                                    fontWeight: '800',
-                                    textAlign: 'center',
-                                    outline: 'none',
-                                    color: 'var(--text-primary)'
-                                }}
-                            />
-                        </div>
-
+                    <div style={{ backgroundColor: '#F1F5F9', padding: '0.25rem', borderRadius: '0.5rem', display: 'flex', gap: '0.5rem' }}>
                         <button
-                            type="submit"
-                            className="btn-primary"
-                            disabled={isSubmitting || !selectedMember}
-                            style={{ padding: '1.25rem', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
+                            onClick={() => setIsBulkMode(false)}
+                            style={{
+                                padding: '0.5rem 1rem',
+                                borderRadius: '0.375rem',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontWeight: '600',
+                                backgroundColor: !isBulkMode ? 'white' : 'transparent',
+                                color: !isBulkMode ? '#0F172A' : '#64748B',
+                                boxShadow: !isBulkMode ? '0 1px 2px 0 rgba(0, 0, 0, 0.05)' : 'none',
+                                transition: 'all 0.2s'
+                            }}
                         >
-                            {isSubmitting ? "Processing..." : (
-                                <>
-                                    Record Transaction <CheckCircle2 size={20} />
-                                </>
-                            )}
+                            Single Entry
                         </button>
-                    </form>
+                        <button
+                            onClick={() => setIsBulkMode(true)}
+                            style={{
+                                padding: '0.5rem 1rem',
+                                borderRadius: '0.375rem',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontWeight: '600',
+                                backgroundColor: isBulkMode ? '#10B981' : 'transparent',
+                                color: isBulkMode ? 'white' : '#64748B',
+                                boxShadow: isBulkMode ? '0 1px 2px 0 rgba(0, 0, 0, 0.05)' : 'none',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            Bulk Upload
+                        </button>
+                    </div>
                 </div>
 
-                {/* Member Search List */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div style={{ position: 'relative' }}>
-                        <input
-                            type="text"
-                            placeholder="Search member..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{
-                                width: '100%',
-                                padding: '1rem',
-                                borderRadius: '1rem',
-                                border: '1px solid var(--border)',
-                                outline: 'none',
-                                backgroundColor: 'white'
-                            }}
-                        />
-                    </div>
-                    <div className="card" style={{ overflow: 'hidden', maxHeight: '500px', overflowY: 'auto' }}>
-                        {filteredMembers.map(member => (
-                            <button
-                                key={member.uid}
-                                onClick={() => setSelectedMember(member)}
-                                style={{
-                                    width: '100%',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '1rem',
-                                    padding: '1rem 1.5rem',
-                                    borderBottom: '1px solid var(--border)',
-                                    backgroundColor: selectedMember?.uid === member.uid ? '#F0F9FF' : 'white',
-                                    textAlign: 'left'
-                                }}
-                            >
-                                <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'var(--background-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontWeight: '800' }}>
-                                    {member.displayName[0]}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', alignItems: 'start' }}>
+
+                    {/* LEFT COLUMN: FORM or UPLOADER */}
+                    <div className="card" style={{ padding: '2rem', backgroundColor: 'white', borderRadius: '1rem', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' }}>
+                        {isBulkMode ? (
+                            /* BULK UPLOAD MODE */
+                            <div className="animate-fade-in">
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#0F172A' }}>
+                                    <ArrowDownLeft size={24} color="#10B981" />
+                                    Bulk Upload (Excel)
+                                </h2>
+
+                                <div style={{ marginBottom: '1.5rem' }}>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '600', color: '#475569' }}>Select Excel File</label>
+                                    <input
+                                        type="file"
+                                        accept=".xlsx, .xls"
+                                        onChange={handleFileChange}
+                                        style={{
+                                            display: 'block',
+                                            width: '100%',
+                                            fontSize: '0.875rem',
+                                            color: '#64748B',
+                                            padding: '0.5rem',
+                                            border: '1px dashed #CBD5E1',
+                                            borderRadius: '0.5rem'
+                                        }}
+                                    />
+                                    <p style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#64748B' }}>
+                                        Required Columns: Date, Member ID, Full name, HISA Amount, Jamii Amount
+                                    </p>
                                 </div>
-                                <span style={{ fontWeight: '700', fontSize: '0.9rem' }}>{member.displayName}</span>
-                            </button>
-                        ))}
+
+                                <button
+                                    type="button"
+                                    onClick={handleDownloadTemplate}
+                                    style={{
+                                        width: '100%',
+                                        marginBottom: '1.5rem',
+                                        padding: '0.75rem',
+                                        backgroundColor: '#F0F9FF',
+                                        color: '#0284C7',
+                                        border: '1px dashed #7DD3FC',
+                                        borderRadius: '0.5rem',
+                                        cursor: 'pointer',
+                                        fontSize: '0.875rem',
+                                        fontWeight: '600',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '0.5rem'
+                                    }}
+                                >
+                                    <ArrowDownLeft size={16} /> Download Excel Template
+                                </button>
+
+                                {loading && <div style={{ textAlign: 'center', padding: '1rem', color: '#64748B' }}>Parsing file...</div>}
+
+                                {bulkValidation && (
+                                    <div style={{ border: '1px solid #E2E8F0', borderRadius: '0.75rem', overflow: 'hidden' }}>
+                                        <div style={{ backgroundColor: '#F8FAFC', padding: '1rem', borderBottom: '1px solid #E2E8F0' }}>
+                                            <h3 style={{ fontWeight: '600', color: '#0F172A' }}>Preview Results</h3>
+                                        </div>
+                                        <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                                                <span style={{ color: '#64748B' }}>Valid Transactions:</span>
+                                                <span style={{ fontWeight: 'bold', color: '#10B981' }}>{bulkValidation.validRows.length}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                                                <span style={{ color: '#64748B' }}>Duplicates (Skipped):</span>
+                                                <span style={{ fontWeight: 'bold', color: '#F59E0B' }}>{bulkValidation.duplicateRows.length}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                                                <span style={{ color: '#64748B' }}>Invalid Rows:</span>
+                                                <span style={{ fontWeight: 'bold', color: '#EF4444' }}>{bulkValidation.invalidRows.length}</span>
+                                            </div>
+
+                                            {bulkValidation.errors.length > 0 && (
+                                                <div style={{ backgroundColor: '#FEF2F2', padding: '0.75rem', borderRadius: '0.5rem', marginTop: '0.5rem' }}>
+                                                    <p style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#B91C1C', marginBottom: '0.25rem' }}>Errors:</p>
+                                                    <ul style={{ paddingLeft: '1rem', fontSize: '0.75rem', color: '#B91C1C' }}>
+                                                        {bulkValidation.errors.map((e: string, i: number) => <li key={i}>{e}</li>)}
+                                                    </ul>
+                                                </div>
+                                            )}
+
+                                            <button
+                                                onClick={handleBulkProcess}
+                                                disabled={!bulkValidation.isValid || bulkValidation.validRows.length === 0 || bulkProcessing}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '0.75rem',
+                                                    borderRadius: '0.75rem',
+                                                    fontWeight: 'bold',
+                                                    color: 'white',
+                                                    backgroundColor: (!bulkValidation.isValid || bulkValidation.validRows.length === 0 || bulkProcessing) ? '#94A3B8' : '#10B981',
+                                                    border: 'none',
+                                                    cursor: (!bulkValidation.isValid || bulkValidation.validRows.length === 0 || bulkProcessing) ? 'not-allowed' : 'pointer',
+                                                    marginTop: '1rem'
+                                                }}
+                                            >
+                                                {bulkProcessing ? 'Processing...' : `Process ${bulkValidation.validRows.length} Transactions`}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            /* SINGLE ENTRY MODE (Original Form Logic) */
+                            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                                {/* Transaction Type */}
+                                <div>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', display: 'block', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>TRANSACTION TYPE</label>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                                        {[
+                                            { id: 'Contribution', icon: ArrowDownLeft, label: 'Deposit', color: '#10B981' },
+                                            { id: 'Loan', icon: ArrowUpRight, label: 'Loan', color: '#EF4444' },
+                                            { id: 'Loan Repayment', icon: RefreshCw, label: 'Repay', color: '#F57C00' },
+                                        ].map((t) => (
+                                            <button
+                                                key={t.id}
+                                                type="button"
+                                                disabled={t.id === 'Loan Repayment' && standardLoanBalance <= 0 && dharuraLoanBalance <= 0}
+                                                onClick={() => {
+                                                    setType(t.id as any);
+                                                    if (t.id === 'Contribution') setCategory('Hisa');
+                                                    if (t.id === 'Loan') setCategory('Standard');
+                                                    if (t.id === 'Loan Repayment') setCategory(standardLoanBalance > 0 ? 'Standard' : 'Dharura');
+                                                }}
+                                                style={{
+                                                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '1rem',
+                                                    borderRadius: '1rem', border: '2px solid',
+                                                    borderColor: type === t.id ? t.color : '#E2E8F0',
+                                                    backgroundColor: type === t.id ? `${t.color}10` : 'white',
+                                                    opacity: (t.id === 'Loan Repayment' && standardLoanBalance <= 0 && dharuraLoanBalance <= 0) ? 0.3 : 1,
+                                                    cursor: (t.id === 'Loan Repayment' && standardLoanBalance <= 0 && dharuraLoanBalance <= 0) ? 'not-allowed' : 'pointer',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                            >
+                                                <t.icon size={24} color={type === t.id ? t.color : '#94A3B8'} />
+                                                <span style={{ fontSize: '0.75rem', fontWeight: '800', color: type === t.id ? t.color : '#94A3B8' }}>{t.label}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Category Selection */}
+                                <div>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', display: 'block', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>CATEGORY</label>
+                                    <div style={{ display: 'flex', gap: '1rem' }}>
+                                        {type === 'Contribution' ? (
+                                            <>
+                                                <button type="button" onClick={() => setCategory('Hisa')} style={{ flex: 1, padding: '0.75rem', borderRadius: '0.75rem', fontWeight: '700', fontSize: '0.875rem', border: 'none', cursor: 'pointer', backgroundColor: category === 'Hisa' ? '#10B981' : '#F1F5F9', color: category === 'Hisa' ? 'white' : '#64748B' }}>Hisa (Shares)</button>
+                                                <button type="button" onClick={() => setCategory('Jamii')} style={{ flex: 1, padding: '0.75rem', borderRadius: '0.75rem', fontWeight: '700', fontSize: '0.875rem', border: 'none', cursor: 'pointer', backgroundColor: category === 'Jamii' ? '#10B981' : '#F1F5F9', color: category === 'Jamii' ? 'white' : '#64748B' }}>Jamii</button>
+                                            </>
+                                        ) : type === 'Loan' ? (
+                                            <>
+                                                <button type="button" onClick={() => setCategory('Standard')} style={{ flex: 1, padding: '0.75rem', borderRadius: '0.75rem', fontWeight: '700', fontSize: '0.875rem', border: 'none', cursor: 'pointer', backgroundColor: category === 'Standard' ? '#EF4444' : '#F1F5F9', color: category === 'Standard' ? 'white' : '#64748B' }}>Standard (10%)</button>
+                                                <button type="button" onClick={() => setCategory('Dharura')} style={{ flex: 1, padding: '0.75rem', borderRadius: '0.75rem', fontWeight: '700', fontSize: '0.875rem', border: 'none', cursor: 'pointer', backgroundColor: category === 'Dharura' ? '#EF4444' : '#F1F5F9', color: category === 'Dharura' ? 'white' : '#64748B' }}>Dharura (0%)</button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <button type="button" onClick={() => setCategory('Standard')} disabled={standardLoanBalance <= 0} style={{ flex: 1, padding: '0.75rem', borderRadius: '0.75rem', fontWeight: '700', fontSize: '0.875rem', border: 'none', cursor: standardLoanBalance > 0 ? 'pointer' : 'not-allowed', backgroundColor: category === 'Standard' ? '#F59E0B' : '#F1F5F9', color: category === 'Standard' ? 'white' : '#64748B', opacity: standardLoanBalance > 0 ? 1 : 0.5 }}>Standard</button>
+                                                <button type="button" onClick={() => setCategory('Dharura')} disabled={dharuraLoanBalance <= 0} style={{ flex: 1, padding: '0.75rem', borderRadius: '0.75rem', fontWeight: '700', fontSize: '0.875rem', border: 'none', cursor: dharuraLoanBalance > 0 ? 'pointer' : 'not-allowed', backgroundColor: category === 'Dharura' ? '#F59E0B' : '#F1F5F9', color: category === 'Dharura' ? 'white' : '#64748B', opacity: dharuraLoanBalance > 0 ? 1 : 0.5 }}>Dharura</button>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Amount Input */}
+                                <div>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', display: 'block', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>AMOUNT (TSH)</label>
+                                    <input
+                                        type="number"
+                                        value={amount}
+                                        onChange={(e) => setAmount(e.target.value)}
+                                        placeholder="0.00"
+                                        style={{ width: '100%', padding: '1rem', borderRadius: '1rem', border: '1px solid #E2E8F0', fontSize: '1.25rem', fontWeight: '800', textAlign: 'center', outline: 'none', color: '#0F172A' }}
+                                    />
+                                    {/* Interest Preview */}
+                                    {type === 'Loan' && category === 'Standard' && amount && !isNaN(Number(amount)) && Number(amount) > 0 && (
+                                        <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: '#FFF7ED', borderRadius: '0.75rem', border: '1px solid #FFEDD5' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.8125rem', color: '#78716C' }}><span>Principal:</span><span>{Number(amount).toLocaleString()}</span></div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.8125rem', color: '#78716C' }}><span>Interest (10%):</span><span>{(Number(amount) * 0.1).toLocaleString()}</span></div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px solid #FED7AA', fontSize: '1rem', fontWeight: 'bold', color: '#EA580C' }}><span>Total:</span><span>{(Number(amount) * 1.1).toLocaleString()}</span></div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Submit Button */}
+                                <button type="submit" disabled={isSubmitting || !selectedMember} style={{ padding: '1.25rem', borderRadius: '1rem', backgroundColor: '#0F172A', color: 'white', fontSize: '1rem', fontWeight: '700', border: 'none', cursor: (isSubmitting || !selectedMember) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', opacity: (isSubmitting || !selectedMember) ? 0.7 : 1 }}>
+                                    {isSubmitting ? "Processing..." : <>Record Transaction <CheckCircle2 size={20} /></>}
+                                </button>
+                            </form>
+                        )}
+                    </div>
+
+                    {/* RIGHT COLUMN: MEMBER SEARCH & STATS */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                        {selectedMember ? (
+                            <div className="card" style={{ padding: '2rem', backgroundColor: 'white', borderRadius: '1rem', border: '1px solid #E2E8F0' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                    <h3 style={{ fontSize: '1.125rem', fontWeight: 'bold' }}>Loan Status</h3>
+                                    <button onClick={() => setSelectedMember(null)} style={{ fontSize: '0.875rem', color: '#0EA5E9', border: 'none', background: 'none', cursor: 'pointer' }}>Change Member</button>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', backgroundColor: '#0EA5E9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '1.25rem' }}>
+                                        {selectedMember.displayName[0]}
+                                    </div>
+                                    <div>
+                                        <p style={{ fontWeight: 'bold', fontSize: '1rem' }}>{selectedMember.displayName}</p>
+                                        <p style={{ fontSize: '0.875rem', color: '#64748B' }}>{selectedMember.role}</p>
+                                        {/* Show Member ID if available? Need to add to type first. For now skip. */}
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    <div style={{ padding: '1rem', backgroundColor: '#EEF2FF', borderRadius: '0.75rem', border: '1px solid #E0E7FF' }}>
+                                        <p style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#4F46E5', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Standard Loan Balance</p>
+                                        <p style={{ fontSize: '1.5rem', fontWeight: '900', color: '#312E81' }}>TSh {standardLoanBalance.toLocaleString()}</p>
+                                    </div>
+                                    <div style={{ padding: '1rem', backgroundColor: '#FFFBEB', borderRadius: '0.75rem', border: '1px solid #FEF3C7' }}>
+                                        <p style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#D97706', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Dharura Loan Balance</p>
+                                        <p style={{ fontSize: '1.5rem', fontWeight: '900', color: '#78350F' }}>TSh {dharuraLoanBalance.toLocaleString()}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            /* Member Search */
+                            <div className="card" style={{ padding: '2rem', backgroundColor: 'white', borderRadius: '1rem', border: '1px solid #E2E8F0', flex: 1 }}>
+                                <h3 style={{ fontSize: '1.125rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>Select Member</h3>
+                                <div style={{ position: 'relative', marginBottom: '1rem' }}>
+                                    <UserSearch size={20} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                                    <input
+                                        type="text"
+                                        placeholder="Search by name..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        style={{ width: '100%', padding: '1rem 1rem 1rem 3rem', borderRadius: '0.75rem', border: '1px solid #E2E8F0', outline: 'none' }}
+                                    />
+                                </div>
+                                <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                                    {filteredMembers.map(member => (
+                                        <button
+                                            key={member.uid}
+                                            onClick={() => { setSelectedMember(member); setSearchTerm(''); }}
+                                            style={{
+                                                width: '100%', display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem',
+                                                border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left',
+                                                borderRadius: '0.5rem', transition: 'background-color 0.1s'
+                                            }}
+                                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
+                                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                        >
+                                            <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#64748B' }}>
+                                                {member.displayName[0]}
+                                            </div>
+                                            <span style={{ fontWeight: '500', color: '#334155' }}>{member.displayName}</span>
+                                        </button>
+                                    ))}
+                                    {filteredMembers.length === 0 && (
+                                        <p style={{ textAlign: 'center', color: '#94A3B8', padding: '1rem' }}>No members found</p>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

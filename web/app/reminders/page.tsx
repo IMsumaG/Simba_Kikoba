@@ -117,6 +117,55 @@ export default function RemindersPage() {
         }
     };
 
+    const handleMigration = async () => {
+        if (!window.confirm('Migrate Standard Loans to include 10% interest?\n\nThis will apply 10% interest to all existing Standard loans that don\'t have interest applied yet. This is a one-time operation.\n\nContinue?')) {
+            return;
+        }
+
+        setLoading(true);
+        setMessage(null);
+
+        try {
+            const auth = getAuth();
+            const currentUser = auth.currentUser;
+            if (!currentUser) {
+                throw new Error('User not authenticated. Please log in again.');
+            }
+
+            const token = await currentUser.getIdToken();
+            if (!token) {
+                throw new Error('Authentication token not found. Please refresh the page.');
+            }
+
+            const response = await fetch('/api/migration/standard-loans-interest', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to run migration');
+            }
+
+            setMessage({
+                type: 'success',
+                text: `✅ Migration complete! Updated ${data.updatedCount} Standard loan transactions`,
+            });
+        } catch (error: any) {
+            setMessage({
+                type: 'error',
+                text: `❌ Error: ${error.message || 'Failed to run migration'}`,
+            });
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <AppLayout>
             <div style={{ minHeight: '100vh', backgroundColor: 'var(--background-muted)' }}>
@@ -243,6 +292,54 @@ export default function RemindersPage() {
                                 onMouseLeave={(e) => !loading && (e.currentTarget.style.backgroundColor = '#DC2626')}
                             >
                                 {loading ? 'Sending...' : 'Send Loan Reminder'}
+                            </button>
+                        </div>
+
+                        {/* Migration Card */}
+                        <div className="card" style={{ padding: '1.5rem', transition: 'box-shadow 0.2s', borderWidth: '2px', borderColor: '#8B5CF6' }}>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                                <div>
+                                    <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>Standard Loans Migration</h2>
+                                    <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                                        Apply 10% interest to existing Standard loans (One-time operation)
+                                    </p>
+                                </div>
+                                <div style={{ backgroundColor: '#F3E8FF', padding: '0.75rem', borderRadius: 'var(--radius)' }}>
+                                    <svg style={{ width: '1.5rem', height: '1.5rem', color: '#8B5CF6' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                                    </svg>
+                                </div>
+                            </div>
+
+                            <div style={{ backgroundColor: 'var(--background-muted)', padding: '1rem', borderRadius: 'var(--radius)', marginBottom: '1.5rem' }}>
+                                <h3 style={{ fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Migration Details:</h3>
+                                <ul style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', listStyle: 'none', padding: 0 }}>
+                                    <li style={{ marginBottom: '0.25rem' }}>✓ Updates: All Standard loans without interest</li>
+                                    <li style={{ marginBottom: '0.25rem' }}>✓ Adds: 10% interest to loan amounts</li>
+                                    <li style={{ marginBottom: '0.25rem' }}>✓ Stores: Both principal and total amount</li>
+                                    <li style={{ marginBottom: '0.25rem' }}>✓ Safe: Can be run multiple times</li>
+                                </ul>
+                            </div>
+
+                            <button
+                                onClick={handleMigration}
+                                disabled={loading}
+                                style={{
+                                    width: '100%',
+                                    backgroundColor: '#8B5CF6',
+                                    color: 'white',
+                                    fontWeight: '600',
+                                    padding: '0.5rem 1rem',
+                                    borderRadius: '0.5rem',
+                                    border: 'none',
+                                    cursor: loading ? 'not-allowed' : 'pointer',
+                                    opacity: loading ? 0.6 : 1,
+                                    transition: 'background-color 0.2s'
+                                }}
+                                onMouseEnter={(e) => !loading && (e.currentTarget.style.backgroundColor = '#7C3AED')}
+                                onMouseLeave={(e) => !loading && (e.currentTarget.style.backgroundColor = '#8B5CF6')}
+                            >
+                                {loading ? 'Migrating...' : 'Run Migration'}
                             </button>
                         </div>
                     </div>

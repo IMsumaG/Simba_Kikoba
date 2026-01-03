@@ -1,13 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, FlatList, Modal, ScrollView, StatusBar, StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as XLSX from 'xlsx';
 import { SkeletonLoader } from '../../components/SkeletonLoader';
 import { Colors } from '../../constants/Colors';
 import { useAuth } from '../../services/AuthContext';
+import { bulkUploadService } from '../../services/bulkUploadService';
 import { memberService, UserProfile } from '../../services/memberService';
 import { transactionService } from '../../services/transactionService';
+import { BulkUploadValidationResult } from '../../types';
 
 export default function TransactionsScreen() {
     const { t } = useTranslation();
@@ -32,6 +38,96 @@ export default function TransactionsScreen() {
     const [membersLoading, setMembersLoading] = useState(false);
     const [showMemberModal, setShowMemberModal] = useState(false);
     const [search, setSearch] = useState('');
+
+    // Bulk Upload State
+    const [showBulkPreview, setShowBulkPreview] = useState(false);
+    const [bulkValidation, setBulkValidation] = useState<BulkUploadValidationResult | null>(null);
+    const [bulkProcessing, setBulkProcessing] = useState(false);
+
+    const handleBulkUpload = async () => {
+        try {
+            const res = await DocumentPicker.getDocumentAsync({
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                copyToCacheDirectory: true
+            });
+
+            if (res.canceled) return;
+
+            setLoading(true);
+            // parseExcelFile in service now handles file reading
+            const rows = await bulkUploadService.parseExcelFile(res.assets[0].uri);
+            const validation = await bulkUploadService.validateBulkData(rows);
+            setBulkValidation(validation);
+            setShowBulkPreview(true);
+
+        } catch (err: any) {
+            console.error(err);
+            Alert.alert("Error", "Failed to process file: " + err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDownloadTemplate = async () => {
+        try {
+            setLoading(true);
+            // Generate template data using the service
+            const rows = await bulkUploadService.generateTemplate();
+
+            // Create workbook
+            const ws = XLSX.utils.json_to_sheet(rows);
+            ws['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 15 }];
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Template");
+
+            // Write to base64
+            const wbout = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
+
+            // Save to temp file
+            const uri = (FileSystem as any).cacheDirectory + 'Maono_Template.xlsx';
+            await FileSystem.writeAsStringAsync(uri, wbout, {
+                encoding: 'base64'
+            });
+
+            // Share/Export
+            await Sharing.shareAsync(uri, {
+                mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                dialogTitle: 'Download Template'
+            });
+
+        } catch (error: any) {
+            console.error(error);
+            Alert.alert("Error", error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const confirmBulkProcess = async () => {
+        if (!bulkValidation || !bulkValidation.validRows.length) return;
+
+        setBulkProcessing(true);
+        try {
+            const result = await bulkUploadService.processBulkTransactions(
+                bulkValidation.validRows,
+                currentUser!.uid
+            );
+
+            setShowBulkPreview(false);
+
+            Alert.alert(
+                "Success",
+                `Processed ${result.successCount} transactions successfully.` +
+                (result.failedCount > 0 ? `\nFailed: ${result.failedCount}` : "") +
+                (result.skippedCount > 0 ? `\nSkipped: ${result.skippedCount}` : "")
+            );
+        } catch (err: any) {
+            Alert.alert("Date Processing Error", err.message);
+        } finally {
+            setBulkProcessing(false);
+        }
+    };
 
     useEffect(() => {
         if (isAdmin) {
@@ -65,9 +161,21 @@ export default function TransactionsScreen() {
 
         setLoading(true);
         try {
+            const enteredAmount = Number(amount);
+            let finalAmount = enteredAmount;
+            let originalAmount = enteredAmount;
+
+            // Calculate interest for Standard loans
+            if (type === 'Loan' && category === 'Standard') {
+                const calculation = transactionService.calculateLoanWithInterest(enteredAmount, category);
+                finalAmount = calculation.totalAmount;
+                originalAmount = calculation.originalAmount;
+            }
+
             await transactionService.addTransaction({
                 type,
-                amount: Number(amount),
+                amount: finalAmount, // Total amount with interest for Standard loans
+                originalAmount: type === 'Loan' ? originalAmount : undefined,
                 memberId: isAdmin ? selectedMember!.uid : currentUser!.uid,
                 memberName: isAdmin ? selectedMember!.displayName : (currentUser?.displayName || 'Self'),
                 category: type === 'Contribution' ? category : (type === 'Loan' ? category : category),
@@ -103,6 +211,26 @@ export default function TransactionsScreen() {
                 <Text style={styles.title as TextStyle}>{t('transactions.title')}</Text>
 
                 <View style={styles.form as ViewStyle}>
+                    {/* Bulk Upload Button (Admin Only) */}
+                    {isAdmin && (
+                        <View style={{ marginBottom: 20 }}>
+                            <TouchableOpacity style={styles.bulkUploadBtn as ViewStyle} onPress={handleBulkUpload}>
+                                <Ionicons name="document-text-outline" size={20} color="white" />
+                                <Text style={styles.bulkUploadText as TextStyle}>Bulk Upload (Excel)</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[
+                                    styles.bulkUploadBtn as ViewStyle,
+                                    { marginTop: 10, backgroundColor: '#E0F2FE', borderWidth: 1, borderColor: '#BAE6FD' }
+                                ]}
+                                onPress={handleDownloadTemplate}
+                            >
+                                <Ionicons name="download-outline" size={20} color="#0284C7" />
+                                <Text style={[styles.bulkUploadText as TextStyle, { color: '#0284C7' }]}>Download Template</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+
                     {/* Member Selection (Admin Only) */}
                     <View style={styles.inputGroup as ViewStyle}>
                         <Text style={styles.label as TextStyle}>
@@ -260,6 +388,24 @@ export default function TransactionsScreen() {
                                 onChangeText={setAmount}
                             />
                         </View>
+
+                        {/* Interest Preview for Standard Loans */}
+                        {type === 'Loan' && category === 'Standard' && amount && !isNaN(Number(amount)) && Number(amount) > 0 && (
+                            <View style={styles.interestPreview as ViewStyle}>
+                                <View style={styles.interestRow as ViewStyle}>
+                                    <Text style={styles.interestLabel as TextStyle}>Principal Amount:</Text>
+                                    <Text style={styles.interestValue as TextStyle}>TSh {Number(amount).toLocaleString()}</Text>
+                                </View>
+                                <View style={styles.interestRow as ViewStyle}>
+                                    <Text style={styles.interestLabel as TextStyle}>Interest (10%):</Text>
+                                    <Text style={styles.interestValue as TextStyle}>TSh {(Number(amount) * 0.1).toLocaleString()}</Text>
+                                </View>
+                                <View style={[styles.interestRow as ViewStyle, { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#F1F5F9' }]}>
+                                    <Text style={styles.interestLabelBold as TextStyle}>Total with Interest:</Text>
+                                    <Text style={styles.interestValueBold as TextStyle}>TSh {(Number(amount) * 1.1).toLocaleString()}</Text>
+                                </View>
+                            </View>
+                        )}
                     </View>
 
                     <TouchableOpacity
@@ -338,6 +484,65 @@ export default function TransactionsScreen() {
                         />
                     )}
                 </SafeAreaView>
+            </Modal>
+
+            {/* Bulk Upload Preview Modal */}
+            <Modal visible={showBulkPreview} animationType="slide" transparent>
+                <View style={styles.previewModalContainer as ViewStyle}>
+                    <View style={styles.previewModalContent as ViewStyle}>
+                        <View style={styles.previewHeader as ViewStyle}>
+                            <Text style={styles.previewTitle as TextStyle}>Bulk Import Preview</Text>
+                            <TouchableOpacity onPress={() => setShowBulkPreview(false)}>
+                                <Ionicons name="close" size={24} color="#64748B" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView>
+                            <View style={styles.statRow as ViewStyle}>
+                                <Text style={styles.statLabel as TextStyle}>Valid Transactions:</Text>
+                                <Text style={[styles.statValue as TextStyle, { color: '#10B981' }]}>{bulkValidation?.validRows.length || 0}</Text>
+                            </View>
+                            <View style={styles.statRow as ViewStyle}>
+                                <Text style={styles.statLabel as TextStyle}>Duplicates (Skipped):</Text>
+                                <Text style={[styles.statValue as TextStyle, { color: '#F59E0B' }]}>{bulkValidation?.duplicateRows.length || 0}</Text>
+                            </View>
+                            <View style={styles.statRow as ViewStyle}>
+                                <Text style={styles.statLabel as TextStyle}>Invalid Rows:</Text>
+                                <Text style={[styles.statValue as TextStyle, { color: '#EF4444' }]}>{bulkValidation?.invalidRows.length || 0}</Text>
+                            </View>
+
+                            {bulkValidation?.errors && bulkValidation.errors.length > 0 && (
+                                <View style={styles.warningBox as ViewStyle}>
+                                    <Text style={[styles.warningText as TextStyle, { fontWeight: 'bold' }]}>File Errors:</Text>
+                                    {bulkValidation.errors.map((err: string, i: number) => (
+                                        <Text key={i} style={styles.warningText as TextStyle}>• {err}</Text>
+                                    ))}
+                                </View>
+                            )}
+
+                            {bulkValidation?.warnings && bulkValidation.warnings.length > 0 && (
+                                <View style={[styles.warningBox as ViewStyle, { backgroundColor: '#FFFBEB' }]}>
+                                    <Text style={[styles.warningText as TextStyle, { fontWeight: 'bold', color: '#B45309' }]}>Warnings:</Text>
+                                    {bulkValidation.warnings.map((warn: string, i: number) => (
+                                        <Text key={i} style={[styles.warningText as TextStyle, { color: '#B45309' }]}>• {warn}</Text>
+                                    ))}
+                                </View>
+                            )}
+
+                            <TouchableOpacity
+                                style={[styles.processBtn as ViewStyle, (!bulkValidation?.isValid || bulkValidation?.validRows.length === 0) && { opacity: 0.5 }]}
+                                onPress={confirmBulkProcess}
+                                disabled={!bulkValidation?.isValid || bulkValidation?.validRows.length === 0 || bulkProcessing}
+                            >
+                                {bulkProcessing ? (
+                                    <ActivityIndicator color="white" />
+                                ) : (
+                                    <Text style={styles.processBtnText as TextStyle}>Process Transactions</Text>
+                                )}
+                            </TouchableOpacity>
+                        </ScrollView>
+                    </View>
+                </View>
             </Modal>
         </SafeAreaView>
     );
@@ -569,16 +774,136 @@ const styles = StyleSheet.create({
         borderColor: '#EF4444',
     },
     subTypeBtnInactive: {
+        backgroundColor: 'white',
+        borderColor: '#E2E8F0',
+    },
+    subTypeBtnDisabled: {
         backgroundColor: '#F1F5F9',
         borderColor: '#F1F5F9',
     },
-    subTypeBtnDisabled: {
-        backgroundColor: '#E2E8F0',
-        borderColor: '#CBD5E1',
-    },
     subTypeText: {
+        fontWeight: 'bold',
+        fontSize: 12,
+    },
+    interestPreview: {
+        marginTop: 16,
+        padding: 16,
+        backgroundColor: '#FFF7ED',
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#FFEDD5',
+    },
+    interestRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 8,
+    },
+    interestLabel: {
+        fontSize: 12,
+        color: '#78716C',
+        fontWeight: '500',
+    },
+    interestValue: {
+        fontSize: 12,
+        color: '#57534E',
+        fontWeight: '600',
+    },
+    interestLabelBold: {
         fontSize: 14,
-        fontWeight: '700',
-        textAlign: 'center',
+        color: '#1C1917',
+        fontWeight: 'bold',
+    },
+    interestValueBold: {
+        fontSize: 16,
+        color: '#EA580C',
+        fontWeight: '900',
+    },
+    bulkUploadBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#10B981',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        gap: 8,
+        marginBottom: 24,
+        elevation: 2,
+        shadowColor: '#10B981',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+    },
+    bulkUploadText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 14,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+    previewModalContainer: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        padding: 24,
+    },
+    previewModalContent: {
+        backgroundColor: 'white',
+        borderRadius: 24,
+        maxHeight: '80%',
+        padding: 24,
+    },
+    previewHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9',
+        paddingBottom: 16,
+    },
+    previewTitle: {
+        fontSize: 20,
+        fontWeight: '900',
+        color: '#0F172A',
+    },
+    statRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 8,
+    },
+    statLabel: {
+        fontSize: 14,
+        color: '#64748B',
+    },
+    statValue: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#0F172A',
+    },
+    warningBox: {
+        backgroundColor: '#FEF2F2',
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 16,
+        marginTop: 8
+    },
+    warningText: {
+        color: '#DC2626',
+        fontSize: 12,
+    },
+    processBtn: {
+        backgroundColor: '#10B981',
+        paddingVertical: 16,
+        borderRadius: 16,
+        alignItems: 'center',
+        marginTop: 24,
+    },
+    processBtnText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 16,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
     }
 });

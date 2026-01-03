@@ -53,10 +53,10 @@ export default function Sidebar({ isMinimized, setIsMinimized }: SidebarProps) {
             <div style={{ height: '80px', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: isMinimized ? 'center' : 'space-between' }}>
                 {!isMinimized && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ width: '32px', height: '32px', backgroundColor: '#F57C00', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <PlusCircle size={20} color="white" />
+                        <div style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <img src="/sbk-logo.png" alt="SBK" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                         </div>
-                        <h2 style={{ fontSize: '16px', fontWeight: '900', letterSpacing: '1px' }}>KIKOBA</h2>
+                        <h2 style={{ fontSize: '14px', fontWeight: '900', letterSpacing: '0.5px' }}>SBK ENDELEVU</h2>
                     </div>
                 )}
                 <button

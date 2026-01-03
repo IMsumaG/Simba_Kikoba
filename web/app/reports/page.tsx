@@ -116,7 +116,8 @@ export default function ReportsPage() {
                 }
             } else if (t.type === "Loan") {
                 if (t.category === "Standard") {
-                    standardLoanTotal += t.amount;
+                    // Use originalAmount (principal) if available
+                    standardLoanTotal += (t.originalAmount || t.amount);
                 } else if (t.category === "Dharura") {
                     dharuraLoanTotal += t.amount;
                 }
@@ -222,8 +223,8 @@ export default function ReportsPage() {
         // Header
         doc.setFontSize(24);
         doc.setTextColor(245, 124, 0);
-        doc.text("KIKOBA", 20, yPosition);
-        
+        doc.text("Simba Bingwa Kikoba Endelevu", 20, yPosition);
+
         yPosition += 15;
         doc.setFontSize(14);
         doc.setTextColor(0, 0, 0);
@@ -575,7 +576,7 @@ export default function ReportsPage() {
                         <div className="card" style={{ padding: "2rem" }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
                                 <div>
-                                    <h2 style={{ fontSize: "1.5rem", fontWeight: "900", marginBottom: "0.5rem" }}>KIKOBA</h2>
+                                    <h2 style={{ fontSize: "1.5rem", fontWeight: "900", marginBottom: "0.5rem" }}>Simba Bingwa Kikoba Endelevu</h2>
                                     <p style={{ color: "var(--text-secondary)", marginBottom: "0.5rem" }}>
                                         Taarifa za Mwanachama - {monthName} {selectedYear}
                                     </p>
@@ -769,7 +770,7 @@ export default function ReportsPage() {
                         <div className="card" style={{ padding: "2rem", overflow: "auto" }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
                                 <div>
-                                    <h2 style={{ fontSize: "1.5rem", fontWeight: "900", marginBottom: "0.5rem" }}>KIKOBA</h2>
+                                    <h2 style={{ fontSize: "1.5rem", fontWeight: "900", marginBottom: "0.5rem" }}>Simba Bingwa Kikoba Endelevu</h2>
                                     <p style={{ color: "var(--text-secondary)", marginBottom: "0.5rem" }}>
                                         Taarifa za Kikoba - {monthName} {selectedYear}
                                     </p>

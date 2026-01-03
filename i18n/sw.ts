@@ -65,6 +65,7 @@ export const sw = {
         totalAssets: "Jumla ya Mali",
         outstandingLoans: "Mikopo Isiyolipwa",
         activeSociety: "Kikundi Hai",
+        activeLoans: "Mikopo Hai",
         currentContracts: "Mikataba ya Sasa",
         overallRecentActivities: "Shughuli Zote za Hivi Karibuni",
         myRecentActivities: "Shughuli Zangu za Hivi Karibuni",

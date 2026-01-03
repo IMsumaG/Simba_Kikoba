@@ -129,7 +129,50 @@ export default function MembersScreen() {
     return (
         <SafeAreaView style={styles.container as ViewStyle}>
             <View style={styles.header as ViewStyle}>
-                <Text style={styles.title as TextStyle}>{t('members.list')}</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <Text style={styles.title as TextStyle}>{t('members.list')}</Text>
+                    {isAdmin && (
+                        <TouchableOpacity
+                            onPress={async () => {
+                                Alert.alert(
+                                    t('common.confirm'),
+                                    "Generate unique Member IDs (SBK###) for all members without one?",
+                                    [
+                                        { text: t('common.cancel'), style: 'cancel' },
+                                        {
+                                            text: t('common.confirm'),
+                                            onPress: async () => {
+                                                try {
+                                                    setLoading(true);
+                                                    const { generateMemberIds } = await import('../../services/memberIdService');
+                                                    const result = await generateMemberIds();
+                                                    if (result.success) {
+                                                        Alert.alert(t('common.success'), `Generated IDs for ${result.count} members.`);
+                                                        fetchMembers();
+                                                    } else {
+                                                        Alert.alert(t('common.error'), result.errors.join('\n'));
+                                                    }
+                                                } catch (error: any) {
+                                                    Alert.alert(t('common.error'), error.message);
+                                                } finally {
+                                                    setLoading(false);
+                                                }
+                                            }
+                                        }
+                                    ]
+                                );
+                            }}
+                            style={{
+                                backgroundColor: Colors.primary,
+                                paddingHorizontal: 12,
+                                paddingVertical: 6,
+                                borderRadius: 8,
+                            }}
+                        >
+                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>Generate IDs</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
 
                 <View style={styles.searchContainer as ViewStyle}>
                     <Ionicons name="search-outline" size={20} color="#94A3B8" />

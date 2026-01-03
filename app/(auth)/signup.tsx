@@ -88,18 +88,29 @@ export default function SignUpScreen() {
             // 3. Update profile with name
             await updateProfile(user, { displayName: name.trim() });
 
-            // 4. Create user document in Firestore with 'Member' role and group code
+            // 4. Generate Member ID (SBK###)
+            let memberId = '';
+            try {
+                const { getNextMemberId } = await import('../../services/memberIdService');
+                memberId = await getNextMemberId();
+            } catch (idError) {
+                console.error('Error generating ID during signup:', idError);
+                // Fallback: ID will be assigned by admin if this fails
+            }
+
+            // 5. Create user document in Firestore with 'Member' role and group code
             await setDoc(doc(db, 'users', user.uid), {
                 uid: user.uid,
                 displayName: name.trim(),
                 email: email.trim().toLowerCase(),
                 role: 'Member',
+                memberId: memberId || "", // Set generated ID or empty string
                 groupCode: groupCode.trim().toUpperCase(),
                 createdAt: new Date().toISOString(),
                 status: 'Active',
             });
 
-            // 5. Increment redemption count for the group code
+            // 6. Increment redemption count for the group code
             await groupCodeService.incrementRedemptionCount(groupCode);
 
             router.replace('/(tabs)');

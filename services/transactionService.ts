@@ -7,12 +7,35 @@ import { memberService, UserProfile } from './memberService';
 // Re-export types for backwards compatibility
 export type { DashboardTotals, GroupMonthlyReport, MemberStats, MonthlyReport, Transaction };
 
+/**
+ * Calculate loan amount with interest
+ * @param originalAmount - The principal loan amount
+ * @param category - The loan category
+ * @returns Object with originalAmount and totalAmount (with interest)
+ */
+const calculateLoanWithInterest = (originalAmount: number, category: 'Hisa' | 'Jamii' | 'Standard' | 'Dharura') => {
+    if (category === 'Standard') {
+        const totalAmount = originalAmount * 1.1; // 10% interest
+        return {
+            originalAmount,
+            totalAmount,
+            interestRate: 10
+        };
+    }
+    // No interest for other categories
+    return {
+        originalAmount,
+        totalAmount: originalAmount,
+        interestRate: 0
+    };
+};
+
 export const transactionService = {
     // Add a new transaction
     async addTransaction(transaction: Omit<Transaction, 'id'>, currentUser?: UserProfile, groupCode?: string) {
         try {
             const docRef = await addDoc(collection(db, 'transactions'), transaction);
-            
+
             // Log activity if user and groupCode are provided
             if (currentUser && groupCode) {
                 try {
@@ -27,7 +50,7 @@ export const transactionService = {
                     // Don't fail the transaction if activity logging fails
                 }
             }
-            
+
             return docRef;
         } catch (error) {
             // Log failed activity if user and groupCode are provided
@@ -70,16 +93,37 @@ export const transactionService = {
         const transactions = await this.getAllTransactions();
         let totalContributions = 0;
         let totalLoans = 0;
-        let activeLoansCount = 0;
+
+        // Track loans by member and category to determine active loans
+        const loansByMemberCategory: { [key: string]: number } = {};
 
         transactions.forEach(t => {
             if (t.type === 'Contribution') {
                 totalContributions += t.amount;
             } else if (t.type === 'Loan') {
                 totalLoans += t.amount;
-                activeLoansCount++;
+                // Track loan balance by member+category
+                const key = `${t.memberId}_${t.category || 'Unknown'}`;
+                if (!loansByMemberCategory[key]) {
+                    loansByMemberCategory[key] = 0;
+                }
+                loansByMemberCategory[key] += t.amount;
             } else if (t.type === 'Loan Repayment') {
                 totalLoans -= t.amount;
+                // Subtract repayments from the member+category balance
+                const key = `${t.memberId}_${t.category || 'Unknown'}`;
+                if (!loansByMemberCategory[key]) {
+                    loansByMemberCategory[key] = 0;
+                }
+                loansByMemberCategory[key] -= t.amount;
+            }
+        });
+
+        // Count active loans (those with remaining balance > 0)
+        let activeLoansCount = 0;
+        Object.values(loansByMemberCategory).forEach(balance => {
+            if (balance > 0) {
+                activeLoansCount++;
             }
         });
 
@@ -309,7 +353,8 @@ export const transactionService = {
 
         transactions.forEach(t => {
             if (t.type === 'Loan' && t.category === 'Standard') {
-                totalStandardLoaned += t.amount;
+                // Use originalAmount (principal) if available, otherwise amount (legacy principal)
+                totalStandardLoaned += (t.originalAmount || t.amount);
             } else if (t.type === 'Loan Repayment' && t.category === 'Standard') {
                 if (isBeforeMonth(t.date, month, year)) {
                     previousStandardRepayments += t.amount;
@@ -319,7 +364,7 @@ export const transactionService = {
             }
         });
 
-        const standardLoanWithInterest = totalStandardLoaned * 1.1; // 10% interest
+        const standardLoanWithInterest = totalStandardLoaned * 1.1; // 10% interest on Principal
         const totalStandardRepayments = previousStandardRepayments + currentMonthStandardRepayment;
         const remainingStandardLoan = Math.max(0, standardLoanWithInterest - totalStandardRepayments);
 
@@ -373,7 +418,7 @@ export const transactionService = {
     // Generate group monthly report for all active members
     async getGroupMonthlyReport(month: number, year: number) {
         const allMembers = await memberService.getAllUsers();
-        
+
         // Include all members and admins
         const groupData = await Promise.all(
             allMembers.map(async (member) => {
@@ -399,5 +444,52 @@ export const transactionService = {
     async deleteTransaction(transactionId: string) {
         const { deleteDoc, doc } = await import('firebase/firestore');
         return await deleteDoc(doc(db, 'transactions', transactionId));
+    },
+
+    /**
+     * Calculate loan amount with interest (exposed for UI use)
+     */
+    calculateLoanWithInterest: (originalAmount: number, category: 'Hisa' | 'Jamii' | 'Standard' | 'Dharura') => {
+        return calculateLoanWithInterest(originalAmount, category);
+    },
+
+    /**
+     * Migrate existing Standard loans to include 10% interest
+     * This function updates all Standard loan transactions that don't have originalAmount set
+     */
+    async migrateStandardLoansWithInterest() {
+        try {
+            const { updateDoc, doc } = await import('firebase/firestore');
+            const transactions = await this.getAllTransactions();
+            let updatedCount = 0;
+
+            for (const transaction of transactions) {
+                // Only process Standard loans without originalAmount
+                if (
+                    transaction.type === 'Loan' &&
+                    transaction.category === 'Standard' &&
+                    !transaction.originalAmount &&
+                    transaction.id
+                ) {
+                    // The current amount is the original amount (no interest was applied)
+                    const originalAmount = transaction.amount;
+                    const totalWithInterest = originalAmount * 1.1;
+
+                    await updateDoc(doc(db, 'transactions', transaction.id), {
+                        originalAmount: originalAmount,
+                        amount: totalWithInterest,
+                        interestRate: 10
+                    });
+
+                    updatedCount++;
+                }
+            }
+
+            console.log(`Migration complete: Updated ${updatedCount} Standard loan transactions`);
+            return { success: true, updatedCount };
+        } catch (error) {
+            console.error('Migration failed:', error);
+            throw error;
+        }
     }
 };

@@ -49,7 +49,9 @@ export default function DashboardPage() {
             let totalContrib = 0;
             let totalLoansIssued = 0;
             let repaymentTotal = 0;
-            let activeLoansCount = 0;
+
+            // Track loans by member and category to determine active loans
+            const loansByMemberCategory: { [key: string]: number } = {};
 
             // Group by month for chart
             const monthlyStats: { [key: string]: { contribution: number, loans: number } } = {};
@@ -70,9 +72,30 @@ export default function DashboardPage() {
                 } else if (data.type === "Loan") {
                     totalLoansIssued += amount;
                     monthlyStats[monthYear].loans += amount;
-                    activeLoansCount++;
+
+                    // Track loan balance by member+category
+                    const key = `${data.memberId}_${data.category || 'Unknown'}`;
+                    if (!loansByMemberCategory[key]) {
+                        loansByMemberCategory[key] = 0;
+                    }
+                    loansByMemberCategory[key] += amount;
                 } else if (data.type === "Loan Repayment") {
                     repaymentTotal += amount;
+
+                    // Subtract repayments from the member+category balance
+                    const key = `${data.memberId}_${data.category || 'Unknown'}`;
+                    if (!loansByMemberCategory[key]) {
+                        loansByMemberCategory[key] = 0;
+                    }
+                    loansByMemberCategory[key] -= amount;
+                }
+            });
+
+            // Count active loans (those with remaining balance > 0)
+            let activeLoansCount = 0;
+            Object.values(loansByMemberCategory).forEach(balance => {
+                if (balance > 0) {
+                    activeLoansCount++;
                 }
             });
 

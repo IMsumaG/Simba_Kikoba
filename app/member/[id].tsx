@@ -30,6 +30,7 @@ export default function MemberDetailScreen() {
         Dharura: 0
     });
     const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [memberIdDisplay, setMemberIdDisplay] = useState<string | null>(null);
 
     useEffect(() => {
         if (id) {
@@ -45,6 +46,14 @@ export default function MemberDetailScreen() {
             const fetchedTransactions = await transactionService.getMemberTransactions(memberId, 5);
             const fetchedContributions = await transactionService.getContributionBalanceByCategory(memberId);
             const fetchedLoans = await transactionService.getLoanBalanceByCategory(memberId);
+
+            // Fetch user detail to get Member ID (SBK...)
+            const { doc, getDoc } = await import('firebase/firestore');
+            const { db } = await import('../../services/firebase');
+            const userDoc = await getDoc(doc(db, 'users', memberId));
+            if (userDoc.exists()) {
+                setMemberIdDisplay(userDoc.data().memberId || null);
+            }
 
             setStats(fetchedStats);
             setTransactions(fetchedTransactions);
@@ -80,37 +89,52 @@ export default function MemberDetailScreen() {
         );
     };
 
-    const TransactionItem = ({ id: transId, type, amount, date }: any) => (
-        <View style={styles.transactionItem as ViewStyle}>
-            <View style={styles.transactionLeft as ViewStyle}>
-                <View
-                    style={[styles.transactionIcon as ViewStyle, { backgroundColor: type === 'Contribution' ? '#DCFCE7' : (type === 'Loan' ? '#FEE2E2' : '#FEF3C7') }]}
-                >
-                    <Ionicons
-                        name={type === 'Contribution' ? 'arrow-down-outline' : (type === 'Loan' ? 'arrow-up-outline' : 'refresh-outline')}
-                        size={20}
-                        color={type === 'Contribution' ? '#166534' : (type === 'Loan' ? '#991B1B' : '#92400E')}
-                    />
+    const TransactionItem = ({ id: transId, type, amount, date }: any) => {
+        let sign = '';
+        let color = '';
+        if (type === 'Contribution') {
+            sign = '+';
+            color = '#059669';
+        } else if (type === 'Loan') {
+            sign = '-';
+            color = '#DC2626';
+        } else {
+            sign = '+';
+            color = '#D97706';
+        }
+
+        return (
+            <View style={styles.transactionItem as ViewStyle}>
+                <View style={styles.transactionLeft as ViewStyle}>
+                    <View
+                        style={[styles.transactionIcon as ViewStyle, { backgroundColor: type === 'Contribution' ? '#DCFCE7' : (type === 'Loan' ? '#FEE2E2' : '#FEF3C7') }]}
+                    >
+                        <Ionicons
+                            name={type === 'Contribution' ? 'arrow-down-outline' : (type === 'Loan' ? 'arrow-up-outline' : 'refresh-outline')}
+                            size={20}
+                            color={type === 'Contribution' ? '#166534' : (type === 'Loan' ? '#991B1B' : '#92400E')}
+                        />
+                    </View>
+                    <View style={styles.transactionTextContainer as ViewStyle}>
+                        <Text style={styles.transactionType as TextStyle}>
+                            {type === 'Contribution' ? t('transactions.contribution') : (type === 'Loan' ? t('transactions.loan') : t('transactions.repayment'))}
+                        </Text>
+                        <Text style={styles.transactionDate as TextStyle}>
+                            {new Date(date).toLocaleDateString()}
+                        </Text>
+                    </View>
                 </View>
-                <View style={styles.transactionTextContainer as ViewStyle}>
-                    <Text style={styles.transactionType as TextStyle}>
-                        {type === 'Contribution' ? t('transactions.contribution') : (type === 'Loan' ? t('transactions.loan') : t('transactions.repayment'))}
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={[styles.transactionAmount as TextStyle, { color, marginRight: 12 }]}>
+                        {sign} TSh {(amount || 0).toLocaleString()}
                     </Text>
-                    <Text style={styles.transactionDate as TextStyle}>
-                        {new Date(date).toLocaleDateString()}
-                    </Text>
+                    <TouchableOpacity onPress={() => handleDeleteTransaction(transId)}>
+                        <Ionicons name="trash-outline" size={18} color="#94A3B8" />
+                    </TouchableOpacity>
                 </View>
             </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={[styles.transactionAmount as TextStyle, { color: type === 'Contribution' ? '#059669' : (type === 'Loan' ? '#DC2626' : '#D97706'), marginRight: 12 }]}>
-                    {type === 'Contribution' ? '+' : '-'} TSh {(amount || 0).toLocaleString()}
-                </Text>
-                <TouchableOpacity onPress={() => handleDeleteTransaction(transId)}>
-                    <Ionicons name="trash-outline" size={18} color="#94A3B8" />
-                </TouchableOpacity>
-            </View>
-        </View>
-    );
+        );
+    };
 
     return (
         <SafeAreaView style={styles.container as ViewStyle}>
@@ -139,6 +163,13 @@ export default function MemberDetailScreen() {
                             <Text style={styles.avatarTextLarge as TextStyle}>{String(name?.[0] || 'U')}</Text>
                         </View>
                         <Text style={styles.profileName as TextStyle}>{name || t('common.member')}</Text>
+
+                        {/* Member ID Display */}
+                        {memberIdDisplay ? (
+                            <View style={{ backgroundColor: '#E0F2FE', paddingHorizontal: 16, paddingVertical: 4, borderRadius: 99, marginTop: 8, borderWidth: 1, borderColor: '#BAE6FD' }}>
+                                <Text style={{ color: '#0369A1', fontWeight: '900', fontSize: 12, letterSpacing: 1.5 }}>ID: {memberIdDisplay}</Text>
+                            </View>
+                        ) : null}
                     </View>
 
                     {/* Financial Summary Cards */}

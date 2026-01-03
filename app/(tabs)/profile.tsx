@@ -9,7 +9,7 @@ import { auth } from '../../services/firebase';
 import type { MenuItemProps } from '../../types';
 
 export default function ProfileScreen() {
-    const { user, role } = useAuth();
+    const { user, userProfile, role } = useAuth();
     const { t } = useTranslation();
 
     const handleLogout = () => {
@@ -57,6 +57,11 @@ export default function ProfileScreen() {
                     <View style={styles.roleBadge}>
                         <Text style={styles.roleText}>{role || t('common.member')}</Text>
                     </View>
+                    {userProfile?.memberId && (
+                        <View style={{ backgroundColor: '#E0F2FE', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 99, marginTop: 6, borderWidth: 1, borderColor: '#BAE6FD' }}>
+                            <Text style={{ color: '#0369A1', fontWeight: '900', fontSize: 12, letterSpacing: 1.5 }}>ID: {userProfile.memberId}</Text>
+                        </View>
+                    )}
                 </View>
 
                 <Text style={styles.sectionTitle}>{t('settings.general')}</Text>
@@ -81,6 +86,80 @@ export default function ProfileScreen() {
                         isLast
                     />
                 </View>
+
+                {/* Admin Tools - Migration */}
+                {role === 'Admin' && (
+                    <>
+                        <Text style={styles.sectionTitle}>ADMIN TOOLS</Text>
+                        <View style={styles.menuGroup}>
+                            <MenuItem
+                                icon="id-card"
+                                title="Generate Member IDs (SBK###)"
+                                color="#0EA5E9"
+                                onPress={async () => {
+                                    const { Alert } = await import('react-native');
+                                    Alert.alert(
+                                        'Generate Member IDs',
+                                        'This will generate unique IDs (e.g., SBK001) for all members who don\'t have one yet based on their sign-up order. Continue?',
+                                        [
+                                            { text: 'Cancel', style: 'cancel' },
+                                            {
+                                                text: 'Generate',
+                                                onPress: async () => {
+                                                    try {
+                                                        const { generateMemberIds } = await import('../../services/memberIdService');
+                                                        const result = await generateMemberIds();
+                                                        if (result.success) {
+                                                            Alert.alert(
+                                                                'Success',
+                                                                `Generated IDs for ${result.count} members.`
+                                                            );
+                                                        } else {
+                                                            Alert.alert('Error', result.errors[0] || 'Generation failed');
+                                                        }
+                                                    } catch (error: any) {
+                                                        Alert.alert('Error', error.message || 'Generation failed');
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    );
+                                }}
+                            />
+                            <MenuItem
+                                icon="construct"
+                                title="Migrate Standard Loans (10% Interest)"
+                                color="#8B5CF6"
+                                onPress={async () => {
+                                    const { Alert } = await import('react-native');
+                                    Alert.alert(
+                                        'Migrate Standard Loans',
+                                        'This will apply 10% interest to all existing Standard loans that don\'t have interest applied yet. This is a one-time operation. Continue?',
+                                        [
+                                            { text: 'Cancel', style: 'cancel' },
+                                            {
+                                                text: 'Migrate',
+                                                onPress: async () => {
+                                                    try {
+                                                        const { transactionService } = await import('../../services/transactionService');
+                                                        const result = await transactionService.migrateStandardLoansWithInterest();
+                                                        Alert.alert(
+                                                            'Success',
+                                                            `Migration complete! Updated ${result.updatedCount} Standard loan transactions.`
+                                                        );
+                                                    } catch (error: any) {
+                                                        Alert.alert('Error', error.message || 'Migration failed');
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    );
+                                }}
+                                isLast
+                            />
+                        </View>
+                    </>
+                )}
 
                 <Text style={styles.sectionTitle}>{t('settings.account')}</Text>
                 <View style={styles.menuGroup}>

@@ -3,8 +3,8 @@ import { AuthProvider } from "../context/AuthContext";
 import "./globals.css";
 
 export const metadata: Metadata = {
-    title: "KIKOBA Insights Admin",
-    description: "Web management for KIKOBA Insights",
+    title: "Simba Bingwa Kikoba Endelevu",
+    description: "Web management for Simba Bingwa Kikoba Endelevu",
 };
 
 export default function RootLayout({
@@ -16,6 +16,7 @@ export default function RootLayout({
         <html lang="en">
             <body>
                 <AuthProvider>
+
                     {children}
                 </AuthProvider>
             </body>
