@@ -1,3 +1,0 @@
-{
-  "/api/email/send-contribution-reminders/route": "app/api/email/send-contribution-reminders/route.js"
-}
