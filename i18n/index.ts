@@ -26,8 +26,8 @@ i18n
     // .use(languageDetector as any) // Optional: detect device language
     .init({
         resources,
-        lng: 'sw', // default language
-        fallbackLng: 'sw',
+        lng: 'en', // default language
+        fallbackLng: 'en',
         interpolation: {
             escapeValue: false,
         },

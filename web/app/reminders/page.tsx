@@ -295,7 +295,8 @@ export default function RemindersPage() {
                             </button>
                         </div>
 
-                        {/* Migration Card */}
+                        {/* Standard Loans Migration Card (Hidden - Automated Interest Disabled) */}
+                        {/*
                         <div className="card" style={{ padding: '1.5rem', transition: 'box-shadow 0.2s', borderWidth: '2px', borderColor: '#8B5CF6' }}>
                             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1rem' }}>
                                 <div>
@@ -342,6 +343,7 @@ export default function RemindersPage() {
                                 {loading ? 'Migrating...' : 'Run Migration'}
                             </button>
                         </div>
+                        */}
                     </div>
 
                     {/* Information Section */}

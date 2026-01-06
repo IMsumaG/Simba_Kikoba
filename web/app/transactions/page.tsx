@@ -91,9 +91,10 @@ export default function TransactionsPage() {
             let finalAmount = enteredAmount;
             let originalAmount = enteredAmount;
 
-            // Calculate interest for Standard loans
+            // Calculate interest for Standard loans (Disabled - automated interest removed)
             if (type === 'Loan' && category === 'Standard') {
-                finalAmount = enteredAmount * 1.1; // Add 10% interest
+                // finalAmount = enteredAmount * 1.1; // Add 10% interest
+                finalAmount = enteredAmount;
                 originalAmount = enteredAmount;
             }
 
@@ -104,7 +105,7 @@ export default function TransactionsPage() {
                 originalAmount: type === 'Loan' ? originalAmount : undefined,
                 type: type,
                 category: category,
-                interestRate: (type === 'Loan' && category === 'Standard') ? 10 : 0,
+                interestRate: 0, // Automated interest disabled
                 date: new Date().toISOString(),
                 createdBy: selectedMember.uid,
                 status: 'Completed'
@@ -157,11 +158,19 @@ export default function TransactionsPage() {
 
             const rows = await bulkUploadService.generateTemplate();
             const ws = XLSX.utils.json_to_sheet(rows);
-            ws['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 15 }];
+            ws['!cols'] = [
+                { wch: 15 }, // Date
+                { wch: 15 }, // Member ID
+                { wch: 20 }, // Full Name
+                { wch: 15 }, // Hisa
+                { wch: 15 }, // Jamii
+                { wch: 15 }, // Standard Repay
+                { wch: 15 }  // Dharura Repay
+            ];
 
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Template");
-            XLSX.writeFile(wb, "Maono_Batch_Template.xlsx");
+            XLSX.utils.book_append_sheet(wb, ws, "Transactions");
+            XLSX.writeFile(wb, "SBK_Batch_Template.xlsx");
         } catch (error: any) {
             console.error(error);
             alert("Failed to download template: " + error.message);
@@ -416,14 +425,14 @@ export default function TransactionsPage() {
                                         placeholder="0.00"
                                         style={{ width: '100%', padding: '1rem', borderRadius: '1rem', border: '1px solid #E2E8F0', fontSize: '1.25rem', fontWeight: '800', textAlign: 'center', outline: 'none', color: '#0F172A' }}
                                     />
-                                    {/* Interest Preview */}
+                                    {/* Interest Preview (Disabled) */}
+                                    {/* 
                                     {type === 'Loan' && category === 'Standard' && amount && !isNaN(Number(amount)) && Number(amount) > 0 && (
                                         <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: '#FFF7ED', borderRadius: '0.75rem', border: '1px solid #FFEDD5' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.8125rem', color: '#78716C' }}><span>Principal:</span><span>{Number(amount).toLocaleString()}</span></div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.8125rem', color: '#78716C' }}><span>Interest (10%):</span><span>{(Number(amount) * 0.1).toLocaleString()}</span></div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px solid #FED7AA', fontSize: '1rem', fontWeight: 'bold', color: '#EA580C' }}><span>Total:</span><span>{(Number(amount) * 1.1).toLocaleString()}</span></div>
+                                            ...
                                         </div>
                                     )}
+                                    */}
                                 </div>
 
                                 {/* Submit Button */}

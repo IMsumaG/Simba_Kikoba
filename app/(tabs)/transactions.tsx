@@ -76,22 +76,29 @@ export default function TransactionsScreen() {
 
             // Create workbook
             const ws = XLSX.utils.json_to_sheet(rows);
-            ws['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 15 }];
+            ws['!cols'] = [
+                { wch: 15 }, // Date
+                { wch: 15 }, // Member ID
+                { wch: 20 }, // Full Name
+                { wch: 15 }, // Hisa
+                { wch: 15 }, // Jamii
+                { wch: 15 }, // Standard Repay
+                { wch: 15 }  // Dharura Repay
+            ];
 
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Template");
+            XLSX.utils.book_append_sheet(wb, ws, "Transactions"); // Changed sheet name to "Transactions"
+            const b64 = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' }); // Renamed wbout to b64
 
-            // Write to base64
-            const wbout = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
+            const filename = `SBK_Batch_Template.xlsx`; // Changed filename
+            const fileUri = `${FileSystem.documentDirectory}${filename}`; // Changed to documentDirectory
 
-            // Save to temp file
-            const uri = (FileSystem as any).cacheDirectory + 'Maono_Template.xlsx';
-            await FileSystem.writeAsStringAsync(uri, wbout, {
+            await FileSystem.writeAsStringAsync(fileUri, b64, { // Used new variables
                 encoding: 'base64'
             });
 
             // Share/Export
-            await Sharing.shareAsync(uri, {
+            await Sharing.shareAsync(fileUri, {
                 mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 dialogTitle: 'Download Template'
             });
@@ -179,7 +186,7 @@ export default function TransactionsScreen() {
                 memberId: isAdmin ? selectedMember!.uid : currentUser!.uid,
                 memberName: isAdmin ? selectedMember!.displayName : (currentUser?.displayName || 'Self'),
                 category: type === 'Contribution' ? category : (type === 'Loan' ? category : category),
-                interestRate: (type === 'Loan' && category === 'Standard') ? 10 : 0,
+                interestRate: 0, // Automated interest disabled
                 date: new Date().toISOString(),
                 createdBy: currentUser!.uid,
                 status: 'Completed'
@@ -389,23 +396,14 @@ export default function TransactionsScreen() {
                             />
                         </View>
 
-                        {/* Interest Preview for Standard Loans */}
+                        {/* Interest Preview for Standard Loans (Hidden) */}
+                        {/* 
                         {type === 'Loan' && category === 'Standard' && amount && !isNaN(Number(amount)) && Number(amount) > 0 && (
                             <View style={styles.interestPreview as ViewStyle}>
-                                <View style={styles.interestRow as ViewStyle}>
-                                    <Text style={styles.interestLabel as TextStyle}>Principal Amount:</Text>
-                                    <Text style={styles.interestValue as TextStyle}>TSh {Number(amount).toLocaleString()}</Text>
-                                </View>
-                                <View style={styles.interestRow as ViewStyle}>
-                                    <Text style={styles.interestLabel as TextStyle}>Interest (10%):</Text>
-                                    <Text style={styles.interestValue as TextStyle}>TSh {(Number(amount) * 0.1).toLocaleString()}</Text>
-                                </View>
-                                <View style={[styles.interestRow as ViewStyle, { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#F1F5F9' }]}>
-                                    <Text style={styles.interestLabelBold as TextStyle}>Total with Interest:</Text>
-                                    <Text style={styles.interestValueBold as TextStyle}>TSh {(Number(amount) * 1.1).toLocaleString()}</Text>
-                                </View>
+                                ...
                             </View>
                         )}
+                        */}
                     </View>
 
                     <TouchableOpacity

@@ -242,6 +242,8 @@ export interface BulkUploadRow {
     fullName: string;
     hisaAmount: number;
     jamiiAmount: number;
+    standardRepayAmount?: number;
+    dharuraRepayAmount?: number;
 }
 
 export interface BulkUploadValidationResult {

@@ -125,38 +125,21 @@ export default function ProfileScreen() {
                                         ]
                                     );
                                 }}
+                                isLast
                             />
+                            {/* Migration Tool Hidden (Automated Interest Disabled) */}
+                            {/* 
                             <MenuItem
                                 icon="construct"
                                 title="Migrate Standard Loans (10% Interest)"
                                 color="#8B5CF6"
                                 onPress={async () => {
                                     const { Alert } = await import('react-native');
-                                    Alert.alert(
-                                        'Migrate Standard Loans',
-                                        'This will apply 10% interest to all existing Standard loans that don\'t have interest applied yet. This is a one-time operation. Continue?',
-                                        [
-                                            { text: 'Cancel', style: 'cancel' },
-                                            {
-                                                text: 'Migrate',
-                                                onPress: async () => {
-                                                    try {
-                                                        const { transactionService } = await import('../../services/transactionService');
-                                                        const result = await transactionService.migrateStandardLoansWithInterest();
-                                                        Alert.alert(
-                                                            'Success',
-                                                            `Migration complete! Updated ${result.updatedCount} Standard loan transactions.`
-                                                        );
-                                                    } catch (error: any) {
-                                                        Alert.alert('Error', error.message || 'Migration failed');
-                                                    }
-                                                }
-                                            }
-                                        ]
-                                    );
+                                    // ...
                                 }}
                                 isLast
                             />
+                            */}
                         </View>
                     </>
                 )}
@@ -176,7 +159,7 @@ export default function ProfileScreen() {
                     <Text style={styles.versionText}>KIKOBA Insights {t('settings.version')} 1.0.0</Text>
                 </TouchableOpacity>
             </ScrollView>
-        </SafeAreaView>
+        </SafeAreaView >
     );
 }
 

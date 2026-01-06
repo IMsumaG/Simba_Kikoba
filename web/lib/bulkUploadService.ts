@@ -8,6 +8,8 @@ export interface BulkUploadRow {
     fullName: string;
     hisaAmount: number;
     jamiiAmount: number;
+    standardRepayAmount?: number;
+    dharuraRepayAmount?: number;
 }
 
 export interface BulkUploadValidationResult {
@@ -48,7 +50,7 @@ export const bulkUploadService = {
                     const workbook = XLSX.read(data, { type: 'binary' });
                     const firstSheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[firstSheetName];
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
                     resolve(jsonData);
                 } catch (error) {
                     reject(error);
@@ -79,7 +81,7 @@ export const bulkUploadService = {
         }
 
         // Check columns
-        const requiredColumns = ['Date', 'Member ID', 'Full name', 'HISA Amount', 'Jamii Amount'];
+        const requiredColumns = ['Date', 'Member ID', 'Full name', 'HISA Amount', 'Jamii Amount', 'Standard Repay', 'Dharura Repay'];
         const firstRow = rows[0];
         const missingColumns = requiredColumns.filter(col => !Object.keys(firstRow).some(k => k.trim() === col));
 
@@ -102,10 +104,31 @@ export const bulkUploadService = {
             }
         });
 
+        // 🚀 FETCH ALL TRANSACTIONS TO CALCULATE BALANCES FOR VALIDATION
+        const transSnapshot = await getDocs(query(collection(db, 'transactions')));
+        const memberBalances = new Map<string, { Standard: number, Dharura: number }>();
+
+        transSnapshot.forEach(doc => {
+            const t = doc.data();
+            if (t.type === 'Loan' || t.type === 'Loan Repayment') {
+                const uid = t.memberId;
+                const cat = t.category as 'Standard' | 'Dharura';
+                if (!memberBalances.has(uid)) {
+                    memberBalances.set(uid, { Standard: 0, Dharura: 0 });
+                }
+                const balance = memberBalances.get(uid)!;
+                if (t.type === 'Loan') {
+                    balance[cat] += t.amount || 0;
+                } else if (t.type === 'Loan Repayment') {
+                    balance[cat] -= t.amount || 0;
+                }
+            }
+        });
+
         // Process rows
         for (let i = 0; i < rows.length; i++) {
             const rawRow = rows[i];
-            const rowNumber = i + 2; // +1 for header, +1 for 0-index
+            const rowNumber = i + 2;
             const rowErrors: string[] = [];
 
             // Extract values
@@ -114,35 +137,52 @@ export const bulkUploadService = {
             const fullName = String(rawRow['Full name'] || '').trim();
             const hisaAmount = Number(rawRow['HISA Amount'] || 0);
             const jamiiAmount = Number(rawRow['Jamii Amount'] || 0);
+            const standardRepay = Number(rawRow['Standard Repay'] || 0);
+            const dharuraRepay = Number(rawRow['Dharura Repay'] || 0);
+
+            const uid = memberIdMap.get(memberId);
 
             // 1. Validate Member ID
             if (!memberId) {
                 rowErrors.push("Missing Member ID");
-            } else if (!memberIdMap.has(memberId)) {
+            } else if (!uid) {
                 rowErrors.push(`Member ID '${memberId}' not found in system`);
             }
 
             // 2. Validate Amounts
-            if (isNaN(hisaAmount) || isNaN(jamiiAmount)) {
+            if (isNaN(hisaAmount) || isNaN(jamiiAmount) || isNaN(standardRepay) || isNaN(dharuraRepay)) {
                 rowErrors.push("Invalid amount format");
             }
 
-            // 3. Validate Date
+            // 3. Validate Loan Balances for Repayments
+            if (uid) {
+                const balances = memberBalances.get(uid) || { Standard: 0, Dharura: 0 };
+                if (standardRepay > 0 && balances.Standard <= 0) {
+                    rowErrors.push(`Incorrect Repayment: No active Standard loan balance for ${memberId}`);
+                }
+                if (dharuraRepay > 0 && balances.Dharura <= 0) {
+                    rowErrors.push(`Incorrect Repayment: No active Dharura loan balance for ${memberId}`);
+                }
+            }
+
+            // 4. Validate Date
             if (!dateStr || new Date(dateStr).toString() === 'Invalid Date') {
                 rowErrors.push(`Invalid date format: ${dateStr}`);
             }
 
             // If valid so far, create typed row
             if (rowErrors.length === 0) {
-                if (hisaAmount <= 0 && jamiiAmount <= 0) {
-                    rowErrors.push("No valid amount to process (both 0 or less)");
+                if (hisaAmount <= 0 && jamiiAmount <= 0 && standardRepay <= 0 && dharuraRepay <= 0) {
+                    rowErrors.push("No valid amount to process (all are 0)");
                 } else {
                     const cleanRow: BulkUploadRow = {
                         date: dateStr,
                         memberId: memberId,
                         fullName: memberNameMap.get(memberId) || fullName,
                         hisaAmount,
-                        jamiiAmount
+                        jamiiAmount,
+                        standardRepayAmount: standardRepay,
+                        dharuraRepayAmount: dharuraRepay
                     };
 
                     // Check for duplicates within this file
@@ -150,7 +190,9 @@ export const bulkUploadService = {
                         r.memberId === cleanRow.memberId &&
                         r.date === cleanRow.date &&
                         r.hisaAmount === cleanRow.hisaAmount &&
-                        r.jamiiAmount === cleanRow.jamiiAmount
+                        r.jamiiAmount === cleanRow.jamiiAmount &&
+                        r.standardRepayAmount === cleanRow.standardRepayAmount &&
+                        r.dharuraRepayAmount === cleanRow.dharuraRepayAmount
                     );
 
                     if (isDuplicate) {
@@ -169,7 +211,9 @@ export const bulkUploadService = {
                         memberId,
                         fullName,
                         hisaAmount,
-                        jamiiAmount
+                        jamiiAmount,
+                        standardRepayAmount: standardRepay,
+                        dharuraRepayAmount: dharuraRepay
                     },
                     errors: rowErrors
                 });
@@ -253,6 +297,40 @@ export const bulkUploadService = {
                     processedAny = true;
                 }
 
+                // 3. Process Standard Repayment
+                if (row.standardRepayAmount && row.standardRepayAmount > 0) {
+                    await addDoc(collection(db, "transactions"), {
+                        memberId: member.uid,
+                        memberName: member.name,
+                        amount: row.standardRepayAmount,
+                        type: 'Loan Repayment',
+                        category: 'Standard',
+                        date: transactionDate,
+                        createdBy: createdBy || 'unknown',
+                        status: 'Completed',
+                        source: 'Bulk Upload',
+                        reference: `BULK-${row.date}-${row.memberId}`
+                    });
+                    processedAny = true;
+                }
+
+                // 4. Process Dharura Repayment
+                if (row.dharuraRepayAmount && row.dharuraRepayAmount > 0) {
+                    await addDoc(collection(db, "transactions"), {
+                        memberId: member.uid,
+                        memberName: member.name,
+                        amount: row.dharuraRepayAmount,
+                        type: 'Loan Repayment',
+                        category: 'Dharura',
+                        date: transactionDate,
+                        createdBy: createdBy || 'unknown',
+                        status: 'Completed',
+                        source: 'Bulk Upload',
+                        reference: `BULK-${row.date}-${row.memberId}`
+                    });
+                    processedAny = true;
+                }
+
                 if (processedAny) {
                     result.successCount++;
                     result.details.push({ row, status: 'success' });
@@ -283,14 +361,15 @@ export const bulkUploadService = {
 
         snapshot.forEach(doc => {
             const data = doc.data();
-            // Only include members with IDs
             if (data.memberId) {
                 rows.push({
                     'Date': today,
                     'Member ID': data.memberId,
                     'Full name': data.displayName,
-                    'HISA Amount': '', // Blank for entry
-                    'Jamii Amount': '' // Blank for entry
+                    'HISA Amount': '',
+                    'Jamii Amount': '',
+                    'Standard Repay': '',
+                    'Dharura Repay': ''
                 });
             }
         });
