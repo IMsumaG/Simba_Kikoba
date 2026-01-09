@@ -136,8 +136,7 @@ export default function ReportsPage() {
             }
         });
 
-        // const standardWithInterest = standardLoanTotal * 1.1; (Disabled - automated interest removed)
-        const standardWithInterest = standardLoanTotal; // Use actual recorded amounts
+        const standardWithInterest = standardLoanTotal * 1.1; // Re-enabled
         const standardRemaining = standardWithInterest - standardRepaymentTotal;
 
         return {

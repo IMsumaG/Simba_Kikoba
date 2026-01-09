@@ -28,12 +28,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const unsubscribe = onAuthStateChanged(auth, async (authenticatedUser) => {
             setUser(authenticatedUser);
             if (authenticatedUser) {
-                // Fetch user profile from Firestore
-                const userDoc = await getDoc(doc(db, 'users', authenticatedUser.uid));
-                if (userDoc.exists()) {
-                    const profile = { uid: authenticatedUser.uid, ...userDoc.data() } as UserProfile;
-                    setUserProfile(profile);
-                    setRole(profile.role);
+                try {
+                    const userDoc = await getDoc(doc(db, 'users', authenticatedUser.uid));
+                    if (userDoc.exists()) {
+                        const profile = { uid: authenticatedUser.uid, ...userDoc.data() } as UserProfile;
+                        setUserProfile(profile);
+                        setRole(profile.role);
+                    }
+                } catch (error) {
+                    console.error("Error fetching user profile:", error);
                 }
             } else {
                 setUserProfile(null);

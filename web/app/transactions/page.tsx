@@ -1,10 +1,12 @@
 "use client";
 
+import { onAuthStateChanged } from "firebase/auth";
 import { addDoc, collection, getDocs, query, where } from "firebase/firestore";
 import { ArrowDownLeft, ArrowUpRight, CheckCircle2, RefreshCw, UserSearch } from "lucide-react";
 import { useEffect, useState } from "react";
 import AppLayout from "../../components/AppLayout";
-import { db } from "../../lib/firebase";
+import { activityLogger } from "../../lib/activityLogger";
+import { auth, db } from "../../lib/firebase";
 
 interface Member {
     uid: string;
@@ -23,6 +25,14 @@ export default function TransactionsPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [standardLoanBalance, setStandardLoanBalance] = useState(0);
     const [dharuraLoanBalance, setDhauraLoanBalance] = useState(0);
+    const [currentUser, setCurrentUser] = useState<any>(null);
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (u) => {
+            setCurrentUser(u);
+        });
+        return () => unsubscribe();
+    }, []);
 
     useEffect(() => {
         fetchMembers();
@@ -93,23 +103,41 @@ export default function TransactionsPage() {
 
             // Calculate interest for Standard loans (Disabled - automated interest removed)
             if (type === 'Loan' && category === 'Standard') {
-                // finalAmount = enteredAmount * 1.1; // Add 10% interest
-                finalAmount = enteredAmount;
+                finalAmount = enteredAmount * 1.1; // Add 10% interest
                 originalAmount = enteredAmount;
             }
 
-            await addDoc(collection(db, "transactions"), {
+            const docRef = await addDoc(collection(db, "transactions"), {
                 memberId: selectedMember.uid,
                 memberName: selectedMember.displayName,
                 amount: finalAmount, // Total amount with interest for Standard loans
                 originalAmount: type === 'Loan' ? originalAmount : undefined,
                 type: type,
                 category: category,
-                interestRate: 0, // Automated interest disabled
+                interestRate: (type === 'Loan' && category === 'Standard') ? 10 : 0, // Automated interest disabled
                 date: new Date().toISOString(),
-                createdBy: selectedMember.uid,
+                createdBy: currentUser?.uid || 'web-admin',
                 status: 'Completed'
             });
+
+            // Log activity
+            try {
+                await activityLogger.logTransactionCreated(
+                    currentUser?.uid || 'web-admin',
+                    currentUser?.displayName || 'Web Admin',
+                    {
+                        id: docRef.id,
+                        type,
+                        category,
+                        amount: finalAmount,
+                        memberId: selectedMember.uid,
+                        memberName: selectedMember.displayName
+                    },
+                    'DEFAULT'
+                );
+            } catch (logError) {
+                console.warn("Failed to log transaction activity:", logError);
+            }
 
             alert("Transaction recorded successfully!");
             setAmount("");
@@ -165,7 +193,9 @@ export default function TransactionsPage() {
                 { wch: 15 }, // Hisa
                 { wch: 15 }, // Jamii
                 { wch: 15 }, // Standard Repay
-                { wch: 15 }  // Dharura Repay
+                { wch: 15 }, // Dharura Repay
+                { wch: 15 }, // Standard Loan
+                { wch: 15 }  // Dharura Loan
             ];
 
             const wb = XLSX.utils.book_new();
@@ -184,7 +214,20 @@ export default function TransactionsPage() {
         try {
             const { bulkUploadService } = await import('../../lib/bulkUploadService');
             // Mock getting current user ID or use generic
-            const result = await bulkUploadService.processBulkTransactions(bulkValidation.validRows, "web-admin");
+            const result = await bulkUploadService.processBulkTransactions(bulkValidation.validRows, currentUser?.uid || "web-admin");
+
+            // Log bulk upload activity
+            try {
+                await activityLogger.logBulkUpload(
+                    currentUser?.uid || 'web-admin',
+                    currentUser?.displayName || 'Web Admin',
+                    result.successCount,
+                    'success',
+                    'DEFAULT'
+                );
+            } catch (logError) {
+                console.warn("Failed to log bulk upload activity:", logError);
+            }
 
             alert(`Processed ${result.successCount} transactions successfully.`);
             setBulkValidation(null);
@@ -275,7 +318,7 @@ export default function TransactionsPage() {
                                         }}
                                     />
                                     <p style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#64748B' }}>
-                                        Required Columns: Date, Member ID, Full name, HISA Amount, Jamii Amount
+                                        Required Columns: Date (M/D/YYYY), Member ID, Full name, HISA Amount, Jamii Amount, Standard Repay, Dharura Repay, Standard Loan, Dharura Loan
                                     </p>
                                 </div>
 
@@ -425,14 +468,26 @@ export default function TransactionsPage() {
                                         placeholder="0.00"
                                         style={{ width: '100%', padding: '1rem', borderRadius: '1rem', border: '1px solid #E2E8F0', fontSize: '1.25rem', fontWeight: '800', textAlign: 'center', outline: 'none', color: '#0F172A' }}
                                     />
-                                    {/* Interest Preview (Disabled) */}
-                                    {/* 
+                                    {/* Interest Preview (Re-enabled) */}
                                     {type === 'Loan' && category === 'Standard' && amount && !isNaN(Number(amount)) && Number(amount) > 0 && (
                                         <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: '#FFF7ED', borderRadius: '0.75rem', border: '1px solid #FFEDD5' }}>
-                                            ...
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                                <span style={{ fontSize: '0.875rem', color: '#7C3AED' }}>Principal Amount:</span>
+                                                <span style={{ fontWeight: '600' }}>{Number(amount).toLocaleString()} TZS</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                                <span style={{ fontSize: '0.875rem', color: '#7C3AED' }}>Interest (10%):</span>
+                                                <span style={{ fontWeight: '600' }}>{(Number(amount) * 0.1).toLocaleString()} TZS</span>
+                                            </div>
+                                            <div style={{ height: '1px', backgroundColor: '#FFEDD5', margin: '0.5rem 0' }}></div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                <span style={{ fontWeight: 'bold', color: '#EA580C' }}>Total Amount:</span>
+                                                <span style={{ fontWeight: 'bold', color: '#EA580C', fontSize: '1.125rem' }}>
+                                                    {(Number(amount) * 1.1).toLocaleString()} TZS
+                                                </span>
+                                            </div>
                                         </div>
                                     )}
-                                    */}
                                 </div>
 
                                 {/* Submit Button */}

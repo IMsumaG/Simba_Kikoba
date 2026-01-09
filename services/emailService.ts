@@ -133,12 +133,41 @@ export async function sendLoanReminder() {
 }
 
 /**
+ * Sends notification for loan requests or decisions
+ */
+async function sendLoanEmailNotification(type: 'request' | 'decision', payload: any) {
+    try {
+        const auth = getAuth();
+        const currentUser = auth.currentUser;
+        if (!currentUser) return;
+
+        const idToken = await currentUser.getIdToken();
+        const response = await fetch('/api/email/loan-notification', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${idToken}`,
+            },
+            body: JSON.stringify({ type, payload })
+        });
+        return await response.json();
+    } catch (e) {
+        console.error("Email notification failed", e);
+    }
+}
+
+export const emailService = {
+    sendLoanRequestAlert: (memberName: string, amount: number, loanType: string) =>
+        sendLoanEmailNotification('request', { memberName, amount, loanType }),
+
+    sendLoanDecisionAlert: (memberId: string, status: string, loanType: string, amount: number, reason?: string) =>
+        sendLoanEmailNotification('decision', { memberId, status, loanType, amount, reason })
+};
+
+/**
  * DEPRECATED: Old EmailJS direct call removed
- * Use sendEmailReminderToAllAdmins() which calls the backend instead
  */
 export const EMAIL_CONFIG = {
-    // Email configuration is now handled on the backend
-    // See /web/lib/emailService.ts and .env.local for backend configuration
     DEPRECATED: true,
 };
 

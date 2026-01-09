@@ -15,12 +15,11 @@ export type { DashboardTotals, GroupMonthlyReport, MemberStats, MonthlyReport, T
  */
 const calculateLoanWithInterest = (originalAmount: number, category: 'Hisa' | 'Jamii' | 'Standard' | 'Dharura') => {
     if (category === 'Standard') {
-        // const totalAmount = originalAmount * 1.1; // 10% interest (Disabled per user request)
-        const totalAmount = originalAmount; // No automated interest
+        const totalAmount = originalAmount * 1.1; // 10% interest (Re-enabled)
         return {
             originalAmount,
             totalAmount,
-            interestRate: 0 // Set to 0 to avoid confusion
+            interestRate: 10
         };
     }
     // No interest for other categories
@@ -365,8 +364,7 @@ export const transactionService = {
             }
         });
 
-        // const standardLoanWithInterest = totalStandardLoaned * 1.1; // 10% interest on Principal (Disabled)
-        const standardLoanWithInterest = totalStandardLoaned; // Use recorded amount
+        const standardLoanWithInterest = totalStandardLoaned * 1.1; // 10% interest on Principal (Re-enabled)
         const totalStandardRepayments = previousStandardRepayments + currentMonthStandardRepayment;
         const remainingStandardLoan = Math.max(0, standardLoanWithInterest - totalStandardRepayments);
 

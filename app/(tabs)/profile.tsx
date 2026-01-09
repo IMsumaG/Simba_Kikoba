@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
@@ -10,6 +11,7 @@ import type { MenuItemProps } from '../../types';
 
 export default function ProfileScreen() {
     const { user, userProfile, role } = useAuth();
+    const router = useRouter();
     const { t } = useTranslation();
 
     const handleLogout = () => {
@@ -125,6 +127,12 @@ export default function ProfileScreen() {
                                         ]
                                     );
                                 }}
+                            />
+                            <MenuItem
+                                icon="shield-half"
+                                title="System Audit Logs"
+                                color="#F57C00"
+                                onPress={() => router.push('/admin/auditLog' as any)}
                                 isLast
                             />
                             {/* Migration Tool Hidden (Automated Interest Disabled) */}

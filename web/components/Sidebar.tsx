@@ -1,5 +1,7 @@
 "use client";
 
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 import {
     BarChart3,
     ChevronLeft,
@@ -8,11 +10,13 @@ import {
     LogOut,
     Mail,
     PlusCircle,
+    Shield,
     Users
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { auth } from "../lib/firebase";
+import { useEffect, useState } from "react";
+import { auth, db } from "../lib/firebase";
 
 interface SidebarProps {
     isMinimized: boolean;
@@ -21,14 +25,32 @@ interface SidebarProps {
 
 export default function Sidebar({ isMinimized, setIsMinimized }: SidebarProps) {
     const pathname = usePathname();
+    const [role, setRole] = useState<string | null>(null);
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (userDoc.exists()) {
+                    setRole(userDoc.data().role);
+                }
+            }
+        });
+        return () => unsubscribe();
+    }, []);
 
     const menuItems = [
         { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
         { name: "Members", href: "/members", icon: Users },
         { name: "Transactions", href: "/transactions", icon: PlusCircle },
+        { name: "Loan Requests", href: "/loan-requests", icon: PlusCircle },
         { name: "Reports", href: "/reports", icon: BarChart3 },
         { name: "Reminders", href: "/reminders", icon: Mail },
     ];
+
+    if (role === 'Admin') {
+        menuItems.push({ name: "Audit Logs", href: "/audit-logs", icon: Shield });
+    }
 
     const handleLogout = () => {
         auth.signOut();

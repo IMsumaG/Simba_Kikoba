@@ -1,13 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SkeletonLoader } from '../../components/SkeletonLoader';
@@ -23,25 +23,24 @@ import { ActivityLog } from '../../types/ActivityLog';
  * Shows all user actions with timestamps and details.
  */
 export default function AuditLogScreen() {
-  const { user: currentUser, role } = useAuth();
+  const { user: currentUser, userProfile, role } = useAuth();
   const isAdmin = role === 'Admin';
 
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const [search, setSearch] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'transaction' | 'member' | 'user'>('all');
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'transaction' | 'loan' | 'member' | 'user'>('all');
   const [stats, setStats] = useState<any>(null);
 
-  // TODO: Get groupCode from user profile or app context
-  const groupCode = 'default';
+  const groupCode = userProfile?.groupCode || 'DEFAULT';
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isAdmin && userProfile) {
       fetchActivities();
       fetchStats();
     }
-  }, [isAdmin, selectedFilter]);
+  }, [isAdmin, userProfile, selectedFilter]);
 
   const fetchActivities = async () => {
     if (!isAdmin || !groupCode) return;
@@ -102,6 +101,10 @@ export default function AuditLogScreen() {
         return 'log-in-outline';
       case 'user_logout':
         return 'log-out-outline';
+      case 'loan_approved':
+        return 'checkmark-done-circle-outline';
+      case 'loan_rejected':
+        return 'close-circle-outline';
       default:
         return 'information-circle-outline';
     }
@@ -109,7 +112,7 @@ export default function AuditLogScreen() {
 
   const getActivityColor = (activityType: string): string => {
     if (activityType.includes('deleted')) return '#EF4444';
-    if (activityType.includes('created')) return '#10B981';
+    if (activityType.includes('created') || activityType.includes('approved')) return '#10B981';
     if (activityType.includes('updated')) return '#F59E0B';
     return Colors.primary;
   };
@@ -199,7 +202,7 @@ export default function AuditLogScreen() {
 
         {/* Filter Buttons */}
         <View style={styles.filterContainer}>
-          {(['all', 'transaction', 'member', 'user'] as const).map((filter) => (
+          {(['all', 'transaction', 'loan', 'member', 'user'] as const).map((filter) => (
             <TouchableOpacity
               key={filter}
               style={[
@@ -270,8 +273,8 @@ export default function AuditLogScreen() {
                           activity.status === 'success'
                             ? 'checkmark-circle'
                             : activity.status === 'failed'
-                            ? 'close-circle'
-                            : 'time'
+                              ? 'close-circle'
+                              : 'time'
                         }
                         size={16}
                         color={getStatusColor(activity.status)}

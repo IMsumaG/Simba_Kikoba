@@ -1,25 +1,45 @@
 "use client";
 
-import { collection, deleteDoc, doc, getDocs, updateDoc } from "firebase/firestore";
-import { Mail, ShieldCheck, ShieldX, Trash2 } from "lucide-react";
+import { collection, deleteDoc, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
+import {
+    Calendar,
+    CreditCard,
+    Mail,
+    ShieldCheck,
+    ShieldX,
+    Trash2,
+    User,
+    Wallet,
+    X
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import AppLayout from "../../components/AppLayout";
 import { db } from "../../lib/firebase";
 
 interface UserProfile {
     uid: string;
-    memberId?: string; // Added Member ID
+    memberId?: string;
     displayName: string;
     email: string;
     role: 'Admin' | 'Member';
     status?: 'Active' | 'Inactive';
     createdAt: string;
+    phone?: string;
 }
 
 export default function MembersPage() {
     const [members, setMembers] = useState<UserProfile[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+
+    // Member Details Modal State
+    const [selectedMember, setSelectedMember] = useState<UserProfile | null>(null);
+    const [memberStats, setMemberStats] = useState({
+        balance: 0,
+        loanBalance: 0,
+        totalContributions: 0
+    });
+    const [loadingStats, setLoadingStats] = useState(false);
 
     useEffect(() => {
         fetchMembers();
@@ -38,6 +58,41 @@ export default function MembersPage() {
         }
     };
 
+    const fetchMemberStats = async (uid: string) => {
+        try {
+            setLoadingStats(true);
+            const q = query(collection(db, "transactions"), where("memberId", "==", uid));
+            const snapshot = await getDocs(q);
+
+            let balance = 0;
+            let loanBalance = 0;
+            let contributions = 0;
+
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.type === 'Contribution') {
+                    balance += data.amount;
+                    contributions += data.amount;
+                } else if (data.type === 'Loan') {
+                    loanBalance += data.amount;
+                } else if (data.type === 'Loan Repayment') {
+                    loanBalance -= data.amount;
+                }
+            });
+
+            setMemberStats({ balance, loanBalance, totalContributions: contributions });
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoadingStats(false);
+        }
+    };
+
+    const handleMemberClick = (member: UserProfile) => {
+        setSelectedMember(member);
+        fetchMemberStats(member.uid);
+    };
+
     const handleUpdateRole = async (uid: string, newRole: 'Admin' | 'Member') => {
         const action = newRole === 'Admin' ? 'GRANT admin access to' : 'REVOKE admin access from';
         if (!confirm(`Are you sure you want to ${action} this user?`)) return;
@@ -45,6 +100,9 @@ export default function MembersPage() {
         try {
             await updateDoc(doc(db, "users", uid), { role: newRole });
             setMembers(prev => prev.map(m => m.uid === uid ? { ...m, role: newRole } : m));
+            if (selectedMember?.uid === uid) {
+                setSelectedMember(prev => prev ? { ...prev, role: newRole } : null);
+            }
         } catch (error) {
             alert("Failed to update role");
         }
@@ -56,6 +114,7 @@ export default function MembersPage() {
         try {
             await deleteDoc(doc(db, "users", uid));
             setMembers(prev => prev.filter(m => m.uid !== uid));
+            if (selectedMember?.uid === uid) setSelectedMember(null);
         } catch (error) {
             alert("Failed to delete user");
         }
@@ -77,7 +136,7 @@ export default function MembersPage() {
                     msg += `\n\nWarning: ${result.errors.length} errors occurred:\n${result.errors.join('\n')}`;
                 }
                 alert(msg);
-                fetchMembers(); // Refresh list
+                fetchMembers();
             } else {
                 alert(`Error: ${result.error || 'Failed to generate IDs'}`);
             }
@@ -155,7 +214,12 @@ export default function MembersPage() {
                             <tr><td colSpan={5} style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading members...</td></tr>
                         ) : filteredMembers.length > 0 ? (
                             filteredMembers.map((member) => (
-                                <tr key={member.uid} style={{ borderBottom: '1px solid var(--border)', transition: 'background-color 0.2s' }}>
+                                <tr
+                                    key={member.uid}
+                                    onClick={() => handleMemberClick(member)}
+                                    style={{ borderBottom: '1px solid var(--border)', transition: 'background-color 0.2s', cursor: 'pointer' }}
+                                    className="hover-row"
+                                >
                                     <td style={{ padding: '1.25rem 1.5rem', fontWeight: 'bold', color: '#64748B', fontFamily: 'monospace' }}>
                                         {member.memberId ? (
                                             <span style={{ backgroundColor: '#DBEAFE', color: '#1E40AF', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem' }}>{member.memberId}</span>
@@ -206,7 +270,7 @@ export default function MembersPage() {
                                         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                                             {member.role === 'Member' ? (
                                                 <button
-                                                    onClick={() => handleUpdateRole(member.uid, 'Admin')}
+                                                    onClick={(e) => { e.stopPropagation(); handleUpdateRole(member.uid, 'Admin'); }}
                                                     style={{
                                                         padding: '0.625rem 1rem',
                                                         borderRadius: '0.75rem',
@@ -216,15 +280,14 @@ export default function MembersPage() {
                                                         fontWeight: '800',
                                                         display: 'flex',
                                                         alignItems: 'center',
-                                                        gap: '6px',
-                                                        transition: 'all 0.2s'
+                                                        gap: '6px'
                                                     }}
                                                 >
-                                                    <ShieldCheck size={14} /> Grant Admin Access
+                                                    <ShieldCheck size={14} /> Grant Admin
                                                 </button>
                                             ) : (
                                                 <button
-                                                    onClick={() => handleUpdateRole(member.uid, 'Member')}
+                                                    onClick={(e) => { e.stopPropagation(); handleUpdateRole(member.uid, 'Member'); }}
                                                     style={{
                                                         padding: '0.625rem 1rem',
                                                         borderRadius: '0.75rem',
@@ -234,24 +297,15 @@ export default function MembersPage() {
                                                         fontWeight: '800',
                                                         display: 'flex',
                                                         alignItems: 'center',
-                                                        gap: '6px',
-                                                        transition: 'all 0.2s'
+                                                        gap: '6px'
                                                     }}
                                                 >
-                                                    <ShieldX size={14} /> Revoke Admin Access
+                                                    <ShieldX size={14} /> Revoke Admin
                                                 </button>
                                             )}
                                             <button
-                                                onClick={() => handleDeleteMember(member.uid, member.displayName)}
-                                                title="Delete User Account"
-                                                style={{
-                                                    padding: '8px',
-                                                    borderRadius: '10px',
-                                                    color: '#94A3B8',
-                                                    backgroundColor: 'transparent',
-                                                    border: '1px solid #E2E8F0',
-                                                    transition: 'all 0.2s'
-                                                }}
+                                                onClick={(e) => { e.stopPropagation(); handleDeleteMember(member.uid, member.displayName); }}
+                                                style={{ padding: '8px', borderRadius: '10px', color: '#94A3B8', backgroundColor: 'transparent', border: '1px solid #E2E8F0' }}
                                             >
                                                 <Trash2 size={16} />
                                             </button>
@@ -265,6 +319,101 @@ export default function MembersPage() {
                     </tbody>
                 </table>
             </div>
+
+            {/* Member Detail Modal */}
+            {selectedMember && (
+                <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '1rem' }}>
+                    <div className="card" style={{ width: '100%', maxWidth: '500px', padding: 0, overflow: 'hidden' }}>
+                        <div style={{ padding: '1.5rem', backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900' }}>
+                                    {selectedMember.displayName[0]}
+                                </div>
+                                <div>
+                                    <h3 style={{ fontWeight: '800', fontSize: '1.125rem' }}>{selectedMember.displayName}</h3>
+                                    <p style={{ fontSize: '0.75rem', color: '#64748B' }}>Member Profile</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setSelectedMember(null)} style={{ color: '#94A3B8', background: 'none', border: 'none', cursor: 'pointer' }}><X /></button>
+                        </div>
+
+                        <div style={{ padding: '2rem' }}>
+                            {/* Key Stats */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
+                                <div style={{ padding: '1.25rem', backgroundColor: '#F0F9FF', borderRadius: '1rem', border: '1px solid #E0F2FE' }}>
+                                    <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#0369A1', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <Wallet size={14} /> SAVINGS
+                                    </p>
+                                    <p style={{ fontSize: '1.25rem', fontWeight: '900', color: '#0C4A6E' }}>
+                                        {loadingStats ? '...' : `${memberStats.balance.toLocaleString()} TZS`}
+                                    </p>
+                                </div>
+                                <div style={{ padding: '1.25rem', backgroundColor: '#FEF2F2', borderRadius: '1rem', border: '1px solid #FEE2E2' }}>
+                                    <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#B91C1C', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <CreditCard size={14} /> LOAN DEBT
+                                    </p>
+                                    <p style={{ fontSize: '1.25rem', fontWeight: '900', color: '#7F1D1D' }}>
+                                        {loadingStats ? '...' : `${memberStats.loanBalance.toLocaleString()} TZS`}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Info Rows */}
+                            <div style={{ border: '1px solid #F1F5F9', borderRadius: '1rem', overflow: 'hidden' }}>
+                                <div style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9' }}>
+                                    <span style={{ fontSize: '0.875rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '8px' }}><ShieldCheck size={16} /> Role</span>
+                                    <span style={{ fontSize: '0.875rem', fontWeight: '800', color: '#0F172A' }}>{selectedMember.role.toUpperCase()}</span>
+                                </div>
+                                <div style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9' }}>
+                                    <span style={{ fontSize: '0.875rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '8px' }}><Mail size={16} /> Email</span>
+                                    <span style={{ fontSize: '0.875rem', fontWeight: '700', color: '#0F172A' }}>{selectedMember.email}</span>
+                                </div>
+                                <div style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9' }}>
+                                    <span style={{ fontSize: '0.875rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '8px' }}><Calendar size={16} /> Joined On</span>
+                                    <span style={{ fontSize: '0.875rem', fontWeight: '700', color: '#0F172A' }}>{new Date(selectedMember.createdAt).toLocaleDateString()}</span>
+                                </div>
+                                <div style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', backgroundColor: '#F8FAFC' }}>
+                                    <span style={{ fontSize: '0.875rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '8px' }}><User size={16} /> Member ID</span>
+                                    <span style={{ fontSize: '0.875rem', fontWeight: '900', color: '#1E40AF', fontFamily: 'monospace' }}>{selectedMember.memberId || 'PENDING'}</span>
+                                </div>
+                            </div>
+
+                            <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
+                                <button
+                                    onClick={() => handleUpdateRole(selectedMember.uid, selectedMember.role === 'Admin' ? 'Member' : 'Admin')}
+                                    style={{
+                                        flex: 1,
+                                        padding: '1rem',
+                                        borderRadius: '0.75rem',
+                                        backgroundColor: selectedMember.role === 'Admin' ? '#FEE2E2' : '#DCFCE7',
+                                        color: selectedMember.role === 'Admin' ? '#DC2626' : '#059669',
+                                        fontWeight: '900',
+                                        border: 'none',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    {selectedMember.role === 'Admin' ? 'Demote to Member' : 'Promote to Admin'}
+                                </button>
+                                <button
+                                    onClick={() => handleDeleteMember(selectedMember.uid, selectedMember.displayName)}
+                                    style={{
+                                        padding: '1rem',
+                                        borderRadius: '0.75rem',
+                                        backgroundColor: '#0F172A',
+                                        color: 'white',
+                                        fontWeight: '900',
+                                        border: 'none',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    <Trash2 size={20} />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </AppLayout>
     );
 }
+

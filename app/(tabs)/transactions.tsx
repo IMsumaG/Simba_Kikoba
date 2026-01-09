@@ -83,7 +83,9 @@ export default function TransactionsScreen() {
                 { wch: 15 }, // Hisa
                 { wch: 15 }, // Jamii
                 { wch: 15 }, // Standard Repay
-                { wch: 15 }  // Dharura Repay
+                { wch: 15 }, // Dharura Repay
+                { wch: 15 }, // Standard Loan
+                { wch: 15 }  // Dharura Loan
             ];
 
             const wb = XLSX.utils.book_new();
@@ -396,14 +398,30 @@ export default function TransactionsScreen() {
                             />
                         </View>
 
-                        {/* Interest Preview for Standard Loans (Hidden) */}
-                        {/* 
+                        {/* Interest Preview for Standard Loans (Re-enabled) */}
                         {type === 'Loan' && category === 'Standard' && amount && !isNaN(Number(amount)) && Number(amount) > 0 && (
                             <View style={styles.interestPreview as ViewStyle}>
-                                ...
+                                <View style={styles.interestRow}>
+                                    <Text style={styles.interestLabel}>Principal:</Text>
+                                    <Text style={styles.interestValue}>
+                                        {Number(amount).toLocaleString()} TZS
+                                    </Text>
+                                </View>
+                                <View style={styles.interestRow}>
+                                    <Text style={styles.interestLabel}>Interest (10%):</Text>
+                                    <Text style={styles.interestValue}>
+                                        {(Number(amount) * 0.1).toLocaleString()} TZS
+                                    </Text>
+                                </View>
+                                <View style={{ height: 1, backgroundColor: '#FFEDD5', marginVertical: 8 }} />
+                                <View style={styles.interestRow}>
+                                    <Text style={[styles.interestLabel, { fontWeight: '700', color: '#EA580C', fontSize: 14 }]}>Total:</Text>
+                                    <Text style={[styles.interestValue, { fontWeight: '700', color: '#EA580C', fontSize: 16 }]}>
+                                        {(Number(amount) * 1.1).toLocaleString()} TZS
+                                    </Text>
+                                </View>
                             </View>
                         )}
-                        */}
                     </View>
 
                     <TouchableOpacity

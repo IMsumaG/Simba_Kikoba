@@ -1,3 +1,4 @@
+
 import { addDoc, collection, getDocs, query } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
 import { db } from './firebase';
@@ -10,6 +11,8 @@ export interface BulkUploadRow {
     jamiiAmount: number;
     standardRepayAmount?: number;
     dharuraRepayAmount?: number;
+    standardLoanAmount?: number;
+    dharuraLoanAmount?: number;
 }
 
 export interface BulkUploadValidationResult {
@@ -33,6 +36,48 @@ export interface BulkUploadProcessResult {
         message?: string;
     }[];
 }
+
+/**
+ * Helper to parse Excel dates (String or Serial)
+ */
+const parseBulkDate = (dateVal: any): Date | null => {
+    if (!dateVal) return null;
+    const dateStr = String(dateVal).trim();
+    if (!dateStr) return null;
+
+    // 1. Handle Excel Serial Number (e.g., "45664")
+    if (!isNaN(Number(dateStr)) && !dateStr.includes('/')) {
+        const serial = Number(dateStr);
+        // Excel base date is 1899-12-30. JS base date is 1970-01-01.
+        // Difference is 25569 days.
+        const dObj = new Date((serial - 25569) * 86400 * 1000);
+        if (dObj.toString() !== 'Invalid Date' && dObj.getFullYear() > 1900 && dObj.getFullYear() < 2100) {
+            return dObj;
+        }
+    }
+
+    // 2. Handle M/D/YYYY format
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+        const m = parseInt(parts[0], 10) - 1;
+        const d = parseInt(parts[1], 10);
+        const y = parseInt(parts[2], 10);
+        // Ensure 4-digit year for consistency if user typed 2 digits
+        const fullYear = y < 100 ? 2000 + y : y;
+        const dObj = new Date(fullYear, m, d);
+        if (dObj.getDate() === d && dObj.getMonth() === m) {
+            return dObj;
+        }
+    }
+
+    // 3. Last resort fallback
+    const fallbackDate = new Date(dateStr);
+    if (fallbackDate.toString() !== 'Invalid Date' && fallbackDate.getFullYear() > 1900 && fallbackDate.getFullYear() < 2100) {
+        return fallbackDate;
+    }
+
+    return null;
+};
 
 /**
  * Service for handling bulk transaction uploads from Excel (Web Version)
@@ -81,7 +126,7 @@ export const bulkUploadService = {
         }
 
         // Check columns
-        const requiredColumns = ['Date', 'Member ID', 'Full name', 'HISA Amount', 'Jamii Amount', 'Standard Repay', 'Dharura Repay'];
+        const requiredColumns = ['Date', 'Member ID', 'Full name', 'HISA Amount', 'Jamii Amount', 'Standard Repay', 'Dharura Repay', 'Standard Loan', 'Dharura Loan'];
         const firstRow = rows[0];
         const missingColumns = requiredColumns.filter(col => !Object.keys(firstRow).some(k => k.trim() === col));
 
@@ -139,6 +184,8 @@ export const bulkUploadService = {
             const jamiiAmount = Number(rawRow['Jamii Amount'] || 0);
             const standardRepay = Number(rawRow['Standard Repay'] || 0);
             const dharuraRepay = Number(rawRow['Dharura Repay'] || 0);
+            const standardLoan = Number(rawRow['Standard Loan'] || 0);
+            const dharuraLoan = Number(rawRow['Dharura Loan'] || 0);
 
             const uid = memberIdMap.get(memberId);
 
@@ -150,29 +197,38 @@ export const bulkUploadService = {
             }
 
             // 2. Validate Amounts
-            if (isNaN(hisaAmount) || isNaN(jamiiAmount) || isNaN(standardRepay) || isNaN(dharuraRepay)) {
+            if (isNaN(hisaAmount) || isNaN(jamiiAmount) || isNaN(standardRepay) || isNaN(dharuraRepay) || isNaN(standardLoan) || isNaN(dharuraLoan)) {
                 rowErrors.push("Invalid amount format");
             }
 
-            // 3. Validate Loan Balances for Repayments
+            // 3. Validate Loan Balances for Repayments (TRACK IN-BATCH FOR HISTORICAL DATA)
             if (uid) {
                 const balances = memberBalances.get(uid) || { Standard: 0, Dharura: 0 };
-                if (standardRepay > 0 && balances.Standard <= 0) {
-                    rowErrors.push(`Incorrect Repayment: No active Standard loan balance for ${memberId}`);
+
+                // Track current batch impact (if rows are ordered logically)
+                // Note: For full historical reconstruction, we are more lenient
+                if (standardRepay > 0 && (balances.Standard + standardLoan) <= 0) {
+                    result.warnings.push(`Row ${rowNumber}: Repayment for ${memberId} with no detected loan balance. (Allowed for historical data)`);
                 }
-                if (dharuraRepay > 0 && balances.Dharura <= 0) {
-                    rowErrors.push(`Incorrect Repayment: No active Dharura loan balance for ${memberId}`);
+                if (dharuraRepay > 0 && (balances.Dharura + dharuraLoan) <= 0) {
+                    result.warnings.push(`Row ${rowNumber}: Repayment for ${memberId} with no detected loan balance. (Allowed for historical data)`);
                 }
+
+                // Update simulated balances for next rows in same batch
+                balances.Standard += (standardLoan - standardRepay);
+                balances.Dharura += (dharuraLoan - dharuraRepay);
+                memberBalances.set(uid, balances);
             }
 
-            // 4. Validate Date
-            if (!dateStr || new Date(dateStr).toString() === 'Invalid Date') {
-                rowErrors.push(`Invalid date format: ${dateStr}`);
+            // 4. Validate Date (Expected M/D/YYYY)
+            const parsedDate = parseBulkDate(dateStr);
+            if (!parsedDate) {
+                rowErrors.push(`Invalid date format: ${dateStr}. Please use M/D/YYYY (e.g., 1/8/2026)`);
             }
 
             // If valid so far, create typed row
             if (rowErrors.length === 0) {
-                if (hisaAmount <= 0 && jamiiAmount <= 0 && standardRepay <= 0 && dharuraRepay <= 0) {
+                if (hisaAmount <= 0 && jamiiAmount <= 0 && standardRepay <= 0 && dharuraRepay <= 0 && standardLoan <= 0 && dharuraLoan <= 0) {
                     rowErrors.push("No valid amount to process (all are 0)");
                 } else {
                     const cleanRow: BulkUploadRow = {
@@ -182,7 +238,9 @@ export const bulkUploadService = {
                         hisaAmount,
                         jamiiAmount,
                         standardRepayAmount: standardRepay,
-                        dharuraRepayAmount: dharuraRepay
+                        dharuraRepayAmount: dharuraRepay,
+                        standardLoanAmount: standardLoan,
+                        dharuraLoanAmount: dharuraLoan
                     };
 
                     // Check for duplicates within this file
@@ -213,7 +271,9 @@ export const bulkUploadService = {
                         hisaAmount,
                         jamiiAmount,
                         standardRepayAmount: standardRepay,
-                        dharuraRepayAmount: dharuraRepay
+                        dharuraRepayAmount: dharuraRepay,
+                        standardLoanAmount: standardLoan,
+                        dharuraLoanAmount: dharuraLoan
                     },
                     errors: rowErrors
                 });
@@ -260,7 +320,12 @@ export const bulkUploadService = {
                     continue;
                 }
 
-                const transactionDate = new Date(row.date).toISOString();
+                let transactionDate = new Date().toISOString();
+                const parsedDate = parseBulkDate(row.date);
+                if (parsedDate) {
+                    transactionDate = parsedDate.toISOString();
+                }
+
                 let processedAny = false;
 
                 // 1. Process HISA Contribution
@@ -331,6 +396,40 @@ export const bulkUploadService = {
                     processedAny = true;
                 }
 
+                // 5. Process Standard Loan
+                if (row.standardLoanAmount && row.standardLoanAmount > 0) {
+                    await addDoc(collection(db, "transactions"), {
+                        memberId: member.uid,
+                        memberName: member.name,
+                        amount: row.standardLoanAmount,
+                        type: 'Loan',
+                        category: 'Standard',
+                        date: transactionDate,
+                        createdBy: createdBy || 'unknown',
+                        status: 'Completed',
+                        source: 'Bulk Upload',
+                        reference: `BULK-${row.date}-${row.memberId}`
+                    });
+                    processedAny = true;
+                }
+
+                // 6. Process Dharura Loan
+                if (row.dharuraLoanAmount && row.dharuraLoanAmount > 0) {
+                    await addDoc(collection(db, "transactions"), {
+                        memberId: member.uid,
+                        memberName: member.name,
+                        amount: row.dharuraLoanAmount,
+                        type: 'Loan',
+                        category: 'Dharura',
+                        date: transactionDate,
+                        createdBy: createdBy || 'unknown',
+                        status: 'Completed',
+                        source: 'Bulk Upload',
+                        reference: `BULK-${row.date}-${row.memberId}`
+                    });
+                    processedAny = true;
+                }
+
                 if (processedAny) {
                     result.successCount++;
                     result.details.push({ row, status: 'success' });
@@ -357,7 +456,8 @@ export const bulkUploadService = {
         const snapshot = await getDocs(usersQuery);
 
         const rows: any[] = [];
-        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        const now = new Date();
+        const today = `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()}`; // M/D/YYYY
 
         snapshot.forEach(doc => {
             const data = doc.data();
@@ -369,7 +469,9 @@ export const bulkUploadService = {
                     'HISA Amount': '',
                     'Jamii Amount': '',
                     'Standard Repay': '',
-                    'Dharura Repay': ''
+                    'Dharura Repay': '',
+                    'Standard Loan': '',
+                    'Dharura Loan': ''
                 });
             }
         });

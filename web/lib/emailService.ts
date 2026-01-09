@@ -237,6 +237,43 @@ export async function sendLoanReminder(email: string, name: string, loans: Array
 }
 
 /**
+ * Send notification to admins about a new loan request
+ */
+export async function sendLoanRequestNotification(adminEmails: string[], memberName: string, amount: number, type: string): Promise<boolean> {
+    const subject = `New Loan Request: ${memberName}`;
+    const htmlContent = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #F57C00;">New Loan Request</h2>
+        <p>A member has requested a new loan that requires your approval.</p>
+        <div style="background: #F8FAFC; padding: 15px; border-radius: 10px; margin: 20px 0;">
+            <p><strong>Member:</strong> ${memberName}</p>
+            <p><strong>Loan Type:</strong> ${type}</p>
+            <p><strong>Amount:</strong> ${amount.toLocaleString()} TZS</p>
+        </div>
+        <p>Please log in to the SBK portal to cast your vote.</p>
+    </div>
+    `;
+    return sendEmail({ bcc: adminEmails, subject, html: htmlContent });
+}
+
+/**
+ * Send decision notification to member
+ */
+export async function sendLoanDecisionNotification(email: string, name: string, status: string, type: string, amount: number, reason?: string): Promise<boolean> {
+    const isApproved = status === 'Approved';
+    const subject = `Loan Request Update: ${status}`;
+    const htmlContent = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: ${isApproved ? '#10B981' : '#EF4444'};">Loan Request ${status}</h2>
+        <p>Your request for a ${type} loan of <strong>${amount.toLocaleString()} TZS</strong> has been ${status.toLowerCase()}.</p>
+        ${!isApproved && reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
+        <p>Log in to your account for more details.</p>
+    </div>
+    `;
+    return sendEmail({ to: email, subject, html: htmlContent });
+}
+
+/**
  * Verify email service is configured
  */
 export async function verifyEmailConfiguration(): Promise<boolean> {

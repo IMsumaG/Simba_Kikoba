@@ -234,6 +234,25 @@ export interface PaymentRecord {
 }
 
 /**
+ * Loan Request - For Multi-Admin Approval Workflow
+ */
+export interface LoanRequest {
+    id?: string;
+    memberId: string;
+    requesterMemberId?: string; // e.g. M001
+    memberName: string;
+    amount: number;
+    type: 'Standard' | 'Dharura';
+    status: 'Pending' | 'Approved' | 'Rejected';
+    requestedDate: string;
+    description?: string;
+    // Track each admin's decision: { adminUid: 'approved' | 'rejected' | 'pending' }
+    approvals: Record<string, 'approved' | 'rejected' | 'pending'>;
+    adminNames: Record<string, string>; // name of the admins at request time (for tracking)
+    rejectionReason?: string;
+}
+
+/**
  * Bulk Upload Types
  */
 export interface BulkUploadRow {
@@ -244,6 +263,8 @@ export interface BulkUploadRow {
     jamiiAmount: number;
     standardRepayAmount?: number;
     dharuraRepayAmount?: number;
+    standardLoanAmount?: number;
+    dharuraLoanAmount?: number;
 }
 
 export interface BulkUploadValidationResult {

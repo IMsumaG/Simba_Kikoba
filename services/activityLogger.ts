@@ -1,12 +1,12 @@
 import {
-    addDoc,
-    collection,
-    getDocs,
-    limit,
-    orderBy,
-    query,
-    Timestamp,
-    where,
+  addDoc,
+  collection,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  Timestamp,
+  where,
 } from 'firebase/firestore';
 import { ActivityLog, ActivityLogFilter, ActivityStats } from '../types/ActivityLog';
 import { db } from './firebase';
@@ -246,6 +246,70 @@ class ActivityLoggerService {
   }
 
   /**
+   * Log loan approval or rejection
+   */
+  async logLoanVoted(
+    userId: string,
+    user: UserProfile,
+    requestId: string,
+    memberName: string,
+    action: 'approved' | 'rejected',
+    reason?: string,
+    groupCode?: string
+  ): Promise<string> {
+    const activityType = action === 'approved' ? 'loan_approved' : 'loan_rejected';
+    return this.logActivity({
+      activityType,
+      userId,
+      userEmail: user.email,
+      userName: user.displayName || 'Unknown',
+      userRole: user.role,
+      entityType: 'loan',
+      entityId: requestId,
+      entityName: memberName,
+      description: `${action === 'approved' ? 'Approved' : 'Rejected'} loan request for ${memberName}${reason ? `. Reason: ${reason}` : ''}`,
+      changes: {
+        after: { status: action === 'approved' ? 'Approved' : 'Rejected', reason },
+      },
+      metadata: {
+        affectedMembers: [memberName],
+      },
+      status: 'success',
+      groupCode: groupCode || user.groupCode || 'DEFAULT',
+    });
+  }
+
+  /**
+   * Log bulk upload activity
+   */
+  async logBulkUpload(
+    userId: string,
+    user: UserProfile,
+    rowCount: number,
+    status: 'success' | 'failed',
+    groupCode?: string
+  ): Promise<string> {
+    return this.logActivity({
+      activityType: 'transaction_created', // Using an existing type or we can add 'bulk_upload' to the type if needed
+      userId,
+      userEmail: user.email,
+      userName: user.displayName || 'Unknown',
+      userRole: user.role,
+      entityType: 'transaction',
+      entityId: 'bulk-' + Date.now(),
+      description: `Performed bulk upload of ${rowCount} transactions`,
+      changes: {
+        after: { rowCount },
+      },
+      metadata: {
+        transactionAmount: rowCount, // repurposed
+      },
+      status,
+      groupCode: groupCode || user.groupCode || 'DEFAULT',
+    });
+  }
+
+  /**
    * Log failed activity (error occurred)
    */
   async logFailedActivity(
@@ -305,7 +369,7 @@ class ActivityLoggerService {
 
       const q = query(collection(db, this.collectionName), ...constraints);
       const snapshot = await getDocs(q);
-      
+
       return snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -339,7 +403,7 @@ class ActivityLoggerService {
 
       const q = query(collection(db, this.collectionName), ...constraints);
       const snapshot = await getDocs(q);
-      
+
       return snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
