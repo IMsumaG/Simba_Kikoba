@@ -34,7 +34,15 @@ export const transactionService = {
     // Add a new transaction
     async addTransaction(transaction: Omit<Transaction, 'id'>, currentUser?: UserProfile, groupCode?: string) {
         try {
-            const docRef = await addDoc(collection(db, 'transactions'), transaction);
+            // Remove undefined fields to prevent Firestore errors
+            const cleanTransaction = Object.entries(transaction).reduce((acc, [key, value]) => {
+                if (value !== undefined) {
+                    acc[key] = value;
+                }
+                return acc;
+            }, {} as any);
+
+            const docRef = await addDoc(collection(db, 'transactions'), cleanTransaction);
 
             // Log activity if user and groupCode are provided
             if (currentUser && groupCode) {

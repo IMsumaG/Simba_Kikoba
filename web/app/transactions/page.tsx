@@ -1,12 +1,12 @@
 "use client";
 
-import { onAuthStateChanged } from "firebase/auth";
-import { addDoc, collection, getDocs, query, where } from "firebase/firestore";
+import { addDoc, collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { ArrowDownLeft, ArrowUpRight, CheckCircle2, RefreshCw, UserSearch } from "lucide-react";
 import { useEffect, useState } from "react";
 import AppLayout from "../../components/AppLayout";
+import { useAuth } from "../../context/AuthContext";
 import { activityLogger } from "../../lib/activityLogger";
-import { auth, db } from "../../lib/firebase";
+import { db } from "../../lib/firebase";
 
 interface Member {
     uid: string;
@@ -15,6 +15,7 @@ interface Member {
 }
 
 export default function TransactionsPage() {
+    const { user: currentUser, groupCode } = useAuth();
     const [members, setMembers] = useState<Member[]>([]);
     const [selectedMember, setSelectedMember] = useState<Member | null>(null);
     const [type, setType] = useState<'Contribution' | 'Loan' | 'Loan Repayment'>('Contribution');
@@ -25,14 +26,6 @@ export default function TransactionsPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [standardLoanBalance, setStandardLoanBalance] = useState(0);
     const [dharuraLoanBalance, setDhauraLoanBalance] = useState(0);
-    const [currentUser, setCurrentUser] = useState<any>(null);
-
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (u) => {
-            setCurrentUser(u);
-        });
-        return () => unsubscribe();
-    }, []);
 
     useEffect(() => {
         fetchMembers();
@@ -111,7 +104,7 @@ export default function TransactionsPage() {
                 memberId: selectedMember.uid,
                 memberName: selectedMember.displayName,
                 amount: finalAmount, // Total amount with interest for Standard loans
-                originalAmount: type === 'Loan' ? originalAmount : undefined,
+                originalAmount: type === 'Loan' ? originalAmount : null,
                 type: type,
                 category: category,
                 interestRate: (type === 'Loan' && category === 'Standard') ? 10 : 0, // Automated interest disabled
@@ -122,6 +115,17 @@ export default function TransactionsPage() {
 
             // Log activity
             try {
+                // Fetch selected member's custom member ID
+                let memberIdCustom = 'N/A';
+                try {
+                    const memberDoc = await getDoc(doc(db, 'users', selectedMember.uid));
+                    if (memberDoc.exists() && memberDoc.data().memberId) {
+                        memberIdCustom = memberDoc.data().memberId;
+                    }
+                } catch (e) {
+                    console.warn('Failed to fetch member ID:', e);
+                }
+                
                 await activityLogger.logTransactionCreated(
                     currentUser?.uid || 'web-admin',
                     currentUser?.displayName || 'Web Admin',
@@ -133,7 +137,8 @@ export default function TransactionsPage() {
                         memberId: selectedMember.uid,
                         memberName: selectedMember.displayName
                     },
-                    'DEFAULT'
+                    groupCode || 'DEFAULT',
+                    memberIdCustom
                 );
             } catch (logError) {
                 console.warn("Failed to log transaction activity:", logError);
@@ -223,7 +228,16 @@ export default function TransactionsPage() {
                     currentUser?.displayName || 'Web Admin',
                     result.successCount,
                     'success',
-                    'DEFAULT'
+                    'DEFAULT',
+                    {
+                        totalAffectedUsers: bulkValidation.totalAffectedUsers,
+                        hisaAmount: bulkValidation.totals.hisaAmount,
+                        jamiiAmount: bulkValidation.totals.jamiiAmount,
+                        standardRepayAmount: bulkValidation.totals.standardRepayAmount,
+                        dharuraRepayAmount: bulkValidation.totals.dharuraRepayAmount,
+                        standardLoanAmount: bulkValidation.totals.standardLoanAmount,
+                        dharuraLoanAmount: bulkValidation.totals.dharuraLoanAmount
+                    }
                 );
             } catch (logError) {
                 console.warn("Failed to log bulk upload activity:", logError);
@@ -352,18 +366,71 @@ export default function TransactionsPage() {
                                         <div style={{ backgroundColor: '#F8FAFC', padding: '1rem', borderBottom: '1px solid #E2E8F0' }}>
                                             <h3 style={{ fontWeight: '600', color: '#0F172A' }}>Preview Results</h3>
                                         </div>
-                                        <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-                                                <span style={{ color: '#64748B' }}>Valid Transactions:</span>
-                                                <span style={{ fontWeight: 'bold', color: '#10B981' }}>{bulkValidation.validRows.length}</span>
+                                        <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                            {/* Summary Stats */}
+                                            <div>
+                                                <h4 style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748B', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Summary</h4>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                                                        <span style={{ color: '#64748B' }}>Valid Transactions:</span>
+                                                        <span style={{ fontWeight: 'bold', color: '#10B981' }}>{bulkValidation.validRows.length}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                                                        <span style={{ color: '#64748B' }}>Users Affected:</span>
+                                                        <span style={{ fontWeight: 'bold', color: '#2563EB' }}>{bulkValidation.totalAffectedUsers}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                                                        <span style={{ color: '#64748B' }}>Duplicates (Skipped):</span>
+                                                        <span style={{ fontWeight: 'bold', color: '#F59E0B' }}>{bulkValidation.duplicateRows.length}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                                                        <span style={{ color: '#64748B' }}>Invalid Rows:</span>
+                                                        <span style={{ fontWeight: 'bold', color: '#EF4444' }}>{bulkValidation.invalidRows.length}</span>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-                                                <span style={{ color: '#64748B' }}>Duplicates (Skipped):</span>
-                                                <span style={{ fontWeight: 'bold', color: '#F59E0B' }}>{bulkValidation.duplicateRows.length}</span>
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-                                                <span style={{ color: '#64748B' }}>Invalid Rows:</span>
-                                                <span style={{ fontWeight: 'bold', color: '#EF4444' }}>{bulkValidation.invalidRows.length}</span>
+
+                                            {/* Transaction Totals */}
+                                            <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '1rem' }}>
+                                                <h4 style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748B', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Transaction Totals</h4>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
+                                                    {bulkValidation.totals.hisaAmount > 0 && (
+                                                        <div style={{ backgroundColor: '#F0FDF4', padding: '0.5rem', borderRadius: '0.375rem' }}>
+                                                            <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Hisa (Shares):</span>
+                                                            <div style={{ fontWeight: '600', color: '#10B981', fontSize: '0.9rem' }}>TSH {bulkValidation.totals.hisaAmount.toLocaleString()}</div>
+                                                        </div>
+                                                    )}
+                                                    {bulkValidation.totals.jamiiAmount > 0 && (
+                                                        <div style={{ backgroundColor: '#F0FDF4', padding: '0.5rem', borderRadius: '0.375rem' }}>
+                                                            <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Jamii:</span>
+                                                            <div style={{ fontWeight: '600', color: '#10B981', fontSize: '0.9rem' }}>TSH {bulkValidation.totals.jamiiAmount.toLocaleString()}</div>
+                                                        </div>
+                                                    )}
+                                                    {bulkValidation.totals.standardLoanAmount > 0 && (
+                                                        <div style={{ backgroundColor: '#FEF2F2', padding: '0.5rem', borderRadius: '0.375rem' }}>
+                                                            <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Standard Loan:</span>
+                                                            <div style={{ fontWeight: '600', color: '#EF4444', fontSize: '0.9rem' }}>TSH {bulkValidation.totals.standardLoanAmount.toLocaleString()}</div>
+                                                        </div>
+                                                    )}
+                                                    {bulkValidation.totals.dharuraLoanAmount > 0 && (
+                                                        <div style={{ backgroundColor: '#FEF2F2', padding: '0.5rem', borderRadius: '0.375rem' }}>
+                                                            <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Dharura Loan:</span>
+                                                            <div style={{ fontWeight: '600', color: '#EF4444', fontSize: '0.9rem' }}>TSH {bulkValidation.totals.dharuraLoanAmount.toLocaleString()}</div>
+                                                        </div>
+                                                    )}
+                                                    {bulkValidation.totals.standardRepayAmount > 0 && (
+                                                        <div style={{ backgroundColor: '#FEF3C7', padding: '0.5rem', borderRadius: '0.375rem' }}>
+                                                            <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Standard Repay:</span>
+                                                            <div style={{ fontWeight: '600', color: '#F59E0B', fontSize: '0.9rem' }}>TSH {bulkValidation.totals.standardRepayAmount.toLocaleString()}</div>
+                                                        </div>
+                                                    )}
+                                                    {bulkValidation.totals.dharuraRepayAmount > 0 && (
+                                                        <div style={{ backgroundColor: '#FEF3C7', padding: '0.5rem', borderRadius: '0.375rem' }}>
+                                                            <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Dharura Repay:</span>
+                                                            <div style={{ fontWeight: '600', color: '#F59E0B', fontSize: '0.9rem' }}>TSH {bulkValidation.totals.dharuraRepayAmount.toLocaleString()}</div>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
 
                                             {bulkValidation.errors.length > 0 && (

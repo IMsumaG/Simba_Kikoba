@@ -132,7 +132,7 @@ export default function ProfileScreen() {
                                 icon="shield-half"
                                 title="System Audit Logs"
                                 color="#F57C00"
-                                onPress={() => router.push('/admin/auditLog' as any)}
+                                onPress={() => router.push('/admin/audit-logs' as any)}
                                 isLast
                             />
                             {/* Migration Tool Hidden (Automated Interest Disabled) */}

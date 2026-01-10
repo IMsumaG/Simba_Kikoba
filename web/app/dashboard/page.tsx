@@ -1,5 +1,6 @@
 "use client";
 
+import { onAuthStateChanged } from "firebase/auth";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import {
     ArrowUpCircle,
@@ -18,9 +19,10 @@ import {
     YAxis
 } from "recharts";
 import AppLayout from "../../components/AppLayout";
-import { db } from "../../lib/firebase";
+import { auth, db } from "../../lib/firebase";
 
 export default function DashboardPage() {
+    const [user, setUser] = useState<any>(null);
     const [stats, setStats] = useState({
         vaultBalance: 0,
         loanPool: 0,
@@ -29,6 +31,13 @@ export default function DashboardPage() {
     });
     const [chartData, setChartData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (u) => {
+            setUser(u);
+        });
+        return () => unsubscribe();
+    }, []);
 
     useEffect(() => {
         fetchData();
@@ -140,8 +149,10 @@ export default function DashboardPage() {
     return (
         <AppLayout>
             <div style={{ marginBottom: '2.5rem' }}>
-                <h1 style={{ fontSize: '2rem', fontWeight: '900', letterSpacing: '-0.5px' }}>Dashboard Overview</h1>
-                <p style={{ color: 'var(--text-secondary)' }}>Societies financial performance tracking</p>
+                <h1 style={{ fontSize: '1.875rem', fontWeight: '900', color: '#1E293B', marginBottom: '0.5rem' }}>
+                    Welcome Back, {user?.displayName?.split(' ')[0] || 'User'}
+                </h1>
+                <p style={{ color: '#64748B', fontSize: '0.95rem' }}>Here's an overview of your organization's financial performance</p>
             </div>
 
             <div style={{

@@ -24,10 +24,10 @@ export interface UserProfile {
 export interface Transaction {
     id?: string;
     type: 'Contribution' | 'Loan' | 'Loan Repayment';
-    category?: 'Hisa' | 'Jamii' | 'Standard' | 'Dharura';
-    interestRate?: number;
+    category?: 'Hisa' | 'Jamii' | 'Standard' | 'Dharura' | null;
+    interestRate?: number | null;
     amount: number; // Total amount (includes interest for Standard loans)
-    originalAmount?: number; // Principal amount before interest (for loans)
+    originalAmount?: number | null; // Principal amount before interest (for loans)
     memberId: string;
     memberName: string;
     date: string;
@@ -274,6 +274,15 @@ export interface BulkUploadValidationResult {
     validRows: BulkUploadRow[];
     invalidRows: { row: BulkUploadRow; errors: string[] }[];
     duplicateRows: BulkUploadRow[];
+    totalAffectedUsers: number;
+    totals: {
+        hisaAmount: number;
+        jamiiAmount: number;
+        standardRepayAmount: number;
+        dharuraRepayAmount: number;
+        standardLoanAmount: number;
+        dharuraLoanAmount: number;
+    };
 }
 
 export interface BulkUploadProcessResult {

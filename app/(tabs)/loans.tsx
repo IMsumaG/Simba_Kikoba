@@ -4,7 +4,9 @@ import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -37,6 +39,7 @@ export default function LoansScreen() {
     const [voteModalVisible, setVoteModalVisible] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState<LoanRequest | null>(null);
     const [reason, setReason] = useState('');
+    const [expandedLoanId, setExpandedLoanId] = useState<string | null>(null);
 
     // Filtering & Pagination State
     const [searchTerm, setSearchTerm] = useState('');
@@ -92,6 +95,10 @@ export default function LoansScreen() {
         if (!user) return;
         if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
             Alert.alert("Error", "Please enter a valid amount");
+            return;
+        }
+        if (!description || description.trim() === '') {
+            Alert.alert("Error", "Please provide the purpose of the loan");
             return;
         }
 
@@ -194,86 +201,112 @@ export default function LoansScreen() {
         const myDecision = request.approvals[user.uid] || 'pending';
         const approvedCount = Object.keys(request.approvals).filter(uid => request.approvals[uid] === 'approved').length;
         const totalAdmins = Object.keys(request.approvals).length;
+        const isExpanded = expandedLoanId === request.id;
 
         return (
-            <View key={request.id} style={styles.card}>
+            <TouchableOpacity 
+                key={request.id} 
+                style={styles.card}
+                onPress={() => setExpandedLoanId(isExpanded ? null : request.id)}
+                activeOpacity={0.7}
+            >
                 <View style={styles.cardHeader}>
-                    <View>
-                        <Text style={styles.memberName}>{request.memberName}</Text>
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.memberName} numberOfLines={1}>{request.memberName}</Text>
                         <Text style={styles.requestDate}>{new Date(request.requestedDate).toLocaleDateString()}</Text>
                     </View>
-                    {renderApprovalBadge(request.status)}
-                </View>
-
-                <View style={styles.cardBody}>
-                    <View style={styles.row}>
-                        <Text style={styles.label}>Type:</Text>
-                        <Text style={styles.value}>{request.type} Loan</Text>
-                    </View>
-                    <View style={styles.row}>
-                        <Text style={styles.label}>Amount:</Text>
-                        <Text style={styles.amountText}>{request.amount.toLocaleString()} TZS</Text>
-                    </View>
-                    {request.description ? (
-                        <View style={styles.descriptionBox}>
-                            <Text style={styles.descriptionLabel}>Purpose:</Text>
-                            <Text style={styles.descriptionText}>{request.description}</Text>
-                        </View>
-                    ) : null}
-
-                    {request.status === 'Rejected' && request.rejectionReason && (
-                        <View style={styles.rejectionBox}>
-                            <Text style={styles.rejectionText}>Reason: {request.rejectionReason}</Text>
-                        </View>
-                    )}
-
-                    <View style={styles.approvalTracker}>
-                        <Text style={styles.trackerTitle}>Admin Approvals ({approvedCount}/{totalAdmins})</Text>
-                        <View style={styles.adminList}>
-                            {Object.keys(request.approvals).map(adminId => (
-                                <View key={adminId} style={styles.adminStatusRow}>
-                                    <Ionicons
-                                        name={request.approvals[adminId] === 'approved' ? 'checkbox' : request.approvals[adminId] === 'rejected' ? 'close-circle' : 'time'}
-                                        size={16}
-                                        color={request.approvals[adminId] === 'approved' ? '#10B981' : request.approvals[adminId] === 'rejected' ? '#EF4444' : '#94A3B8'}
-                                    />
-                                    <Text style={[styles.adminName, request.approvals[adminId] === 'pending' && { color: '#94A3B8' }]}>
-                                        {request.adminNames[adminId]}
-                                    </Text>
-                                </View>
-                            ))}
-                        </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        {renderApprovalBadge(request.status)}
+                        <Ionicons 
+                            name={isExpanded ? 'chevron-up' : 'chevron-down'} 
+                            size={18} 
+                            color="#64748B" 
+                        />
                     </View>
                 </View>
 
-                {isAdmin && request.status === 'Pending' && myDecision === 'pending' && (
-                    <View style={styles.actionRow}>
-                        <TouchableOpacity
-                            style={[styles.actionBtn, styles.approveBtn]}
-                            onPress={() => handleVote(request.id!, 'approved')}
-                        >
-                            <Ionicons name="checkmark" size={18} color="white" />
-                            <Text style={styles.actionBtnText}>Approve</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.actionBtn, styles.rejectBtn]}
-                            onPress={() => {
-                                setSelectedRequest(request);
-                                setVoteModalVisible(true);
-                            }}
-                        >
-                            <Ionicons name="close" size={18} color="white" />
-                            <Text style={styles.actionBtnText}>Reject</Text>
-                        </TouchableOpacity>
+                {/* Collapsed View - Brief Info */}
+                {!isExpanded && (
+                    <View style={styles.collapsedCardBody}>
+                        <View style={styles.compactRow}>
+                            <Text style={styles.compactLabel}>{request.type} Loan</Text>
+                            <Text style={styles.amountText}>{request.amount.toLocaleString()} TZS</Text>
+                        </View>
                     </View>
                 )}
 
-                {isAdmin && myDecision !== 'pending' && request.status === 'Pending' && (
-                    <View style={styles.votedNotice}>
-                        <Text style={styles.votedText}>You have {myDecision} this request. Waiting for other admins.</Text>
+                {/* Expanded View - Full Details */}
+                {isExpanded && (
+                    <View style={styles.cardBody}>
+                        <View style={styles.row}>
+                            <Text style={styles.label}>Type:</Text>
+                            <Text style={styles.value}>{request.type} Loan</Text>
+                        </View>
+                        <View style={styles.row}>
+                            <Text style={styles.label}>Amount:</Text>
+                            <Text style={styles.amountText}>{request.amount.toLocaleString()} TZS</Text>
+                        </View>
+                        {request.description ? (
+                            <View style={styles.descriptionBox}>
+                                <Text style={styles.descriptionLabel}>Purpose:</Text>
+                                <Text style={styles.descriptionText}>{request.description}</Text>
+                            </View>
+                        ) : null}
+
+                        {request.status === 'Rejected' && request.rejectionReason && (
+                            <View style={styles.rejectionBox}>
+                                <Text style={styles.rejectionText}>Reason: {request.rejectionReason}</Text>
+                            </View>
+                        )}
+
+                        <View style={styles.approvalTracker}>
+                            <Text style={styles.trackerTitle}>Admin Approvals ({approvedCount}/{totalAdmins})</Text>
+                            <View style={styles.adminList}>
+                                {Object.keys(request.approvals).map(adminId => (
+                                    <View key={adminId} style={styles.adminStatusRow}>
+                                        <Ionicons
+                                            name={request.approvals[adminId] === 'approved' ? 'checkbox' : request.approvals[adminId] === 'rejected' ? 'close-circle' : 'time'}
+                                            size={16}
+                                            color={request.approvals[adminId] === 'approved' ? '#10B981' : request.approvals[adminId] === 'rejected' ? '#EF4444' : '#94A3B8'}
+                                        />
+                                        <Text style={[styles.adminName, request.approvals[adminId] === 'pending' && { color: '#94A3B8' }]}>
+                                            {request.adminNames[adminId]}
+                                        </Text>
+                                    </View>
+                                ))}
+                            </View>
+                        </View>
+
+                        {isAdmin && request.status === 'Pending' && myDecision === 'pending' && (
+                            <View style={styles.actionRow}>
+                                <TouchableOpacity
+                                    style={[styles.actionBtn, styles.approveBtn]}
+                                    onPress={() => handleVote(request.id!, 'approved')}
+                                >
+                                    <Ionicons name="checkmark" size={18} color="white" />
+                                    <Text style={styles.actionBtnText}>Approve</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.actionBtn, styles.rejectBtn]}
+                                    onPress={() => {
+                                        setSelectedRequest(request);
+                                        setVoteModalVisible(true);
+                                    }}
+                                >
+                                    <Ionicons name="close" size={18} color="white" />
+                                    <Text style={styles.actionBtnText}>Reject</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+
+                        {isAdmin && myDecision !== 'pending' && request.status === 'Pending' && (
+                            <View style={styles.votedNotice}>
+                                <Text style={styles.votedText}>You have {myDecision} this request. Waiting for other admins.</Text>
+                            </View>
+                        )}
                     </View>
                 )}
-            </View>
+            </TouchableOpacity>
         );
     };
 
@@ -424,56 +457,61 @@ export default function LoansScreen() {
                             </TouchableOpacity>
                         </View>
 
-                        <ScrollView style={styles.modalBody}>
-                            <Text style={styles.inputLabel}>Loan Type</Text>
-                            <View style={styles.typeSelector}>
+                        <KeyboardAvoidingView
+                            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                            style={{ flex: 1 }}
+                        >
+                            <ScrollView style={styles.modalBody}>
+                                <Text style={styles.inputLabel}>Loan Type</Text>
+                                <View style={styles.typeSelector}>
+                                    <TouchableOpacity
+                                        style={[styles.typeBtn, loanType === 'Standard' && styles.typeBtnActive]}
+                                        onPress={() => setLoanType('Standard')}
+                                    >
+                                        <Text style={[styles.typeBtnText, loanType === 'Standard' && styles.typeBtnTextActive]}>Standard</Text>
+                                        {loanType === 'Standard' && <Text style={styles.interestNote}>10% Interest</Text>}
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[styles.typeBtn, loanType === 'Dharura' && styles.typeBtnActive]}
+                                        onPress={() => setLoanType('Dharura')}
+                                    >
+                                        <Text style={[styles.typeBtnText, loanType === 'Dharura' && styles.typeBtnTextActive]}>Dharura</Text>
+                                        {loanType === 'Dharura' && <Text style={styles.interestNote}>No Interest</Text>}
+                                    </TouchableOpacity>
+                                </View>
+
+                                <Text style={styles.inputLabel}>Amount (TZS)</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Enter amount"
+                                    keyboardType="numeric"
+                                    value={amount}
+                                    onChangeText={setAmount}
+                                />
+
+                                <Text style={styles.inputLabel}>Purpose/Description <Text style={{ color: '#EF4444' }}>*</Text></Text>
+                                <TextInput
+                                    style={[styles.input, styles.textArea]}
+                                    placeholder="Why do you need this loan? (Required)"
+                                    multiline
+                                    numberOfLines={3}
+                                    value={description}
+                                    onChangeText={setDescription}
+                                />
+
                                 <TouchableOpacity
-                                    style={[styles.typeBtn, loanType === 'Standard' && styles.typeBtnActive]}
-                                    onPress={() => setLoanType('Standard')}
+                                    style={styles.submitBtn}
+                                    onPress={handleSubmitRequest}
+                                    disabled={submitting}
                                 >
-                                    <Text style={[styles.typeBtnText, loanType === 'Standard' && styles.typeBtnTextActive]}>Standard</Text>
-                                    {loanType === 'Standard' && <Text style={styles.interestNote}>10% Interest</Text>}
+                                    {submitting ? (
+                                        <ActivityIndicator color="white" />
+                                    ) : (
+                                        <Text style={styles.submitBtnText}>Submit Request</Text>
+                                    )}
                                 </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[styles.typeBtn, loanType === 'Dharura' && styles.typeBtnActive]}
-                                    onPress={() => setLoanType('Dharura')}
-                                >
-                                    <Text style={[styles.typeBtnText, loanType === 'Dharura' && styles.typeBtnTextActive]}>Dharura</Text>
-                                    {loanType === 'Dharura' && <Text style={styles.interestNote}>No Interest</Text>}
-                                </TouchableOpacity>
-                            </View>
-
-                            <Text style={styles.inputLabel}>Amount (TZS)</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Enter amount"
-                                keyboardType="numeric"
-                                value={amount}
-                                onChangeText={setAmount}
-                            />
-
-                            <Text style={styles.inputLabel}>Purpose/Description</Text>
-                            <TextInput
-                                style={[styles.input, styles.textArea]}
-                                placeholder="Why do you need this loan?"
-                                multiline
-                                numberOfLines={3}
-                                value={description}
-                                onChangeText={setDescription}
-                            />
-
-                            <TouchableOpacity
-                                style={styles.submitBtn}
-                                onPress={handleSubmitRequest}
-                                disabled={submitting}
-                            >
-                                {submitting ? (
-                                    <ActivityIndicator color="white" />
-                                ) : (
-                                    <Text style={styles.submitBtnText}>Submit Request</Text>
-                                )}
-                            </TouchableOpacity>
-                        </ScrollView>
+                            </ScrollView>
+                        </KeyboardAvoidingView>
                     </View>
                 </View>
             </Modal>
@@ -488,22 +526,26 @@ export default function LoansScreen() {
                                 <Ionicons name="close" size={24} color="#64748B" />
                             </TouchableOpacity>
                         </View>
-                        <View style={styles.modalBody}>
-                            <Text style={styles.inputLabel}>Reason for Rejection</Text>
-                            <TextInput
-                                style={[styles.input, styles.textArea]}
-                                placeholder="Enter reason..."
-                                multiline
-                                value={reason}
-                                onChangeText={setReason}
-                            />
-                            <TouchableOpacity
-                                style={[styles.submitBtn, { backgroundColor: '#EF4444' }]}
-                                onPress={() => selectedRequest && handleVote(selectedRequest.id!, 'rejected')}
-                            >
-                                <Text style={styles.submitBtnText}>Confirm Rejection</Text>
-                            </TouchableOpacity>
-                        </View>
+                        <KeyboardAvoidingView
+                            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        >
+                            <View style={styles.modalBody}>
+                                <Text style={styles.inputLabel}>Reason for Rejection</Text>
+                                <TextInput
+                                    style={[styles.input, styles.textArea]}
+                                    placeholder="Enter reason..."
+                                    multiline
+                                    value={reason}
+                                    onChangeText={setReason}
+                                />
+                                <TouchableOpacity
+                                    style={[styles.submitBtn, { backgroundColor: '#EF4444' }]}
+                                    onPress={() => selectedRequest && handleVote(selectedRequest.id!, 'rejected')}
+                                >
+                                    <Text style={styles.submitBtnText}>Confirm Rejection</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </KeyboardAvoidingView>
                     </View>
                 </View>
             </Modal>
@@ -610,6 +652,22 @@ const styles = StyleSheet.create({
     },
     cardBody: {
         gap: 12,
+    },
+    collapsedCardBody: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingBottom: 8,
+    },
+    compactRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    compactLabel: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#64748B',
     },
     row: {
         flexDirection: 'row',

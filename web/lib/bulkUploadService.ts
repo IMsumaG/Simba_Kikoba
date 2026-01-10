@@ -22,6 +22,16 @@ export interface BulkUploadValidationResult {
     validRows: BulkUploadRow[];
     invalidRows: { row: BulkUploadRow; errors: string[] }[];
     duplicateRows: BulkUploadRow[];
+    // Totals for preview and logging
+    totalAffectedUsers: number;
+    totals: {
+        hisaAmount: number;
+        jamiiAmount: number;
+        standardRepayAmount: number;
+        dharuraRepayAmount: number;
+        standardLoanAmount: number;
+        dharuraLoanAmount: number;
+    };
 }
 
 export interface BulkUploadProcessResult {
@@ -116,7 +126,16 @@ export const bulkUploadService = {
             warnings: [],
             validRows: [],
             invalidRows: [],
-            duplicateRows: []
+            duplicateRows: [],
+            totalAffectedUsers: 0,
+            totals: {
+                hisaAmount: 0,
+                jamiiAmount: 0,
+                standardRepayAmount: 0,
+                dharuraRepayAmount: 0,
+                standardLoanAmount: 0,
+                dharuraLoanAmount: 0
+            }
         };
 
         if (!rows || rows.length === 0) {
@@ -258,6 +277,14 @@ export const bulkUploadService = {
                         result.warnings.push(`Row ${rowNumber}: Duplicate entry for ${memberId} removed`);
                     } else {
                         result.validRows.push(cleanRow);
+                        
+                        // Add to totals
+                        result.totals.hisaAmount += hisaAmount;
+                        result.totals.jamiiAmount += jamiiAmount;
+                        result.totals.standardRepayAmount += standardRepay;
+                        result.totals.dharuraRepayAmount += dharuraRepay;
+                        result.totals.standardLoanAmount += standardLoan;
+                        result.totals.dharuraLoanAmount += dharuraLoan;
                     }
                 }
             }
@@ -284,6 +311,10 @@ export const bulkUploadService = {
             result.isValid = false;
             result.errors.push("No valid rows found to process");
         }
+
+        // Calculate total affected users (unique member IDs in valid rows)
+        const affectedMemberIds = new Set(result.validRows.map(row => row.memberId));
+        result.totalAffectedUsers = affectedMemberIds.size;
 
         return result;
     },

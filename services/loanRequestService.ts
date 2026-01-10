@@ -148,11 +148,20 @@ export const loanRequestService = {
             const adminSnap = await getDoc(doc(db, 'users', adminUid));
             if (adminSnap.exists()) {
                 const adminProfile = { uid: adminUid, ...adminSnap.data() } as any;
+                
+                // Get the affected member's details
+                const memberSnap = await getDoc(doc(db, 'users', request.memberId));
+                const memberProfile = memberSnap.exists() ? memberSnap.data() as any : null;
+                const memberMemberId = memberProfile?.memberId || request.requesterMemberId || '';
+                
                 await activityLogger.logLoanVoted(
                     adminUid,
                     adminProfile,
                     requestId,
                     request.memberName,
+                    request.memberId,
+                    memberMemberId,
+                    request.type,
                     decision,
                     reason
                 );

@@ -1,12 +1,12 @@
 import {
-  addDoc,
-  collection,
-  getDocs,
-  limit,
-  orderBy,
-  query,
-  Timestamp,
-  where,
+    addDoc,
+    collection,
+    getDocs,
+    limit,
+    orderBy,
+    query,
+    Timestamp,
+    where,
 } from 'firebase/firestore';
 import { ActivityLog, ActivityLogFilter, ActivityStats } from '../types/ActivityLog';
 import { db } from './firebase';
@@ -30,8 +30,16 @@ class ActivityLoggerService {
   async logActivity(activity: Omit<ActivityLog, 'id' | 'createdAt' | 'createdAtISO'>): Promise<string> {
     try {
       const now = new Date();
+      // Remove undefined fields to prevent Firestore errors
+      const cleanActivity = Object.entries(activity).reduce((acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = value;
+        }
+        return acc;
+      }, {} as any);
+
       const docRef = await addDoc(collection(db, this.collectionName), {
-        ...activity,
+        ...cleanActivity,
         createdAt: Timestamp.now(),
         createdAtISO: now.toISOString(),
       });
@@ -49,6 +57,47 @@ class ActivityLoggerService {
     userId: string,
     user: UserProfile,
     transaction: any,
+    groupCode: string,
+    memberIdCustom?: string
+  ): Promise<string> {
+    return this.logActivity({
+      activityType: 'transaction_created',
+      userId,
+      userEmail: user.email,
+      userName: user.displayName || 'Unknown',
+      userRole: user.role,
+      adminMemberId: user.memberId,
+      entityType: 'transaction',
+      entityId: transaction.id || 'pending',
+      entityName: transaction.memberName || 'Unknown',
+      description: `Created ${transaction.type} transaction of ${transaction.amount} TSh (${transaction.category}) for ${transaction.memberName}`,
+      changes: {
+        after: transaction,
+      },
+      metadata: {
+        transactionAmount: transaction.amount,
+        transactionType: transaction.type,
+        subTransactionType: transaction.category,
+        affectedMembers: [transaction.memberId],
+      },
+      affectedMemberId: memberIdCustom,
+      status: 'success',
+      groupCode,
+      transactionId: transaction.id,
+    });
+  }
+
+  /**
+   * Log single-entry transaction (manual entry by admin)
+   */
+  async logManualTransaction(
+    userId: string,
+    user: UserProfile,
+    memberName: string,
+    memberId: string,
+    memberIdCustom: string,
+    transactionType: string,
+    amount: number,
     groupCode: string
   ): Promise<string> {
     return this.logActivity({
@@ -57,21 +106,27 @@ class ActivityLoggerService {
       userEmail: user.email,
       userName: user.displayName || 'Unknown',
       userRole: user.role,
+      adminMemberId: user.memberId,
       entityType: 'transaction',
-      entityId: transaction.id || 'pending',
-      entityName: `${transaction.type} - ${transaction.category}`,
-      description: `Created ${transaction.type} transaction of ${transaction.amount} TSh (${transaction.category})`,
+      entityId: 'manual-' + Date.now(),
+      entityName: memberName,
+      description: `Recorded ${transactionType} of ${amount} TSh for ${memberName}`,
       changes: {
-        after: transaction,
+        after: {
+          transactionType,
+          amount,
+          memberName,
+          memberIdCustom,
+        },
       },
       metadata: {
-        transactionAmount: transaction.amount,
-        transactionType: transaction.type,
-        affectedMembers: [transaction.memberId],
+        transactionAmount: amount,
+        transactionType: transactionType,
+        affectedMembers: [memberId],
       },
+      affectedMemberId: memberIdCustom,
       status: 'success',
       groupCode,
-      transactionId: transaction.id,
     });
   }
 
@@ -253,6 +308,9 @@ class ActivityLoggerService {
     user: UserProfile,
     requestId: string,
     memberName: string,
+    memberId: string,
+    memberIdCustom: string,
+    loanType: string,
     action: 'approved' | 'rejected',
     reason?: string,
     groupCode?: string
@@ -264,16 +322,20 @@ class ActivityLoggerService {
       userEmail: user.email,
       userName: user.displayName || 'Unknown',
       userRole: user.role,
+      adminMemberId: user.memberId,
       entityType: 'loan',
       entityId: requestId,
       entityName: memberName,
-      description: `${action === 'approved' ? 'Approved' : 'Rejected'} loan request for ${memberName}${reason ? `. Reason: ${reason}` : ''}`,
+      description: `${action === 'approved' ? 'Approved' : 'Rejected'} ${loanType} loan for ${memberName}${reason ? `. Reason: ${reason}` : ''}`,
       changes: {
-        after: { status: action === 'approved' ? 'Approved' : 'Rejected', reason },
+        after: { status: action === 'approved' ? 'Approved' : 'Rejected', reason: reason || '' },
       },
       metadata: {
-        affectedMembers: [memberName],
+        affectedMembers: [memberId],
+        loanType: loanType,
       },
+      affectedMemberId: memberIdCustom,
+      reason: reason,
       status: 'success',
       groupCode: groupCode || user.groupCode || 'DEFAULT',
     });
@@ -287,22 +349,41 @@ class ActivityLoggerService {
     user: UserProfile,
     rowCount: number,
     status: 'success' | 'failed',
-    groupCode?: string
+    groupCode?: string,
+    bulkTotals?: {
+      totalAffectedUsers: number;
+      hisaAmount: number;
+      jamiiAmount: number;
+      standardRepayAmount: number;
+      dharuraRepayAmount: number;
+      standardLoanAmount: number;
+      dharuraLoanAmount: number;
+    }
   ): Promise<string> {
     return this.logActivity({
-      activityType: 'transaction_created', // Using an existing type or we can add 'bulk_upload' to the type if needed
+      activityType: 'transaction_created',
       userId,
       userEmail: user.email,
       userName: user.displayName || 'Unknown',
       userRole: user.role,
+      adminMemberId: user.memberId,
       entityType: 'transaction',
       entityId: 'bulk-' + Date.now(),
-      description: `Performed bulk upload of ${rowCount} transactions`,
+      description: `Performed bulk upload of ${rowCount} transactions affecting ${bulkTotals?.totalAffectedUsers || 0} members`,
       changes: {
         after: { rowCount },
       },
       metadata: {
-        transactionAmount: rowCount, // repurposed
+        transactionAmount: rowCount,
+        bulkUpload: true,
+        detailTransactionType: 'Bulk Upload Transaction',
+        bulkTotalAffectedUsers: bulkTotals?.totalAffectedUsers || 0,
+        bulkHisaAmount: bulkTotals?.hisaAmount || 0,
+        bulkJamiiAmount: bulkTotals?.jamiiAmount || 0,
+        bulkStandardRepayAmount: bulkTotals?.standardRepayAmount || 0,
+        bulkDharuraRepayAmount: bulkTotals?.dharuraRepayAmount || 0,
+        bulkStandardLoanAmount: bulkTotals?.standardLoanAmount || 0,
+        bulkDharuraLoanAmount: bulkTotals?.dharuraLoanAmount || 0,
       },
       status,
       groupCode: groupCode || user.groupCode || 'DEFAULT',
@@ -345,7 +426,12 @@ class ActivityLoggerService {
   async getActivityLogs(filter: ActivityLogFilter & { groupCode: string }): Promise<ActivityLog[]> {
     try {
       // Build constraints array - order matters: where clauses first, then orderBy, then limit
-      const constraints: any[] = [where('groupCode', '==', filter.groupCode)];
+      const constraints: any[] = [];
+
+      // Only filter by groupCode if it's not 'ALL'
+      if (filter.groupCode !== 'ALL') {
+        constraints.push(where('groupCode', '==', filter.groupCode));
+      }
 
       if (filter.userId) {
         constraints.push(where('userId', '==', filter.userId));

@@ -7,14 +7,14 @@ import {
     ChevronLeft,
     ChevronRight,
     LayoutDashboard,
-    LogOut,
     Mail,
     PlusCircle,
+    Settings,
     Shield,
     Users
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { auth, db } from "../lib/firebase";
 
@@ -25,6 +25,7 @@ interface SidebarProps {
 
 export default function Sidebar({ isMinimized, setIsMinimized }: SidebarProps) {
     const pathname = usePathname();
+    const router = useRouter();
     const [role, setRole] = useState<string | null>(null);
 
     useEffect(() => {
@@ -52,8 +53,8 @@ export default function Sidebar({ isMinimized, setIsMinimized }: SidebarProps) {
         menuItems.push({ name: "Audit Logs", href: "/audit-logs", icon: Shield });
     }
 
-    const handleLogout = () => {
-        auth.signOut();
+    const handleSettings = () => {
+        router.push('/settings');
     };
 
     return (
@@ -124,20 +125,26 @@ export default function Sidebar({ isMinimized, setIsMinimized }: SidebarProps) {
 
             <div style={{ padding: '12px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                 <button
-                    onClick={handleLogout}
+                    onClick={handleSettings}
                     style={{
                         display: 'flex',
                         alignItems: 'center',
                         width: '100%',
                         padding: '14px 16px',
                         borderRadius: '12px',
-                        color: '#F43F5E',
+                        color: '#94A3B8',
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
                         justifyContent: isMinimized ? 'center' : 'flex-start',
-                        transition: 'all 0.2s'
+                        transition: 'all 0.2s',
+                        borderRadius: '12px'
                     }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
-                    <LogOut size={20} style={{ marginRight: isMinimized ? 0 : '12px' }} />
-                    {!isMinimized && <span style={{ fontWeight: '600', fontSize: '14px' }}>Logout</span>}
+                    <Settings size={20} style={{ marginRight: isMinimized ? 0 : '12px' }} />
+                    {!isMinimized && <span style={{ fontWeight: '600', fontSize: '14px' }}>Settings</span>}
                 </button>
             </div>
         </div>

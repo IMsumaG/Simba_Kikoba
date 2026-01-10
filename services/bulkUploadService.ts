@@ -86,7 +86,16 @@ export const bulkUploadService = {
             warnings: [],
             validRows: [],
             invalidRows: [],
-            duplicateRows: []
+            duplicateRows: [],
+            totalAffectedUsers: 0,
+            totals: {
+                hisaAmount: 0,
+                jamiiAmount: 0,
+                standardRepayAmount: 0,
+                dharuraRepayAmount: 0,
+                standardLoanAmount: 0,
+                dharuraLoanAmount: 0
+            }
         };
 
         if (!rows || rows.length === 0) {
@@ -228,6 +237,13 @@ export const bulkUploadService = {
                         result.warnings.push(`Row ${rowNumber}: Duplicate entry for ${memberId} removed`);
                     } else {
                         result.validRows.push(cleanRow);
+                        // Add to totals
+                        result.totals.hisaAmount += cleanRow.hisaAmount;
+                        result.totals.jamiiAmount += cleanRow.jamiiAmount;
+                        result.totals.standardRepayAmount += cleanRow.standardRepayAmount || 0;
+                        result.totals.dharuraRepayAmount += cleanRow.dharuraRepayAmount || 0;
+                        result.totals.standardLoanAmount += cleanRow.standardLoanAmount || 0;
+                        result.totals.dharuraLoanAmount += cleanRow.dharuraLoanAmount || 0;
                     }
                 }
             }
@@ -253,6 +269,10 @@ export const bulkUploadService = {
         if (result.validRows.length === 0) {
             result.isValid = false;
             result.errors.push("No valid rows found to process");
+        } else {
+            // Calculate unique affected users
+            const uniqueMemberIds = new Set(result.validRows.map(row => row.memberId));
+            result.totalAffectedUsers = uniqueMemberIds.size;
         }
 
         return result;
@@ -261,7 +281,15 @@ export const bulkUploadService = {
     /**
      * Process validated rows into transactions
      */
-    async processBulkTransactions(rows: BulkUploadRow[], createdBy: string): Promise<BulkUploadProcessResult> {
+    async processBulkTransactions(rows: BulkUploadRow[], createdBy: string, bulkTotals?: {
+        totalAffectedUsers: number;
+        hisaAmount: number;
+        jamiiAmount: number;
+        standardRepayAmount: number;
+        dharuraRepayAmount: number;
+        standardLoanAmount: number;
+        dharuraLoanAmount: number;
+    }): Promise<BulkUploadProcessResult> {
         const result: BulkUploadProcessResult = {
             success: true,
             totalRows: rows.length,
@@ -410,7 +438,9 @@ export const bulkUploadService = {
                     createdBy,
                     adminProfile,
                     result.successCount,
-                    result.successCount > 0 ? 'success' : 'failed'
+                    result.successCount > 0 ? 'success' : 'failed',
+                    adminProfile.groupCode,
+                    bulkTotals
                 );
             }
         } catch (logError) {

@@ -20,8 +20,16 @@ class ActivityLoggerService {
     async logActivity(activity: Omit<ActivityLog, 'id' | 'createdAt' | 'createdAtISO'>): Promise<string> {
         try {
             const now = new Date();
+            // Remove undefined fields to prevent Firestore errors
+            const cleanActivity = Object.entries(activity).reduce((acc, [key, value]) => {
+                if (value !== undefined) {
+                    acc[key] = value;
+                }
+                return acc;
+            }, {} as any);
+
             const docRef = await addDoc(collection(db, this.collectionName), {
-                ...activity,
+                ...cleanActivity,
                 createdAt: Timestamp.now(),
                 createdAtISO: now.toISOString(),
             });
@@ -36,17 +44,18 @@ class ActivityLoggerService {
         userId: string,
         userName: string,
         transaction: any,
-        groupCode: string
+        groupCode: string,
+        memberIdCustom?: string
     ): Promise<string> {
         return this.logActivity({
             activityType: 'transaction_created',
             userId,
-            userEmail: '', // Optional in this context or fetch if available
+            userEmail: '',
             userName: userName || 'Unknown',
             userRole: 'Admin',
             entityType: 'transaction',
             entityId: transaction.id || 'pending',
-            entityName: `${transaction.type} - ${transaction.category}`,
+            entityName: transaction.memberName || 'Unknown',
             description: `Created ${transaction.type} transaction of ${transaction.amount} TSh (${transaction.category}) for ${transaction.memberName}`,
             changes: {
                 after: transaction,
@@ -54,8 +63,10 @@ class ActivityLoggerService {
             metadata: {
                 transactionAmount: transaction.amount,
                 transactionType: transaction.type,
+                subTransactionType: transaction.category,
                 affectedMembers: [transaction.memberId],
             },
+            affectedMemberId: memberIdCustom,
             status: 'success',
             groupCode,
             transactionId: transaction.id,
@@ -67,6 +78,9 @@ class ActivityLoggerService {
         userName: string,
         requestId: string,
         memberName: string,
+        memberId: string,
+        memberIdCustom: string,
+        loanType: string,
         action: 'approved' | 'rejected',
         reason?: string,
         groupCode?: string
@@ -81,13 +95,16 @@ class ActivityLoggerService {
             entityType: 'loan',
             entityId: requestId,
             entityName: memberName,
-            description: `${action === 'approved' ? 'Approved' : 'Rejected'} loan request for ${memberName}${reason ? `. Reason: ${reason}` : ''}`,
+            description: `${action === 'approved' ? 'Approved' : 'Rejected'} ${loanType} loan request for ${memberName}${reason ? `. Reason: ${reason}` : ''}`,
             changes: {
                 after: { status: action === 'approved' ? 'Approved' : 'Rejected', reason },
             },
             metadata: {
-                affectedMembers: [memberName],
+                affectedMembers: [memberId],
+                loanType: loanType,
             },
+            affectedMemberId: memberIdCustom,
+            reason: reason,
             status: 'success',
             groupCode: groupCode || 'DEFAULT',
         });
@@ -98,7 +115,16 @@ class ActivityLoggerService {
         userName: string,
         rowCount: number,
         status: 'success' | 'failed',
-        groupCode?: string
+        groupCode?: string,
+        bulkTotals?: {
+            totalAffectedUsers: number;
+            hisaAmount: number;
+            jamiiAmount: number;
+            standardRepayAmount: number;
+            dharuraRepayAmount: number;
+            standardLoanAmount: number;
+            dharuraLoanAmount: number;
+        }
     ): Promise<string> {
         return this.logActivity({
             activityType: 'transaction_created',
@@ -108,12 +134,21 @@ class ActivityLoggerService {
             userRole: 'Admin',
             entityType: 'transaction',
             entityId: 'bulk-' + Date.now(),
-            description: `Performed bulk upload of ${rowCount} transactions`,
+            description: `Performed bulk upload of ${rowCount} transactions affecting ${bulkTotals?.totalAffectedUsers || 0} members`,
             changes: {
                 after: { rowCount },
             },
             metadata: {
                 transactionAmount: rowCount,
+                bulkUpload: true,
+                detailTransactionType: 'Bulk Upload Transaction',
+                bulkTotalAffectedUsers: bulkTotals?.totalAffectedUsers || 0,
+                bulkHisaAmount: bulkTotals?.hisaAmount || 0,
+                bulkJamiiAmount: bulkTotals?.jamiiAmount || 0,
+                bulkStandardRepayAmount: bulkTotals?.standardRepayAmount || 0,
+                bulkDharuraRepayAmount: bulkTotals?.dharuraRepayAmount || 0,
+                bulkStandardLoanAmount: bulkTotals?.standardLoanAmount || 0,
+                bulkDharuraLoanAmount: bulkTotals?.dharuraLoanAmount || 0,
             },
             status,
             groupCode: groupCode || 'DEFAULT',

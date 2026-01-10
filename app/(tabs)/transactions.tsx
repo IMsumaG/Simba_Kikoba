@@ -4,7 +4,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Alert, FlatList, Modal, ScrollView, StatusBar, StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Modal, Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as XLSX from 'xlsx';
 import { SkeletonLoader } from '../../components/SkeletonLoader';
@@ -17,7 +17,7 @@ import { BulkUploadValidationResult } from '../../types';
 
 export default function TransactionsScreen() {
     const { t } = useTranslation();
-    const { user: currentUser, role } = useAuth();
+    const { user: currentUser, role, userProfile } = useAuth();
     const isAdmin = role === 'Admin';
 
     const [amount, setAmount] = useState('');
@@ -120,7 +120,16 @@ export default function TransactionsScreen() {
         try {
             const result = await bulkUploadService.processBulkTransactions(
                 bulkValidation.validRows,
-                currentUser!.uid
+                currentUser!.uid,
+                {
+                    totalAffectedUsers: bulkValidation.totalAffectedUsers,
+                    hisaAmount: bulkValidation.totals.hisaAmount,
+                    jamiiAmount: bulkValidation.totals.jamiiAmount,
+                    standardRepayAmount: bulkValidation.totals.standardRepayAmount,
+                    dharuraRepayAmount: bulkValidation.totals.dharuraRepayAmount,
+                    standardLoanAmount: bulkValidation.totals.standardLoanAmount,
+                    dharuraLoanAmount: bulkValidation.totals.dharuraLoanAmount,
+                }
             );
 
             setShowBulkPreview(false);
@@ -184,7 +193,7 @@ export default function TransactionsScreen() {
             await transactionService.addTransaction({
                 type,
                 amount: finalAmount, // Total amount with interest for Standard loans
-                originalAmount: type === 'Loan' ? originalAmount : undefined,
+                originalAmount: type === 'Loan' ? originalAmount : null,
                 memberId: isAdmin ? selectedMember!.uid : currentUser!.uid,
                 memberName: isAdmin ? selectedMember!.displayName : (currentUser?.displayName || 'Self'),
                 category: type === 'Contribution' ? category : (type === 'Loan' ? category : category),
@@ -192,7 +201,7 @@ export default function TransactionsScreen() {
                 date: new Date().toISOString(),
                 createdBy: currentUser!.uid,
                 status: 'Completed'
-            });
+            }, userProfile!, userProfile?.groupCode || 'DEFAULT');
 
             Alert.alert(t('common.success'), t('transactions.success'));
             setAmount('');
@@ -212,234 +221,241 @@ export default function TransactionsScreen() {
     return (
         <SafeAreaView style={styles.container as ViewStyle}>
             <StatusBar barStyle="dark-content" />
-            <ScrollView
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.flex1 as ViewStyle}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.scrollContent as ViewStyle}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
             >
-                <Text style={styles.title as TextStyle}>{t('transactions.title')}</Text>
+                <ScrollView
+                    style={styles.flex1 as ViewStyle}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.scrollContent as ViewStyle}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    <Text style={styles.title as TextStyle}>{t('transactions.title')}</Text>
 
-                <View style={styles.form as ViewStyle}>
-                    {/* Bulk Upload Button (Admin Only) */}
-                    {isAdmin && (
-                        <View style={{ marginBottom: 20 }}>
-                            <TouchableOpacity style={styles.bulkUploadBtn as ViewStyle} onPress={handleBulkUpload}>
-                                <Ionicons name="document-text-outline" size={20} color="white" />
-                                <Text style={styles.bulkUploadText as TextStyle}>Bulk Upload (Excel)</Text>
-                            </TouchableOpacity>
+                    <View style={styles.form as ViewStyle}>
+                        {/* Bulk Upload Button (Admin Only) */}
+                        {isAdmin && (
+                            <View style={{ marginBottom: 20 }}>
+                                <TouchableOpacity style={styles.bulkUploadBtn as ViewStyle} onPress={handleBulkUpload}>
+                                    <Ionicons name="document-text-outline" size={20} color="white" />
+                                    <Text style={styles.bulkUploadText as TextStyle}>Bulk Upload (Excel)</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[
+                                        styles.bulkUploadBtn as ViewStyle,
+                                        { marginTop: 10, backgroundColor: '#E0F2FE', borderWidth: 1, borderColor: '#BAE6FD' }
+                                    ]}
+                                    onPress={handleDownloadTemplate}
+                                >
+                                    <Ionicons name="download-outline" size={20} color="#0284C7" />
+                                    <Text style={[styles.bulkUploadText as TextStyle, { color: '#0284C7' }]}>Download Template</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+
+                        {/* Member Selection (Admin Only) */}
+                        <View style={styles.inputGroup as ViewStyle}>
+                            <Text style={styles.label as TextStyle}>
+                                {t('transactions.member')}
+                            </Text>
                             <TouchableOpacity
-                                style={[
-                                    styles.bulkUploadBtn as ViewStyle,
-                                    { marginTop: 10, backgroundColor: '#E0F2FE', borderWidth: 1, borderColor: '#BAE6FD' }
-                                ]}
-                                onPress={handleDownloadTemplate}
+                                style={styles.selectMemberBtn as ViewStyle}
+                                onPress={() => isAdmin ? setShowMemberModal(true) : null}
+                                disabled={!isAdmin}
                             >
-                                <Ionicons name="download-outline" size={20} color="#0284C7" />
-                                <Text style={[styles.bulkUploadText as TextStyle, { color: '#0284C7' }]}>Download Template</Text>
+                                <View style={styles.iconContainer as ViewStyle}>
+                                    <Ionicons name="person-outline" size={20} color={Colors.primary} />
+                                </View>
+                                <Text style={styles.memberText as TextStyle}>
+                                    {isAdmin
+                                        ? (selectedMember?.displayName || t('transactions.selectMember'))
+                                        : (currentUser?.displayName || t('common.member'))
+                                    }
+                                </Text>
+                                {isAdmin && <Ionicons name="chevron-down" size={20} color="#94A3B8" />}
                             </TouchableOpacity>
                         </View>
-                    )}
 
-                    {/* Member Selection (Admin Only) */}
-                    <View style={styles.inputGroup as ViewStyle}>
-                        <Text style={styles.label as TextStyle}>
-                            {t('transactions.member')}
-                        </Text>
-                        <TouchableOpacity
-                            style={styles.selectMemberBtn as ViewStyle}
-                            onPress={() => isAdmin ? setShowMemberModal(true) : null}
-                            disabled={!isAdmin}
-                        >
-                            <View style={styles.iconContainer as ViewStyle}>
-                                <Ionicons name="person-outline" size={20} color={Colors.primary} />
-                            </View>
-                            <Text style={styles.memberText as TextStyle}>
-                                {isAdmin
-                                    ? (selectedMember?.displayName || t('transactions.selectMember'))
-                                    : (currentUser?.displayName || t('common.member'))
-                                }
+                        {/* Transaction Type */}
+                        <View style={styles.inputGroup as ViewStyle}>
+                            <Text style={styles.label as TextStyle}>
+                                {t('transactions.type')}
                             </Text>
-                            {isAdmin && <Ionicons name="chevron-down" size={20} color="#94A3B8" />}
+                            <View style={styles.typeGrid as ViewStyle}>
+                                {(['Contribution', 'Loan', 'Loan Repayment'] as const).map((row) => {
+                                    const isRepay = row === 'Loan Repayment';
+                                    const isDisabled = isRepay && memberLoanBalance <= 0;
+
+                                    return (
+                                        <TouchableOpacity
+                                            key={row}
+                                            onPress={() => {
+                                                if (!isDisabled) {
+                                                    setType(row);
+                                                    if (row === 'Contribution') setCategory('Hisa');
+                                                    if (row === 'Loan') setCategory('Standard');
+                                                }
+                                            }}
+                                            disabled={isDisabled}
+                                            style={[
+                                                styles.typeCard as ViewStyle,
+                                                type === row ? (styles.typeCardActive as ViewStyle) : (styles.typeCardInactive as ViewStyle),
+                                                isDisabled && { opacity: 0.3 }
+                                            ]}
+                                        >
+                                            <Text style={[
+                                                styles.typeText as TextStyle,
+                                                type === row ? (styles.typeTextActive as TextStyle) : (styles.typeTextInactive as TextStyle)
+                                            ]}>
+                                                {isRepay ? t('transactions.repay') : (row === 'Contribution' ? t('transactions.contribution') : t('transactions.loan'))}
+                                            </Text>
+                                            {isDisabled && (
+                                                <Text style={{ fontSize: 8, color: '#94A3B8', marginTop: 2, textAlign: 'center' }}>{t('transactions.noLoan')}</Text>
+                                            )}
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+
+                            {/* Sub-Category Selection */}
+                            {type !== 'Loan Repayment' && (
+                                <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+                                    {type === 'Contribution' ? (
+                                        <>
+                                            <TouchableOpacity
+                                                onPress={() => setCategory('Hisa')}
+                                                style={[styles.subTypeBtn, category === 'Hisa' ? styles.subTypeBtnActive : styles.subTypeBtnInactive]}
+                                            >
+                                                <Text style={[styles.subTypeText, category === 'Hisa' ? { color: 'white' } : { color: '#64748B' }, { textAlign: 'center' }]}>{t('dashboard.hisa')}</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                onPress={() => setCategory('Jamii')}
+                                                style={[styles.subTypeBtn, category === 'Jamii' ? styles.subTypeBtnActive : styles.subTypeBtnInactive]}
+                                            >
+                                                <Text style={[styles.subTypeText, category === 'Jamii' ? { color: 'white' } : { color: '#64748B' }, { textAlign: 'center' }]}>{t('dashboard.jamii')}</Text>
+                                            </TouchableOpacity>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <TouchableOpacity
+                                                onPress={() => setCategory('Standard')}
+                                                style={[styles.subTypeBtn, category === 'Standard' ? styles.subTypeBtnActiveRed : styles.subTypeBtnInactive]}
+                                            >
+                                                <Text style={[styles.subTypeText, category === 'Standard' ? { color: 'white' } : { color: '#64748B' }, { textAlign: 'center' }]}>{t('dashboard.standard')}</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                onPress={() => setCategory('Dharura')}
+                                                style={[styles.subTypeBtn, category === 'Dharura' ? styles.subTypeBtnActiveRed : styles.subTypeBtnInactive]}
+                                            >
+                                                <Text style={[styles.subTypeText, category === 'Dharura' ? { color: 'white' } : { color: '#64748B' }, { textAlign: 'center' }]}>{t('dashboard.dharura')}</Text>
+                                            </TouchableOpacity>
+                                        </>
+                                    )}
+                                </View>
+                            )}
+
+                            {/* Loan Repayment Category Selection */}
+                            {type === 'Loan Repayment' && (
+                                <View style={{ marginTop: 16 }}>
+                                    <Text style={styles.label as TextStyle}>{t('transactions.repaymentCategory')}</Text>
+                                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
+                                        {(['Standard', 'Dharura'] as const).map((cat) => {
+                                            const hasBalance = loanBalanceByCategory[cat] > 0;
+                                            return (
+                                                <TouchableOpacity
+                                                    key={cat}
+                                                    onPress={() => {
+                                                        if (hasBalance) {
+                                                            setCategory(cat);
+                                                        }
+                                                    }}
+                                                    disabled={!hasBalance}
+                                                    style={[
+                                                        styles.subTypeBtn,
+                                                        hasBalance ? (category === cat ? styles.subTypeBtnActiveRed : styles.subTypeBtnInactive) : styles.subTypeBtnDisabled,
+                                                        !hasBalance && { opacity: 0.4 }
+                                                    ]}
+                                                >
+                                                    <View>
+                                                        <Text style={[styles.subTypeText, category === cat && hasBalance ? { color: 'white' } : { color: '#64748B' }, { textAlign: 'center' }]}>
+                                                            {cat === 'Standard' ? t('dashboard.standard') : t('dashboard.dharura')}
+                                                        </Text>
+                                                        <Text style={{ fontSize: 12, color: hasBalance ? '#10B981' : '#EF4444', marginTop: 4, textAlign: 'center' }}>
+                                                            {t('transactions.balance')}: {loanBalanceByCategory[cat].toFixed(2)}
+                                                        </Text>
+                                                    </View>
+                                                </TouchableOpacity>
+                                            );
+                                        })}
+                                    </View>
+                                </View>
+                            )}
+                        </View>
+
+                        {/* Amount */}
+                        <View style={styles.inputGroup as ViewStyle}>
+                            <Text style={styles.label as TextStyle}>
+                                {t('transactions.amount')} (TSh)
+                            </Text>
+                            <View style={styles.amountInputContainer as ViewStyle}>
+                                <View style={styles.amountIconContainer as ViewStyle}>
+                                    <Ionicons name="cash-outline" size={20} color="white" />
+                                </View>
+                                <TextInput
+                                    style={styles.amountInput as TextStyle}
+                                    placeholder="0.00"
+                                    placeholderTextColor="#CBD5E1"
+                                    keyboardType="numeric"
+                                    value={amount}
+                                    onChangeText={setAmount}
+                                />
+                            </View>
+
+                            {/* Interest Preview for Standard Loans (Re-enabled) */}
+                            {type === 'Loan' && category === 'Standard' && amount && !isNaN(Number(amount)) && Number(amount) > 0 && (
+                                <View style={styles.interestPreview as ViewStyle}>
+                                    <View style={styles.interestRow}>
+                                        <Text style={styles.interestLabel}>Principal:</Text>
+                                        <Text style={styles.interestValue}>
+                                            {Number(amount).toLocaleString()} TZS
+                                        </Text>
+                                    </View>
+                                    <View style={styles.interestRow}>
+                                        <Text style={styles.interestLabel}>Interest (10%):</Text>
+                                        <Text style={styles.interestValue}>
+                                            {(Number(amount) * 0.1).toLocaleString()} TZS
+                                        </Text>
+                                    </View>
+                                    <View style={{ height: 1, backgroundColor: '#FFEDD5', marginVertical: 8 }} />
+                                    <View style={styles.interestRow}>
+                                        <Text style={[styles.interestLabel, { fontWeight: '700', color: '#EA580C', fontSize: 14 }]}>Total:</Text>
+                                        <Text style={[styles.interestValue, { fontWeight: '700', color: '#EA580C', fontSize: 16 }]}>
+                                            {(Number(amount) * 1.1).toLocaleString()} TZS
+                                        </Text>
+                                    </View>
+                                </View>
+                            )}
+                        </View>
+
+                        <TouchableOpacity
+                            style={styles.saveBtn as ViewStyle}
+                            onPress={handleSave}
+                            disabled={loading}
+                        >
+                            {loading ? (
+                                <ActivityIndicator color="white" />
+                            ) : (
+                                <>
+                                    <Text style={styles.saveBtnText as TextStyle}>{t('transactions.submit')}</Text>
+                                    <Ionicons name="checkmark-circle" size={24} color="white" />
+                                </>
+                            )}
                         </TouchableOpacity>
                     </View>
-
-                    {/* Transaction Type */}
-                    <View style={styles.inputGroup as ViewStyle}>
-                        <Text style={styles.label as TextStyle}>
-                            {t('transactions.type')}
-                        </Text>
-                        <View style={styles.typeGrid as ViewStyle}>
-                            {(['Contribution', 'Loan', 'Loan Repayment'] as const).map((row) => {
-                                const isRepay = row === 'Loan Repayment';
-                                const isDisabled = isRepay && memberLoanBalance <= 0;
-
-                                return (
-                                    <TouchableOpacity
-                                        key={row}
-                                        onPress={() => {
-                                            if (!isDisabled) {
-                                                setType(row);
-                                                if (row === 'Contribution') setCategory('Hisa');
-                                                if (row === 'Loan') setCategory('Standard');
-                                            }
-                                        }}
-                                        disabled={isDisabled}
-                                        style={[
-                                            styles.typeCard as ViewStyle,
-                                            type === row ? (styles.typeCardActive as ViewStyle) : (styles.typeCardInactive as ViewStyle),
-                                            isDisabled && { opacity: 0.3 }
-                                        ]}
-                                    >
-                                        <Text style={[
-                                            styles.typeText as TextStyle,
-                                            type === row ? (styles.typeTextActive as TextStyle) : (styles.typeTextInactive as TextStyle)
-                                        ]}>
-                                            {isRepay ? t('transactions.repay') : (row === 'Contribution' ? t('transactions.contribution') : t('transactions.loan'))}
-                                        </Text>
-                                        {isDisabled && (
-                                            <Text style={{ fontSize: 8, color: '#94A3B8', marginTop: 2, textAlign: 'center' }}>{t('transactions.noLoan')}</Text>
-                                        )}
-                                    </TouchableOpacity>
-                                );
-                            })}
-                        </View>
-
-                        {/* Sub-Category Selection */}
-                        {type !== 'Loan Repayment' && (
-                            <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                                {type === 'Contribution' ? (
-                                    <>
-                                        <TouchableOpacity
-                                            onPress={() => setCategory('Hisa')}
-                                            style={[styles.subTypeBtn, category === 'Hisa' ? styles.subTypeBtnActive : styles.subTypeBtnInactive]}
-                                        >
-                                            <Text style={[styles.subTypeText, category === 'Hisa' ? { color: 'white' } : { color: '#64748B' }, { textAlign: 'center' }]}>{t('dashboard.hisa')}</Text>
-                                        </TouchableOpacity>
-                                        <TouchableOpacity
-                                            onPress={() => setCategory('Jamii')}
-                                            style={[styles.subTypeBtn, category === 'Jamii' ? styles.subTypeBtnActive : styles.subTypeBtnInactive]}
-                                        >
-                                            <Text style={[styles.subTypeText, category === 'Jamii' ? { color: 'white' } : { color: '#64748B' }, { textAlign: 'center' }]}>{t('dashboard.jamii')}</Text>
-                                        </TouchableOpacity>
-                                    </>
-                                ) : (
-                                    <>
-                                        <TouchableOpacity
-                                            onPress={() => setCategory('Standard')}
-                                            style={[styles.subTypeBtn, category === 'Standard' ? styles.subTypeBtnActiveRed : styles.subTypeBtnInactive]}
-                                        >
-                                            <Text style={[styles.subTypeText, category === 'Standard' ? { color: 'white' } : { color: '#64748B' }, { textAlign: 'center' }]}>{t('dashboard.standard')}</Text>
-                                        </TouchableOpacity>
-                                        <TouchableOpacity
-                                            onPress={() => setCategory('Dharura')}
-                                            style={[styles.subTypeBtn, category === 'Dharura' ? styles.subTypeBtnActiveRed : styles.subTypeBtnInactive]}
-                                        >
-                                            <Text style={[styles.subTypeText, category === 'Dharura' ? { color: 'white' } : { color: '#64748B' }, { textAlign: 'center' }]}>{t('dashboard.dharura')}</Text>
-                                        </TouchableOpacity>
-                                    </>
-                                )}
-                            </View>
-                        )}
-
-                        {/* Loan Repayment Category Selection */}
-                        {type === 'Loan Repayment' && (
-                            <View style={{ marginTop: 16 }}>
-                                <Text style={styles.label as TextStyle}>{t('transactions.repaymentCategory')}</Text>
-                                <View style={{ flexDirection: 'row', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
-                                    {(['Standard', 'Dharura'] as const).map((cat) => {
-                                        const hasBalance = loanBalanceByCategory[cat] > 0;
-                                        return (
-                                            <TouchableOpacity
-                                                key={cat}
-                                                onPress={() => {
-                                                    if (hasBalance) {
-                                                        setCategory(cat);
-                                                    }
-                                                }}
-                                                disabled={!hasBalance}
-                                                style={[
-                                                    styles.subTypeBtn,
-                                                    hasBalance ? (category === cat ? styles.subTypeBtnActiveRed : styles.subTypeBtnInactive) : styles.subTypeBtnDisabled,
-                                                    !hasBalance && { opacity: 0.4 }
-                                                ]}
-                                            >
-                                                <View>
-                                                    <Text style={[styles.subTypeText, category === cat && hasBalance ? { color: 'white' } : { color: '#64748B' }, { textAlign: 'center' }]}>
-                                                        {cat === 'Standard' ? t('dashboard.standard') : t('dashboard.dharura')}
-                                                    </Text>
-                                                    <Text style={{ fontSize: 12, color: hasBalance ? '#10B981' : '#EF4444', marginTop: 4, textAlign: 'center' }}>
-                                                        {t('transactions.balance')}: {loanBalanceByCategory[cat].toFixed(2)}
-                                                    </Text>
-                                                </View>
-                                            </TouchableOpacity>
-                                        );
-                                    })}
-                                </View>
-                            </View>
-                        )}
-                    </View>
-
-                    {/* Amount */}
-                    <View style={styles.inputGroup as ViewStyle}>
-                        <Text style={styles.label as TextStyle}>
-                            {t('transactions.amount')} (TSh)
-                        </Text>
-                        <View style={styles.amountInputContainer as ViewStyle}>
-                            <View style={styles.amountIconContainer as ViewStyle}>
-                                <Ionicons name="cash-outline" size={20} color="white" />
-                            </View>
-                            <TextInput
-                                style={styles.amountInput as TextStyle}
-                                placeholder="0.00"
-                                placeholderTextColor="#CBD5E1"
-                                keyboardType="numeric"
-                                value={amount}
-                                onChangeText={setAmount}
-                            />
-                        </View>
-
-                        {/* Interest Preview for Standard Loans (Re-enabled) */}
-                        {type === 'Loan' && category === 'Standard' && amount && !isNaN(Number(amount)) && Number(amount) > 0 && (
-                            <View style={styles.interestPreview as ViewStyle}>
-                                <View style={styles.interestRow}>
-                                    <Text style={styles.interestLabel}>Principal:</Text>
-                                    <Text style={styles.interestValue}>
-                                        {Number(amount).toLocaleString()} TZS
-                                    </Text>
-                                </View>
-                                <View style={styles.interestRow}>
-                                    <Text style={styles.interestLabel}>Interest (10%):</Text>
-                                    <Text style={styles.interestValue}>
-                                        {(Number(amount) * 0.1).toLocaleString()} TZS
-                                    </Text>
-                                </View>
-                                <View style={{ height: 1, backgroundColor: '#FFEDD5', marginVertical: 8 }} />
-                                <View style={styles.interestRow}>
-                                    <Text style={[styles.interestLabel, { fontWeight: '700', color: '#EA580C', fontSize: 14 }]}>Total:</Text>
-                                    <Text style={[styles.interestValue, { fontWeight: '700', color: '#EA580C', fontSize: 16 }]}>
-                                        {(Number(amount) * 1.1).toLocaleString()} TZS
-                                    </Text>
-                                </View>
-                            </View>
-                        )}
-                    </View>
-
-                    <TouchableOpacity
-                        style={styles.saveBtn as ViewStyle}
-                        onPress={handleSave}
-                        disabled={loading}
-                    >
-                        {loading ? (
-                            <ActivityIndicator color="white" />
-                        ) : (
-                            <>
-                                <Text style={styles.saveBtnText as TextStyle}>{t('transactions.submit')}</Text>
-                                <Ionicons name="checkmark-circle" size={24} color="white" />
-                            </>
-                        )}
-                    </TouchableOpacity>
-                </View>
-            </ScrollView>
+                </ScrollView>
+            </KeyboardAvoidingView>
 
             {/* Member Selection Modal */}
             <Modal visible={showMemberModal} animationType="slide">
@@ -514,18 +530,83 @@ export default function TransactionsScreen() {
                         </View>
 
                         <ScrollView>
-                            <View style={styles.statRow as ViewStyle}>
-                                <Text style={styles.statLabel as TextStyle}>Valid Transactions:</Text>
-                                <Text style={[styles.statValue as TextStyle, { color: '#10B981' }]}>{bulkValidation?.validRows.length || 0}</Text>
+                            {/* Summary Stats */}
+                            <View style={styles.previewSection as ViewStyle}>
+                                <Text style={styles.sectionTitle as TextStyle}>Summary</Text>
+                                <View style={styles.statRow as ViewStyle}>
+                                    <Text style={styles.statLabel as TextStyle}>Valid Transactions:</Text>
+                                    <Text style={[styles.statValue as TextStyle, { color: '#10B981' }]}>{bulkValidation?.validRows.length || 0}</Text>
+                                </View>
+                                <View style={styles.statRow as ViewStyle}>
+                                    <Text style={styles.statLabel as TextStyle}>Users Affected:</Text>
+                                    <Text style={[styles.statValue as TextStyle, { color: '#0EA5E9' }]}>{bulkValidation?.totalAffectedUsers || 0}</Text>
+                                </View>
+                                <View style={styles.statRow as ViewStyle}>
+                                    <Text style={styles.statLabel as TextStyle}>Duplicates (Skipped):</Text>
+                                    <Text style={[styles.statValue as TextStyle, { color: '#F59E0B' }]}>{bulkValidation?.duplicateRows.length || 0}</Text>
+                                </View>
+                                <View style={styles.statRow as ViewStyle}>
+                                    <Text style={styles.statLabel as TextStyle}>Invalid Rows:</Text>
+                                    <Text style={[styles.statValue as TextStyle, { color: '#EF4444' }]}>{bulkValidation?.invalidRows.length || 0}</Text>
+                                </View>
                             </View>
-                            <View style={styles.statRow as ViewStyle}>
-                                <Text style={styles.statLabel as TextStyle}>Duplicates (Skipped):</Text>
-                                <Text style={[styles.statValue as TextStyle, { color: '#F59E0B' }]}>{bulkValidation?.duplicateRows.length || 0}</Text>
-                            </View>
-                            <View style={styles.statRow as ViewStyle}>
-                                <Text style={styles.statLabel as TextStyle}>Invalid Rows:</Text>
-                                <Text style={[styles.statValue as TextStyle, { color: '#EF4444' }]}>{bulkValidation?.invalidRows.length || 0}</Text>
-                            </View>
+
+                            {/* Transaction Totals */}
+                            {bulkValidation?.validRows.length ? (
+                                <View style={styles.previewSection as ViewStyle}>
+                                    <Text style={styles.sectionTitle as TextStyle}>Transaction Breakdown</Text>
+                                    <View style={styles.totalsGrid as ViewStyle}>
+                                        {(bulkValidation?.totals.hisaAmount || 0) > 0 && (
+                                            <View style={[styles.totalBox as ViewStyle, { backgroundColor: '#F0FDF4', borderLeftColor: '#10B981' }]}>
+                                                <Text style={styles.totalLabel as TextStyle}>Hisa (Shares)</Text>
+                                                <Text style={[styles.totalAmount as TextStyle, { color: '#10B981' }]}>
+                                                    TSH {(bulkValidation?.totals.hisaAmount || 0).toLocaleString()}
+                                                </Text>
+                                            </View>
+                                        )}
+                                        {(bulkValidation?.totals.jamiiAmount || 0) > 0 && (
+                                            <View style={[styles.totalBox as ViewStyle, { backgroundColor: '#F0FDF4', borderLeftColor: '#10B981' }]}>
+                                                <Text style={styles.totalLabel as TextStyle}>Jamii</Text>
+                                                <Text style={[styles.totalAmount as TextStyle, { color: '#10B981' }]}>
+                                                    TSH {(bulkValidation?.totals.jamiiAmount || 0).toLocaleString()}
+                                                </Text>
+                                            </View>
+                                        )}
+                                        {(bulkValidation?.totals.standardLoanAmount || 0) > 0 && (
+                                            <View style={[styles.totalBox as ViewStyle, { backgroundColor: '#FEF2F2', borderLeftColor: '#EF4444' }]}>
+                                                <Text style={styles.totalLabel as TextStyle}>Standard Loan</Text>
+                                                <Text style={[styles.totalAmount as TextStyle, { color: '#EF4444' }]}>
+                                                    TSH {(bulkValidation?.totals.standardLoanAmount || 0).toLocaleString()}
+                                                </Text>
+                                            </View>
+                                        )}
+                                        {(bulkValidation?.totals.dharuraLoanAmount || 0) > 0 && (
+                                            <View style={[styles.totalBox as ViewStyle, { backgroundColor: '#FEF2F2', borderLeftColor: '#EF4444' }]}>
+                                                <Text style={styles.totalLabel as TextStyle}>Dharura Loan</Text>
+                                                <Text style={[styles.totalAmount as TextStyle, { color: '#EF4444' }]}>
+                                                    TSH {(bulkValidation?.totals.dharuraLoanAmount || 0).toLocaleString()}
+                                                </Text>
+                                            </View>
+                                        )}
+                                        {(bulkValidation?.totals.standardRepayAmount || 0) > 0 && (
+                                            <View style={[styles.totalBox as ViewStyle, { backgroundColor: '#FEF3C7', borderLeftColor: '#F59E0B' }]}>
+                                                <Text style={styles.totalLabel as TextStyle}>Standard Repay</Text>
+                                                <Text style={[styles.totalAmount as TextStyle, { color: '#F59E0B' }]}>
+                                                    TSH {(bulkValidation?.totals.standardRepayAmount || 0).toLocaleString()}
+                                                </Text>
+                                            </View>
+                                        )}
+                                        {(bulkValidation?.totals.dharuraRepayAmount || 0) > 0 && (
+                                            <View style={[styles.totalBox as ViewStyle, { backgroundColor: '#FEF3C7', borderLeftColor: '#F59E0B' }]}>
+                                                <Text style={styles.totalLabel as TextStyle}>Dharura Repay</Text>
+                                                <Text style={[styles.totalAmount as TextStyle, { color: '#F59E0B' }]}>
+                                                    TSH {(bulkValidation?.totals.dharuraRepayAmount || 0).toLocaleString()}
+                                                </Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                </View>
+                            ) : null}
 
                             {bulkValidation?.errors && bulkValidation.errors.length > 0 && (
                                 <View style={styles.warningBox as ViewStyle}>
@@ -896,6 +977,41 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: 'bold',
         color: '#0F172A',
+    },
+    previewSection: {
+        marginBottom: 20,
+        paddingBottom: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9',
+    },
+    sectionTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#1E293B',
+        marginBottom: 12,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    totalsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 10,
+    },
+    totalBox: {
+        flex: 1,
+        minWidth: '48%',
+        padding: 12,
+        borderRadius: 8,
+        borderLeftWidth: 3,
+    },
+    totalLabel: {
+        fontSize: 12,
+        color: '#64748B',
+        marginBottom: 6,
+    },
+    totalAmount: {
+        fontSize: 14,
+        fontWeight: '700',
     },
     warningBox: {
         backgroundColor: '#FEF2F2',

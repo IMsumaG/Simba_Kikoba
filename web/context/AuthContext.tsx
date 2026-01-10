@@ -8,18 +8,21 @@ import { auth, db } from "../lib/firebase";
 interface AuthContextType {
     user: User | null;
     role: string | null;
+    groupCode: string | null;
     loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
     user: null,
     role: null,
+    groupCode: null,
     loading: true,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [role, setRole] = useState<string | null>(null);
+    const [groupCode, setGroupCode] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -30,7 +33,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 try {
                     const userDoc = await getDoc(doc(db, "users", currentUser.uid));
                     if (userDoc.exists()) {
-                        setRole(userDoc.data().role || "Member");
+                        const data = userDoc.data();
+                        setRole(data.role || "Member");
+                        setGroupCode(data.groupCode || "DEFAULT");
                     }
                 } catch (error) {
                     console.error("Error fetching user role:", error);
@@ -39,6 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             } else {
                 setUser(null);
                 setRole(null);
+                setGroupCode(null);
                 setLoading(false);
             }
         });
@@ -47,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     return (
-        <AuthContext.Provider value={{ user, role, loading }}>
+        <AuthContext.Provider value={{ user, role, groupCode, loading }}>
             {children}
         </AuthContext.Provider>
     );

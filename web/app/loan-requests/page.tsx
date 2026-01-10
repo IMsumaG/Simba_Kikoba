@@ -183,14 +183,29 @@ export default function LoanRequestsPage() {
             try {
                 const adminDoc = await getDoc(doc(db, 'users', user.uid));
                 const adminName = adminDoc.exists() ? adminDoc.data().displayName : user.displayName;
+                
+                // Fetch affected member's custom member ID
+                let memberIdCustom = 'N/A';
+                try {
+                    const memberDoc = await getDoc(doc(db, 'users', request.memberId));
+                    if (memberDoc.exists() && memberDoc.data().memberId) {
+                        memberIdCustom = memberDoc.data().memberId;
+                    }
+                } catch (e) {
+                    console.warn('Failed to fetch member ID:', e);
+                }
+                
                 await activityLogger.logLoanVoted(
                     user.uid,
                     adminName,
                     requestId,
                     request.memberName,
+                    request.memberId,
+                    memberIdCustom,
+                    request.type || 'Standard',
                     decision,
                     reason,
-                    'DEFAULT' // Web groupCode or fetch from adminDoc
+                    'DEFAULT'
                 );
             } catch (logError) {
                 console.warn("Failed to log activity:", logError);

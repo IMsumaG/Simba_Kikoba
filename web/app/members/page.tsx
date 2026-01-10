@@ -37,7 +37,9 @@ export default function MembersPage() {
     const [memberStats, setMemberStats] = useState({
         balance: 0,
         loanBalance: 0,
-        totalContributions: 0
+        totalContributions: 0,
+        contributionsByCategory: { Hisa: 0, Jamii: 0, Standard: 0, Dharura: 0 },
+        loansByCategory: { Hisa: 0, Jamii: 0, Standard: 0, Dharura: 0 }
     });
     const [loadingStats, setLoadingStats] = useState(false);
 
@@ -67,20 +69,39 @@ export default function MembersPage() {
             let balance = 0;
             let loanBalance = 0;
             let contributions = 0;
+            let contribsByCategory = { Hisa: 0, Jamii: 0, Standard: 0, Dharura: 0 };
+            let loansByCat = { Hisa: 0, Jamii: 0, Standard: 0, Dharura: 0 };
 
             snapshot.forEach(doc => {
                 const data = doc.data();
+                const cat = data.category as keyof typeof contribsByCategory;
+
                 if (data.type === 'Contribution') {
                     balance += data.amount;
                     contributions += data.amount;
+                    if (cat && contribsByCategory[cat] !== undefined) {
+                        contribsByCategory[cat] += data.amount;
+                    }
                 } else if (data.type === 'Loan') {
                     loanBalance += data.amount;
+                    if (cat && loansByCat[cat] !== undefined) {
+                        loansByCat[cat] += data.amount;
+                    }
                 } else if (data.type === 'Loan Repayment') {
                     loanBalance -= data.amount;
+                    if (cat && loansByCat[cat] !== undefined) {
+                        loansByCat[cat] -= data.amount;
+                    }
                 }
             });
 
-            setMemberStats({ balance, loanBalance, totalContributions: contributions });
+            setMemberStats({
+                balance,
+                loanBalance,
+                totalContributions: contributions,
+                contributionsByCategory: contribsByCategory,
+                loansByCategory: loansByCat
+            });
         } catch (e) {
             console.error(e);
         } finally {
@@ -339,22 +360,51 @@ export default function MembersPage() {
 
                         <div style={{ padding: '2rem' }}>
                             {/* Key Stats */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
                                 <div style={{ padding: '1.25rem', backgroundColor: '#F0F9FF', borderRadius: '1rem', border: '1px solid #E0F2FE' }}>
                                     <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#0369A1', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                        <Wallet size={14} /> SAVINGS
+                                        <Wallet size={14} /> TOTAL SAVINGS
                                     </p>
                                     <p style={{ fontSize: '1.25rem', fontWeight: '900', color: '#0C4A6E' }}>
-                                        {loadingStats ? '...' : `${memberStats.balance.toLocaleString()} TZS`}
+                                        {loadingStats ? '...' : `${memberStats.totalContributions.toLocaleString()} TZS`}
                                     </p>
                                 </div>
                                 <div style={{ padding: '1.25rem', backgroundColor: '#FEF2F2', borderRadius: '1rem', border: '1px solid #FEE2E2' }}>
                                     <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#B91C1C', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                        <CreditCard size={14} /> LOAN DEBT
+                                        <CreditCard size={14} /> TOTAL DEBT
                                     </p>
                                     <p style={{ fontSize: '1.25rem', fontWeight: '900', color: '#7F1D1D' }}>
                                         {loadingStats ? '...' : `${memberStats.loanBalance.toLocaleString()} TZS`}
                                     </p>
+                                </div>
+                            </div>
+
+                            {/* Detailed Breakdown */}
+                            <div style={{ marginBottom: '1.5rem' }}>
+                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.025em', marginBottom: '0.75rem' }}>Contributions by Category</p>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                    <div style={{ padding: '0.75rem 1rem', backgroundColor: '#F8FAFC', borderRadius: '0.75rem', border: '1px solid #F1F5F9' }}>
+                                        <p style={{ fontSize: '0.65rem', fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase' }}>Hisa</p>
+                                        <p style={{ fontSize: '0.925rem', fontWeight: '800', color: '#1E293B' }}>{loadingStats ? '...' : memberStats.contributionsByCategory.Hisa.toLocaleString()} TZS</p>
+                                    </div>
+                                    <div style={{ padding: '0.75rem 1rem', backgroundColor: '#F8FAFC', borderRadius: '0.75rem', border: '1px solid #F1F5F9' }}>
+                                        <p style={{ fontSize: '0.65rem', fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase' }}>Jamii</p>
+                                        <p style={{ fontSize: '0.925rem', fontWeight: '800', color: '#1E293B' }}>{loadingStats ? '...' : memberStats.contributionsByCategory.Jamii.toLocaleString()} TZS</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style={{ marginBottom: '2rem' }}>
+                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.025em', marginBottom: '0.75rem' }}>Loans by Category</p>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                    <div style={{ padding: '0.75rem 1rem', backgroundColor: '#F8FAFC', borderRadius: '0.75rem', border: '1px solid #F1F5F9' }}>
+                                        <p style={{ fontSize: '0.65rem', fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase' }}>Standard</p>
+                                        <p style={{ fontSize: '0.925rem', fontWeight: '800', color: '#1E293B' }}>{loadingStats ? '...' : memberStats.loansByCategory.Standard.toLocaleString()} TZS</p>
+                                    </div>
+                                    <div style={{ padding: '0.75rem 1rem', backgroundColor: '#F8FAFC', borderRadius: '0.75rem', border: '1px solid #F1F5F9' }}>
+                                        <p style={{ fontSize: '0.65rem', fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase' }}>Dharura</p>
+                                        <p style={{ fontSize: '0.925rem', fontWeight: '800', color: '#1E293B' }}>{loadingStats ? '...' : memberStats.loansByCategory.Dharura.toLocaleString()} TZS</p>
+                                    </div>
                                 </div>
                             </div>
 
