@@ -102,6 +102,11 @@ export default function LoanRequestsPage() {
             return;
         }
 
+        if (!description || description.trim().length < 5) {
+            alert("Please provide a more detailed purpose for this loan (at least 5 characters)");
+            return;
+        }
+
         try {
             setSubmitting(true);
 
@@ -183,7 +188,7 @@ export default function LoanRequestsPage() {
             try {
                 const adminDoc = await getDoc(doc(db, 'users', user.uid));
                 const adminName = adminDoc.exists() ? adminDoc.data().displayName : user.displayName;
-                
+
                 // Fetch affected member's custom member ID
                 let memberIdCustom = 'N/A';
                 try {
@@ -194,7 +199,7 @@ export default function LoanRequestsPage() {
                 } catch (e) {
                     console.warn('Failed to fetch member ID:', e);
                 }
-                
+
                 await activityLogger.logLoanVoted(
                     user.uid,
                     adminName,
@@ -216,7 +221,7 @@ export default function LoanRequestsPage() {
                 await addDoc(collection(db, 'transactions'), {
                     memberId: request.memberId,
                     memberName: request.memberName,
-                    amount: request.type === 'Standard' ? request.amount * 1.1 : request.amount,
+                    amount: request.type === 'Standard' ? Math.round(request.amount * 1.1) : request.amount,
                     originalAmount: request.amount,
                     type: 'Loan',
                     category: request.type,
@@ -267,8 +272,8 @@ export default function LoanRequestsPage() {
                 {/* Header Section */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                     <div>
-                        <h1 style={{ fontSize: '2rem', fontWeight: '900', color: '#0F172A' }}>Loan Management</h1>
-                        <p style={{ color: '#64748B' }}>Submit and track your loan requests</p>
+                        <h1 style={{ fontSize: '2rem', fontWeight: '900', color: 'var(--text-primary)' }}>Loan Management</h1>
+                        <p style={{ color: 'var(--text-secondary)' }}>Submit and track your loan requests</p>
                     </div>
                     <button
                         onClick={() => setShowModal(true)}
@@ -295,26 +300,26 @@ export default function LoanRequestsPage() {
                 <div className="card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                         <div>
-                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748B', marginBottom: '0.5rem' }}>Search Member</label>
+                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Search Member</label>
                             <div style={{ position: 'relative' }}>
-                                <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                                <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
                                 <input
                                     type="text"
                                     placeholder="Name or ID..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.25rem', borderRadius: '0.5rem', border: '1px solid #E2E8F0', outline: 'none' }}
+                                    style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.25rem', borderRadius: '0.5rem', border: '1px solid var(--border)', backgroundColor: 'var(--background-muted)', color: 'var(--text-primary)', outline: 'none' }}
                                 />
                             </div>
                         </div>
                         <div>
-                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748B', marginBottom: '0.5rem' }}>Status</label>
+                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Status</label>
                             <div style={{ position: 'relative' }}>
-                                <Filter size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                                <Filter size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
                                 <select
                                     value={statusFilter}
                                     onChange={(e) => setStatusFilter(e.target.value)}
-                                    style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.25rem', borderRadius: '0.5rem', border: '1px solid #E2E8F0', outline: 'none', backgroundColor: 'white' }}
+                                    style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.25rem', borderRadius: '0.5rem', border: '1px solid var(--border)', outline: 'none', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}
                                 >
                                     <option value="All">All Statuses</option>
                                     <option value="Pending">Pending</option>
@@ -324,26 +329,26 @@ export default function LoanRequestsPage() {
                             </div>
                         </div>
                         <div>
-                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748B', marginBottom: '0.5rem' }}>From Date</label>
+                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>From Date</label>
                             <div style={{ position: 'relative' }}>
-                                <Calendar size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                                <Calendar size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
                                 <input
                                     type="date"
                                     value={startDate}
                                     onChange={(e) => setStartDate(e.target.value)}
-                                    style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.25rem', borderRadius: '0.5rem', border: '1px solid #E2E8F0', outline: 'none' }}
+                                    style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.25rem', borderRadius: '0.5rem', border: '1px solid var(--border)', outline: 'none', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}
                                 />
                             </div>
                         </div>
                         <div>
-                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748B', marginBottom: '0.5rem' }}>To Date</label>
+                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>To Date</label>
                             <div style={{ position: 'relative' }}>
-                                <Calendar size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                                <Calendar size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
                                 <input
                                     type="date"
                                     value={endDate}
                                     onChange={(e) => setEndDate(e.target.value)}
-                                    style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.25rem', borderRadius: '0.5rem', border: '1px solid #E2E8F0', outline: 'none' }}
+                                    style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.25rem', borderRadius: '0.5rem', border: '1px solid var(--border)', outline: 'none', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}
                                 />
                             </div>
                         </div>
@@ -354,12 +359,12 @@ export default function LoanRequestsPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
                     <div className="card" style={{ padding: '1.5rem', borderLeft: '4px solid #F59E0B' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <div style={{ padding: '0.75rem', backgroundColor: '#FEF3C7', color: '#F59E0B', borderRadius: '0.75rem' }}>
+                            <div style={{ padding: '0.75rem', backgroundColor: 'rgba(245, 158, 11, 0.1)', color: '#F59E0B', borderRadius: '0.75rem' }}>
                                 <Clock size={24} />
                             </div>
                             <div>
-                                <p style={{ fontSize: '0.875rem', color: '#64748B' }}>Pending Approval</p>
-                                <h3 style={{ fontSize: '1.5rem', fontWeight: '900' }}>
+                                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Pending Approval</p>
+                                <h3 style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--text-primary)' }}>
                                     {requests.filter(r => r.status === 'Pending').length}
                                 </h3>
                             </div>
@@ -367,12 +372,12 @@ export default function LoanRequestsPage() {
                     </div>
                     <div className="card" style={{ padding: '1.5rem', borderLeft: '4px solid #10B981' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <div style={{ padding: '0.75rem', backgroundColor: '#D1FAE5', color: '#10B981', borderRadius: '0.75rem' }}>
+                            <div style={{ padding: '0.75rem', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10B981', borderRadius: '0.75rem' }}>
                                 <CheckCircle2 size={24} />
                             </div>
                             <div>
-                                <p style={{ fontSize: '0.875rem', color: '#64748B' }}>Total Approved</p>
-                                <h3 style={{ fontSize: '1.5rem', fontWeight: '900' }}>
+                                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Total Approved</p>
+                                <h3 style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--text-primary)' }}>
                                     {requests.filter(r => r.status === 'Approved').length}
                                 </h3>
                             </div>
@@ -382,23 +387,23 @@ export default function LoanRequestsPage() {
 
                 {/* Requests List */}
                 <div className="card" style={{ overflow: 'hidden' }}>
-                    <div style={{ padding: '1.5rem', borderBottom: '1px solid #F1F5F9' }}>
-                        <h2 style={{ fontSize: '1.25rem', fontWeight: '800' }}>Request History</h2>
+                    <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>
+                        <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--text-primary)' }}>Request History</h2>
                     </div>
 
                     {loading ? (
                         <div style={{ padding: '4rem', textAlign: 'center' }}>
-                            <div className="animate-spin" style={{ margin: '0 auto', width: '2rem', height: '2rem', border: '3px solid #F1F5F9', borderTopColor: '#F57C00', borderRadius: '50%' }}></div>
+                            <div className="animate-spin" style={{ margin: '0 auto', width: '2rem', height: '2rem', border: '3px solid var(--background-muted)', borderTopColor: '#F57C00', borderRadius: '50%' }}></div>
                         </div>
                     ) : filteredRequests.length === 0 ? (
-                        <div style={{ padding: '4rem', textAlign: 'center', color: '#94A3B8' }}>
+                        <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
                             <Wallet size={48} style={{ margin: '0 auto 1rem', opacity: 0.2 }} />
                             <p>No loan requests matching your filters.</p>
                         </div>
                     ) : (
                         <div style={{ overflowX: 'auto' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                                <thead style={{ backgroundColor: '#F8FAFC', fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748B' }}>
+                                <thead style={{ backgroundColor: 'var(--background-muted)', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
                                     <tr>
                                         <th style={{ padding: '1rem 1.5rem' }}>Member</th>
                                         <th style={{ padding: '1rem 1.5rem' }}>Type</th>
@@ -420,18 +425,18 @@ export default function LoanRequestsPage() {
                                                 <tr
                                                     onClick={() => setExpandedRequestId(isExpanded ? null : request.id!)}
                                                     style={{
-                                                        borderBottom: isExpanded ? 'none' : '1px solid #F1F5F9',
+                                                        borderBottom: isExpanded ? 'none' : '1px solid var(--border)',
                                                         cursor: 'pointer',
-                                                        backgroundColor: isExpanded ? '#F8FAFC' : 'transparent',
+                                                        backgroundColor: isExpanded ? 'var(--background-muted)' : 'transparent',
                                                         transition: 'background-color 0.2s'
                                                     }}
                                                 >
                                                     <td style={{ padding: '1rem 1.5rem' }}>
-                                                        <div style={{ fontWeight: '700' }}>{request.memberName}</div>
-                                                        <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{new Date(request.requestedDate).toLocaleDateString()}</div>
+                                                        <div style={{ fontWeight: '700', color: 'var(--text-primary)' }}>{request.memberName}</div>
+                                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-disabled)' }}>{new Date(request.requestedDate).toLocaleDateString()}</div>
                                                     </td>
                                                     <td style={{ padding: '1rem 1.5rem' }}>
-                                                        <span style={{ padding: '0.25rem 0.75rem', borderRadius: '1rem', backgroundColor: '#F1F5F9', fontWeight: '600', fontSize: '0.75rem' }}>
+                                                        <span style={{ padding: '0.25rem 0.75rem', borderRadius: '1rem', backgroundColor: 'var(--background-muted)', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '0.75rem' }}>
                                                             {request.type}
                                                         </span>
                                                     </td>
@@ -444,8 +449,8 @@ export default function LoanRequestsPage() {
                                                             borderRadius: '1rem',
                                                             fontWeight: '700',
                                                             fontSize: '0.7rem',
-                                                            backgroundColor: request.status === 'Approved' ? '#D1FAE5' : request.status === 'Rejected' ? '#FEE2E2' : '#FEF3C7',
-                                                            color: request.status === 'Approved' ? '#059669' : request.status === 'Rejected' ? '#DC2626' : '#D97706'
+                                                            backgroundColor: request.status === 'Approved' ? 'rgba(16, 185, 129, 0.1)' : request.status === 'Rejected' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 124, 0, 0.1)',
+                                                            color: request.status === 'Approved' ? '#10B981' : request.status === 'Rejected' ? '#EF4444' : '#F57C00'
                                                         }}>
                                                             {request.status}
                                                         </span>
@@ -461,7 +466,7 @@ export default function LoanRequestsPage() {
                                                                         width: '8px',
                                                                         height: '8px',
                                                                         borderRadius: '50%',
-                                                                        backgroundColor: request.approvals[aid] === 'approved' ? '#10B981' : request.approvals[aid] === 'rejected' ? '#EF4444' : '#CBD5E1'
+                                                                        backgroundColor: request.approvals[aid] === 'approved' ? '#10B981' : request.approvals[aid] === 'rejected' ? '#EF4444' : 'var(--border)'
                                                                     }}
                                                                 />
                                                             ))}
@@ -485,28 +490,28 @@ export default function LoanRequestsPage() {
                                                             </div>
                                                         ) : (
                                                             role === 'Admin' && request.status === 'Pending' && (
-                                                                <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontStyle: 'italic' }}>You {myStatus}</span>
+                                                                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>You {myStatus}</span>
                                                             )
                                                         )}
                                                     </td>
                                                 </tr>
                                                 {isExpanded && (
-                                                    <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #F1F5F9' }}>
+                                                    <tr style={{ backgroundColor: 'var(--background-muted)', borderBottom: '1px solid var(--border)' }}>
                                                         <td colSpan={6} style={{ padding: '0 1.5rem 1.5rem' }}>
-                                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', padding: '1.5rem', backgroundColor: 'white', borderRadius: '1rem', border: '1px solid #E2E8F0' }}>
+                                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', padding: '1.5rem', backgroundColor: 'var(--card-bg)', borderRadius: '1rem', border: '1px solid var(--border)' }}>
                                                                 <div>
-                                                                    <h4 style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', color: '#64748B', marginBottom: '1rem' }}>Admin Approval Track</h4>
+                                                                    <h4 style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '1rem' }}>Admin Approval Track</h4>
                                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                                                         {Object.keys(request.approvals).map(aid => (
-                                                                            <div key={aid} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.75rem', backgroundColor: '#F8FAFC', borderRadius: '0.5rem' }}>
+                                                                            <div key={aid} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.75rem', backgroundColor: 'var(--background-muted)', borderRadius: '0.5rem' }}>
                                                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                                                    {request.approvals[aid] === 'approved' ? <CheckCircle2 size={14} color="#10B981" /> : request.approvals[aid] === 'rejected' ? <XCircle size={14} color="#EF4444" /> : <Clock size={14} color="#94A3B8" />}
-                                                                                    <span style={{ fontSize: '0.85rem', fontWeight: '600' }}>{request.adminNames[aid]}</span>
+                                                                                    {request.approvals[aid] === 'approved' ? <CheckCircle2 size={14} color="#10B981" /> : request.approvals[aid] === 'rejected' ? <XCircle size={14} color="#EF4444" /> : <Clock size={14} color="var(--text-secondary)" />}
+                                                                                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-primary)' }}>{request.adminNames[aid]}</span>
                                                                                 </div>
                                                                                 <span style={{
                                                                                     fontSize: '0.7rem',
                                                                                     fontWeight: '800',
-                                                                                    color: request.approvals[aid] === 'approved' ? '#10B981' : request.approvals[aid] === 'rejected' ? '#EF4444' : '#94A3B8'
+                                                                                    color: request.approvals[aid] === 'approved' ? '#10B981' : request.approvals[aid] === 'rejected' ? '#EF4444' : 'var(--text-secondary)'
                                                                                 }}>
                                                                                     {request.approvals[aid].toUpperCase()}
                                                                                 </span>
@@ -515,16 +520,16 @@ export default function LoanRequestsPage() {
                                                                     </div>
                                                                 </div>
                                                                 <div>
-                                                                    <h4 style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', color: '#64748B', marginBottom: '1rem' }}>Request Details</h4>
-                                                                    <div style={{ backgroundColor: '#F8FAFC', padding: '1rem', borderRadius: '0.75rem' }}>
-                                                                        <p style={{ fontSize: '0.85rem', color: '#334155', fontStyle: 'italic' }}>
+                                                                    <h4 style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '1rem' }}>Request Details</h4>
+                                                                    <div style={{ backgroundColor: 'var(--background-muted)', padding: '1rem', borderRadius: '0.75rem' }}>
+                                                                        <p style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontStyle: 'italic' }}>
                                                                             "{request.description || 'No description provided'}"
                                                                         </p>
                                                                     </div>
                                                                     {request.status === 'Rejected' && request.rejectionReason && (
-                                                                        <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: '#FEF2F2', borderRadius: '0.75rem', borderLeft: '4px solid #EF4444' }}>
+                                                                        <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: 'rgba(239, 68, 68, 0.05)', borderRadius: '0.75rem', borderLeft: '4px solid #EF4444' }}>
                                                                             <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#EF4444', marginBottom: '0.25rem' }}>REJECTION REASON</p>
-                                                                            <p style={{ fontSize: '0.85rem', color: '#991B1B' }}>{request.rejectionReason}</p>
+                                                                            <p style={{ fontSize: '0.85rem', color: '#EF4444' }}>{request.rejectionReason}</p>
                                                                         </div>
                                                                     )}
                                                                 </div>
@@ -542,15 +547,15 @@ export default function LoanRequestsPage() {
 
                     {/* Pagination Controls */}
                     {filteredRequests.length > 0 && (
-                        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F8FAFC' }}>
-                            <div style={{ fontSize: '0.875rem', color: '#64748B' }}>
-                                Showing <span style={{ fontWeight: '600', color: '#0F172A' }}>{((currentPage - 1) * itemsPerPage) + 1}</span> to <span style={{ fontWeight: '600', color: '#0F172A' }}>{Math.min(currentPage * itemsPerPage, filteredRequests.length)}</span> of <span style={{ fontWeight: '600', color: '#0F172A' }}>{filteredRequests.length}</span> results
+                        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--background-muted)' }}>
+                            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                                Showing <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{((currentPage - 1) * itemsPerPage) + 1}</span> to <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{Math.min(currentPage * itemsPerPage, filteredRequests.length)}</span> of <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{filteredRequests.length}</span> results
                             </div>
                             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                                 <select
                                     value={itemsPerPage}
                                     onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                                    style={{ padding: '0.4rem 0.6rem', borderRadius: '0.4rem', border: '1px solid #E2E8F0', fontSize: '0.875rem', outline: 'none' }}
+                                    style={{ padding: '0.4rem 0.6rem', borderRadius: '0.4rem', border: '1px solid var(--border)', fontSize: '0.875rem', outline: 'none', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}
                                 >
                                     <option value={5}>5 per page</option>
                                     <option value={10}>10 per page</option>
@@ -562,7 +567,7 @@ export default function LoanRequestsPage() {
                                     <button
                                         onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                                         disabled={currentPage === 1}
-                                        style={{ padding: '0.4rem 0.75rem', borderRadius: '0.4rem', border: '1px solid #E2E8F0', backgroundColor: 'white', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontSize: '0.875rem', opacity: currentPage === 1 ? 0.5 : 1 }}
+                                        style={{ padding: '0.4rem 0.75rem', borderRadius: '0.4rem', border: '1px solid var(--border)', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontSize: '0.875rem', opacity: currentPage === 1 ? 0.5 : 1 }}
                                     >
                                         <ChevronLeft size={16} />
                                     </button>
@@ -573,9 +578,9 @@ export default function LoanRequestsPage() {
                                             style={{
                                                 padding: '0.4rem 0.75rem',
                                                 borderRadius: '0.4rem',
-                                                border: '1px solid #E2E8F0',
-                                                backgroundColor: currentPage === i + 1 ? '#F57C00' : 'white',
-                                                color: currentPage === i + 1 ? 'white' : '#0F172A',
+                                                border: currentPage === i + 1 ? '1px solid var(--primary)' : '1px solid var(--border)',
+                                                backgroundColor: currentPage === i + 1 ? 'var(--primary)' : 'var(--card-bg)',
+                                                color: currentPage === i + 1 ? 'white' : 'var(--text-secondary)',
                                                 cursor: 'pointer',
                                                 fontSize: '0.875rem'
                                             }}
@@ -586,7 +591,7 @@ export default function LoanRequestsPage() {
                                     <button
                                         onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                                         disabled={currentPage === totalPages}
-                                        style={{ padding: '0.4rem 0.75rem', borderRadius: '0.4rem', border: '1px solid #E2E8F0', backgroundColor: 'white', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', fontSize: '0.875rem', opacity: currentPage === totalPages ? 0.5 : 1 }}
+                                        style={{ padding: '0.4rem 0.75rem', borderRadius: '0.4rem', border: '1px solid var(--border)', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', fontSize: '0.875rem', opacity: currentPage === totalPages ? 0.5 : 1 }}
                                     >
                                         <ChevronRight size={16} />
                                     </button>
@@ -601,8 +606,8 @@ export default function LoanRequestsPage() {
                     <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '1rem' }}>
                         <div className="card" style={{ width: '100%', maxWidth: '500px', padding: '2rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-                                <h2 style={{ fontSize: '1.5rem', fontWeight: '900' }}>Request Loan</h2>
-                                <button onClick={() => setShowModal(false)} style={{ color: '#94A3B8', background: 'none', border: 'none', cursor: 'pointer' }}><X /></button>
+                                <h2 style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--text-primary)' }}>Request Loan</h2>
+                                <button onClick={() => setShowModal(false)} style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer' }}><X /></button>
                             </div>
 
                             <form onSubmit={handleSubmitRequest}>
@@ -614,9 +619,10 @@ export default function LoanRequestsPage() {
                                             onClick={() => setLoanType('Standard')}
                                             style={{
                                                 padding: '1rem', borderRadius: '1rem', border: '2px solid',
-                                                borderColor: loanType === 'Standard' ? '#F57C00' : '#E2E8F0',
-                                                backgroundColor: loanType === 'Standard' ? '#FFF7ED' : 'white',
-                                                cursor: 'pointer'
+                                                borderColor: loanType === 'Standard' ? '#F57C00' : 'var(--border)',
+                                                backgroundColor: loanType === 'Standard' ? 'rgba(245, 124, 0, 0.1)' : 'var(--card-bg)',
+                                                cursor: 'pointer',
+                                                color: 'var(--text-primary)'
                                             }}
                                         >
                                             <div style={{ fontWeight: '800' }}>Standard</div>
@@ -627,13 +633,14 @@ export default function LoanRequestsPage() {
                                             onClick={() => setLoanType('Dharura')}
                                             style={{
                                                 padding: '1rem', borderRadius: '1rem', border: '2px solid',
-                                                borderColor: loanType === 'Dharura' ? '#F57C00' : '#E2E8F0',
-                                                backgroundColor: loanType === 'Dharura' ? '#FFF7ED' : 'white',
-                                                cursor: 'pointer'
+                                                borderColor: loanType === 'Dharura' ? '#F57C00' : 'var(--border)',
+                                                backgroundColor: loanType === 'Dharura' ? 'rgba(245, 124, 0, 0.1)' : 'var(--card-bg)',
+                                                cursor: 'pointer',
+                                                color: 'var(--text-primary)'
                                             }}
                                         >
                                             <div style={{ fontWeight: '800' }}>Dharura</div>
-                                            <div style={{ fontSize: '0.7rem', color: '#94A3B8' }}>No Interest</div>
+                                            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>No Interest</div>
                                         </button>
                                     </div>
                                 </div>
@@ -645,34 +652,36 @@ export default function LoanRequestsPage() {
                                         value={amount}
                                         onChange={(e) => setAmount(e.target.value)}
                                         placeholder="0.00"
-                                        style={{ width: '100%', padding: '1rem', borderRadius: '1rem', border: '1px solid #E2E8F0', outline: 'none', fontSize: '1.125rem', fontWeight: '700' }}
+                                        style={{ width: '100%', padding: '1rem', borderRadius: '1rem', border: '1px solid var(--border)', outline: 'none', fontSize: '1.125rem', fontWeight: '700', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}
                                     />
                                     {loanType === 'Standard' && amount && !isNaN(Number(amount)) && (
-                                        <div style={{ marginTop: '0.5rem', padding: '0.75rem', backgroundColor: '#F8FAFC', borderRadius: '0.75rem', fontSize: '0.8rem' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B' }}>
+                                        <div style={{ marginTop: '0.5rem', padding: '0.75rem', backgroundColor: 'var(--background-muted)', borderRadius: '0.75rem', fontSize: '0.8rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
                                                 <span>Principal:</span>
-                                                <span>{Number(amount).toLocaleString()} TZS</span>
+                                                <span style={{ color: 'var(--text-primary)' }}>{Number(amount).toLocaleString()} TZS</span>
                                             </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
                                                 <span>Interest (10%):</span>
-                                                <span>{(Number(amount) * 0.1).toLocaleString()} TZS</span>
+                                                <span style={{ color: 'var(--text-primary)' }}>{Math.round(Number(amount) * 0.1).toLocaleString()} TZS</span>
                                             </div>
-                                            <div style={{ height: '1px', backgroundColor: '#E2E8F0', margin: '0.25rem 0' }}></div>
+                                            <div style={{ height: '1px', backgroundColor: 'var(--border)', margin: '0.25rem 0' }}></div>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', color: '#F57C00' }}>
                                                 <span>Total Repayment:</span>
-                                                <span>{(Number(amount) * 1.1).toLocaleString()} TZS</span>
+                                                <span>{Math.round(Number(amount) * 1.1).toLocaleString()} TZS</span>
                                             </div>
                                         </div>
                                     )}
                                 </div>
 
                                 <div style={{ marginBottom: '2rem' }}>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '700', fontSize: '0.875rem' }}>Purpose</label>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '700', fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                                        Purpose <span style={{ color: '#EF4444' }}>*</span>
+                                    </label>
                                     <textarea
                                         value={description}
                                         onChange={(e) => setDescription(e.target.value)}
                                         placeholder="Explain why you need this loan..."
-                                        style={{ width: '100%', padding: '1rem', borderRadius: '1rem', border: '1px solid #E2E8F0', outline: 'none', minHeight: '100px', resize: 'none' }}
+                                        style={{ width: '100%', padding: '1rem', borderRadius: '1rem', border: '1px solid var(--border)', outline: 'none', minHeight: '100px', resize: 'none', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}
                                     />
                                 </div>
 
@@ -697,19 +706,19 @@ export default function LoanRequestsPage() {
                     <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 110, padding: '1rem' }}>
                         <div className="card" style={{ width: '100%', maxWidth: '400px', padding: '2rem' }}>
                             <h2 style={{ fontSize: '1.25rem', fontWeight: '900', marginBottom: '1rem', color: '#EF4444' }}>Reject Loan Request</h2>
-                            <p style={{ fontSize: '0.875rem', color: '#64748B', marginBottom: '1.5rem' }}>Please provide a reason for rejecting this loan request from {selectedRequest?.memberName}.</p>
+                            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Please provide a reason for rejecting this loan request from {selectedRequest?.memberName}.</p>
 
                             <textarea
                                 value={rejectionReason}
                                 onChange={(e) => setRejectionReason(e.target.value)}
                                 placeholder="Reason for rejection..."
-                                style={{ width: '100%', padding: '1rem', borderRadius: '1rem', border: '1px solid #E2E8F0', outline: 'none', minHeight: '100px', resize: 'none', marginBottom: '1.5rem' }}
+                                style={{ width: '100%', padding: '1rem', borderRadius: '1rem', border: '1px solid var(--border)', outline: 'none', minHeight: '100px', resize: 'none', marginBottom: '1.5rem', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}
                             />
 
                             <div style={{ display: 'flex', gap: '1rem' }}>
                                 <button
                                     onClick={() => setShowRejectModal(false)}
-                                    style={{ flex: 1, padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #E2E8F0', backgroundColor: 'white', fontWeight: '700', cursor: 'pointer' }}
+                                    style={{ flex: 1, padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid var(--border)', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)', fontWeight: '700', cursor: 'pointer' }}
                                 >
                                     Cancel
                                 </button>

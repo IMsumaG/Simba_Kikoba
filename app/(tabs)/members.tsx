@@ -1,16 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, FlatList, Modal, StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SkeletonLoader } from '../../components/SkeletonLoader';
-import { Colors } from '../../constants/Colors';
+import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../services/AuthContext';
 import { memberService, UserProfile } from '../../services/memberService';
 
 export default function MembersScreen() {
     const t = useTranslation().t;
+    const { colors, theme } = useTheme();
+    const styles = createStyles(colors, theme);
     const router = useRouter();
     const { role: currentUserRole, user } = useAuth();
     const isAdmin = currentUserRole === 'Admin';
@@ -21,7 +23,7 @@ export default function MembersScreen() {
     const [selectedMember, setSelectedMember] = useState<UserProfile | null>(null);
     const [statusModalVisible, setStatusModalVisible] = useState(false);
 
-    const fetchMembers = async () => {
+    const fetchMembers = useCallback(async () => {
         if (!user) return;
         try {
             const data = await memberService.getAllUsers();
@@ -33,11 +35,11 @@ export default function MembersScreen() {
             setLoading(false);
             setRefreshing(false);
         }
-    };
+    }, [user]);
 
     useEffect(() => {
         fetchMembers();
-    }, []);
+    }, [fetchMembers]);
 
     const handleDeleteMember = (member: UserProfile) => {
         Alert.alert(
@@ -113,7 +115,7 @@ export default function MembersScreen() {
                         }}
                         style={styles.actionIconBtn as ViewStyle}
                     >
-                        <Ionicons name="create-outline" size={20} color={Colors.primary} />
+                        <Ionicons name="create-outline" size={20} color={colors.primary} />
                     </TouchableOpacity>
                     <TouchableOpacity
                         onPress={() => handleDeleteMember(item)}
@@ -131,7 +133,7 @@ export default function MembersScreen() {
             <View style={styles.header as ViewStyle}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                     <Text style={styles.title as TextStyle}>{t('members.list')}</Text>
-                    {isAdmin && (
+                    {/* {isAdmin && (
                         <TouchableOpacity
                             onPress={async () => {
                                 Alert.alert(
@@ -163,7 +165,7 @@ export default function MembersScreen() {
                                 );
                             }}
                             style={{
-                                backgroundColor: Colors.primary,
+                                backgroundColor: colors.primary,
                                 paddingHorizontal: 12,
                                 paddingVertical: 6,
                                 borderRadius: 8,
@@ -171,7 +173,7 @@ export default function MembersScreen() {
                         >
                             <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>Generate IDs</Text>
                         </TouchableOpacity>
-                    )}
+                    )} */}
                 </View>
 
                 <View style={styles.searchContainer as ViewStyle}>
@@ -241,10 +243,10 @@ export default function MembersScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any, theme: string) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: 'white',
+        backgroundColor: colors.background,
     },
     header: {
         paddingHorizontal: 24,
@@ -252,7 +254,7 @@ const styles = StyleSheet.create({
         paddingBottom: 16,
     },
     title: {
-        color: '#0F172A',
+        color: colors.text,
         fontSize: 24,
         fontWeight: 'bold',
         marginBottom: 16,
@@ -260,18 +262,18 @@ const styles = StyleSheet.create({
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.backgroundMuted,
         borderRadius: 16,
         paddingHorizontal: 16,
         paddingVertical: 12,
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: colors.border,
     },
     searchInput: {
         flex: 1,
         marginLeft: 12,
         fontSize: 16,
-        color: '#0F172A',
+        color: colors.text,
     },
     listContent: {
         paddingHorizontal: 24,
@@ -282,19 +284,19 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#F8FAFC',
+        borderBottomColor: colors.border,
     },
     avatar: {
         width: 48,
         height: 48,
         borderRadius: 24,
-        backgroundColor: 'rgba(245, 124, 0, 0.1)',
+        backgroundColor: theme === 'dark' ? 'rgba(255, 152, 0, 0.1)' : 'rgba(245, 124, 0, 0.1)',
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 16,
     },
     avatarText: {
-        color: '#F57C00',
+        color: colors.primary,
         fontWeight: 'bold',
         fontSize: 18,
     },
@@ -302,12 +304,12 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     memberName: {
-        color: '#0F172A',
+        color: colors.text,
         fontWeight: '600',
         fontSize: 16,
     },
     memberEmail: {
-        color: '#94A3B8',
+        color: colors.textSecondary,
         fontSize: 12,
         marginTop: 2,
     },
@@ -327,17 +329,17 @@ const styles = StyleSheet.create({
     },
     actionIconBtn: {
         padding: 8,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.backgroundMuted,
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: colors.border,
     },
     emptyContainer: {
         marginTop: 40,
         alignItems: 'center',
     },
     emptyText: {
-        color: '#94A3B8',
+        color: colors.textSecondary,
         fontSize: 16,
     },
     modalOverlay: {
@@ -348,7 +350,7 @@ const styles = StyleSheet.create({
         padding: 24,
     },
     modalContent: {
-        backgroundColor: 'white',
+        backgroundColor: colors.card,
         borderRadius: 24,
         padding: 24,
         width: '100%',
@@ -357,11 +359,11 @@ const styles = StyleSheet.create({
     modalTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: '#0F172A',
+        color: colors.text,
     },
     modalSubtitle: {
         fontSize: 14,
-        color: '#64748B',
+        color: colors.textSecondary,
         marginBottom: 8,
     },
     statusOption: {
@@ -369,13 +371,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 16,
         paddingHorizontal: 16,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.backgroundMuted,
         borderRadius: 16,
         gap: 12,
     },
     statusOptionText: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#0F172A',
+        color: colors.text,
     }
 });

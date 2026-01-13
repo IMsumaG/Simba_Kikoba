@@ -1,10 +1,41 @@
-import { adminDb } from '@/lib/firebase-admin';
-import { NextResponse } from 'next/server';
+import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { NextRequest, NextResponse } from 'next/server';
 
 const MEMBER_ID_PREFIX = 'SBK';
 
-export async function POST() {
+export async function POST(request: NextRequest) {
     try {
+        // SECURITY: Verify authentication token
+        const authHeader = request.headers.get('authorization');
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return NextResponse.json(
+                { success: false, error: 'Unauthorized - Missing or invalid authorization header' },
+                { status: 401 }
+            );
+        }
+
+        const token = authHeader.replace('Bearer ', '');
+
+        // Verify the Firebase ID token
+        let decodedToken;
+        try {
+            decodedToken = await adminAuth.verifyIdToken(token);
+        } catch (error) {
+            return NextResponse.json(
+                { success: false, error: 'Unauthorized - Invalid token' },
+                { status: 401 }
+            );
+        }
+
+        // SECURITY: Verify user has Admin role
+        const userDoc = await adminDb.collection('users').doc(decodedToken.uid).get();
+        if (!userDoc.exists || userDoc.data()?.role !== 'Admin') {
+            return NextResponse.json(
+                { success: false, error: 'Forbidden - Admin access required' },
+                { status: 403 }
+            );
+        }
+
         // Get all users
         const usersSnapshot = await adminDb.collection('users').get();
         const users = usersSnapshot.docs.map(doc => ({

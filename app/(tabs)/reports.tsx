@@ -5,12 +5,14 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, Modal, ScrollView, StatusBar, StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors } from '../../constants/Colors';
+import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../services/AuthContext';
 import { transactionService } from '../../services/transactionService';
 
 export default function ReportsScreen() {
     const { t, i18n } = useTranslation();
+    const { colors, theme } = useTheme();
+    const styles = createStyles(colors, theme);
     const { user, role } = useAuth();
     const isAdmin = role === 'Admin';
 
@@ -352,7 +354,7 @@ export default function ReportsScreen() {
                             onPress={() => setSelectedYear(selectedYear - 1)}
                             style={styles.yearBtn as ViewStyle}
                         >
-                            <Ionicons name="chevron-back" size={20} color={Colors.primary} />
+                            <Ionicons name="chevron-back" size={20} color={colors.primary} />
                         </TouchableOpacity>
                         <TextInput
                             value={selectedYear.toString()}
@@ -370,7 +372,7 @@ export default function ReportsScreen() {
                             onPress={() => setSelectedYear(selectedYear + 1)}
                             style={styles.yearBtn as ViewStyle}
                         >
-                            <Ionicons name="chevron-forward" size={20} color={Colors.primary} />
+                            <Ionicons name="chevron-forward" size={20} color={colors.primary} />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -397,7 +399,7 @@ export default function ReportsScreen() {
                 )}
             </TouchableOpacity>
 
-            {reportData && <PersonalReportDisplay data={reportData} monthName={monthName} memberName={memberName} onExportPDF={handleExportPersonalReportPDF} />}
+            {reportData && <PersonalReportDisplay data={reportData} monthName={monthName} memberName={memberName} onExportPDF={handleExportPersonalReportPDF} styles={styles} colors={colors} />}
         </>
     );
 
@@ -420,13 +422,13 @@ export default function ReportsScreen() {
                 )}
             </TouchableOpacity>
 
-            {groupReportData && <GroupReportDisplay data={groupReportData} monthName={monthName} onMemberPress={handleViewMemberDetails} expandedMember={expandedMember} setExpandedMember={setExpandedMember} onExportPDF={handleExportGroupReportPDF} />}
+            {groupReportData && <GroupReportDisplay data={groupReportData} monthName={monthName} onMemberPress={handleViewMemberDetails} expandedMember={expandedMember} setExpandedMember={setExpandedMember} onExportPDF={handleExportGroupReportPDF} styles={styles} colors={colors} />}
         </>
     );
 
     return (
         <SafeAreaView style={styles.container as ViewStyle}>
-            <StatusBar barStyle="dark-content" />
+            <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} />
             <ScrollView
                 style={styles.flex1 as ViewStyle}
                 showsVerticalScrollIndicator={false}
@@ -443,7 +445,7 @@ export default function ReportsScreen() {
                             onPress={handleRefresh}
                             style={styles.refreshBtn as ViewStyle}
                         >
-                            <Ionicons name="refresh" size={22} color={Colors.primary} />
+                            <Ionicons name="refresh" size={22} color={colors.primary} />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -455,7 +457,7 @@ export default function ReportsScreen() {
                             style={[styles.tab as ViewStyle, activeTab === 'personal' && (styles.tabActive as ViewStyle)]}
                             onPress={() => setActiveTab('personal')}
                         >
-                            <Ionicons name={activeTab === 'personal' ? 'person' : 'person-outline'} size={20} color={activeTab === 'personal' ? 'white' : Colors.primary} />
+                            <Ionicons name={activeTab === 'personal' ? 'person' : 'person-outline'} size={20} color={activeTab === 'personal' ? 'white' : colors.primary} />
                             <Text style={[styles.tabText as TextStyle, activeTab === 'personal' && (styles.tabTextActive as TextStyle)]}>{t('reports.personal')}</Text>
                         </TouchableOpacity>
 
@@ -463,7 +465,7 @@ export default function ReportsScreen() {
                             style={[styles.tab as ViewStyle, activeTab === 'group' && (styles.tabActive as ViewStyle)]}
                             onPress={() => setActiveTab('group')}
                         >
-                            <Ionicons name={activeTab === 'group' ? 'people' : 'people-outline'} size={20} color={activeTab === 'group' ? 'white' : Colors.primary} />
+                            <Ionicons name={activeTab === 'group' ? 'people' : 'people-outline'} size={20} color={activeTab === 'group' ? 'white' : colors.primary} />
                             <Text style={[styles.tabText as TextStyle, activeTab === 'group' && (styles.tabTextActive as TextStyle)]}>{t('reports.group')}</Text>
                         </TouchableOpacity>
                     </View>
@@ -478,13 +480,13 @@ export default function ReportsScreen() {
                 <SafeAreaView style={styles.container as ViewStyle}>
                     <View style={styles.modalHeader as ViewStyle}>
                         <TouchableOpacity onPress={() => setShowMemberModal(false)}>
-                            <Ionicons name="arrow-back" size={24} color={Colors.primary} />
+                            <Ionicons name="arrow-back" size={24} color={colors.primary} />
                         </TouchableOpacity>
                         <Text style={styles.modalTitle as TextStyle}>{selectedMemberData?.memberName}</Text>
                         <View style={{ width: 24 }} />
                     </View>
                     <ScrollView contentContainerStyle={styles.scrollContent as ViewStyle}>
-                        {selectedMemberData && <PersonalReportDisplay data={selectedMemberData} monthName={monthName} memberName={selectedMemberData?.memberName} onExportPDF={handleExportPersonalReportPDF} />}
+                        {selectedMemberData && <PersonalReportDisplay data={selectedMemberData} monthName={monthName} memberName={selectedMemberData?.memberName} onExportPDF={handleExportPersonalReportPDF} styles={styles} colors={colors} />}
                     </ScrollView>
                 </SafeAreaView>
             </Modal>
@@ -492,10 +494,10 @@ export default function ReportsScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any, theme: string) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.background,
     },
     flex1: {
         flex: 1,
@@ -516,19 +518,19 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 24,
         fontWeight: '900',
-        color: '#0F172A',
+        color: colors.text,
         marginBottom: 4,
     },
     subtitle: {
         fontSize: 14,
-        color: '#64748B',
+        color: colors.textSecondary,
     },
     refreshBtn: {
         padding: 8,
         borderRadius: 8,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.card,
         borderWidth: 1,
-        borderColor: Colors.primary,
+        borderColor: colors.primary,
     },
     tabContainer: {
         flexDirection: 'row',
@@ -544,33 +546,33 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         paddingHorizontal: 16,
         borderRadius: 12,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.card,
         borderWidth: 1,
-        borderColor: Colors.primary,
+        borderColor: colors.primary,
     },
     tabActive: {
-        backgroundColor: Colors.primary,
+        backgroundColor: colors.primary,
     },
     tabText: {
         fontSize: 14,
         fontWeight: '600',
-        color: Colors.primary,
+        color: colors.primary,
     },
     tabTextActive: {
         color: 'white',
     },
     card: {
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.card,
         borderRadius: 16,
         padding: 20,
         marginBottom: 24,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: colors.border,
     },
     cardTitle: {
         fontSize: 16,
         fontWeight: '700',
-        color: '#0F172A',
+        color: colors.text,
         marginBottom: 16,
     },
     selectorContainer: {
@@ -583,7 +585,7 @@ const styles = StyleSheet.create({
     label: {
         fontSize: 12,
         fontWeight: '600',
-        color: '#64748B',
+        color: colors.textSecondary,
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
@@ -594,19 +596,19 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 8,
         borderRadius: 8,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.background,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: colors.border,
         marginHorizontal: 5,
     },
     monthBtnActive: {
-        backgroundColor: Colors.primary,
-        borderColor: Colors.primary,
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
     },
     monthBtnText: {
         fontSize: 12,
         fontWeight: '600',
-        color: '#64748B',
+        color: colors.textSecondary,
     },
     monthBtnTextActive: {
         color: 'white',
@@ -616,12 +618,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 12,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.background,
         paddingHorizontal: 16,
         paddingVertical: 12,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: colors.border,
     },
     yearBtn: {
         padding: 8,
@@ -629,24 +631,24 @@ const styles = StyleSheet.create({
     yearText: {
         fontSize: 16,
         fontWeight: '700',
-        color: '#0F172A',
+        color: colors.text,
         minWidth: 50,
         textAlign: 'center',
     },
     yearInput: {
         fontSize: 16,
         fontWeight: '700',
-        color: '#0F172A',
+        color: colors.text,
         minWidth: 60,
         textAlign: 'center',
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderWidth: 1,
-        borderColor: Colors.primary,
+        borderColor: colors.primary,
         borderRadius: 6,
     },
     generateBtn: {
-        backgroundColor: Colors.primary,
+        backgroundColor: colors.primary,
         borderRadius: 12,
         paddingVertical: 14,
         flexDirection: 'row',
@@ -661,36 +663,36 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     reportContainer: {
-        backgroundColor: 'white',
+        backgroundColor: colors.card,
         borderRadius: 16,
         padding: 24,
         marginBottom: 20,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: colors.border,
     },
     reportLogo: {
         fontSize: 28,
         fontWeight: '900',
-        color: Colors.primary,
+        color: colors.primary,
         textAlign: 'center',
         marginBottom: 8,
     },
     reportTitle: {
         fontSize: 16,
         fontWeight: '700',
-        color: '#0F172A',
+        color: colors.text,
         textAlign: 'center',
         marginBottom: 4,
     },
     reportSubtitle: {
         fontSize: 12,
-        color: '#64748B',
+        color: colors.textSecondary,
         textAlign: 'center',
         marginBottom: 8,
     },
     totalMembersText: {
         fontSize: 12,
-        color: '#64748B',
+        color: colors.textSecondary,
         textAlign: 'center',
         marginBottom: 20,
     },
@@ -700,11 +702,11 @@ const styles = StyleSheet.create({
     reportSectionTitle: {
         fontSize: 13,
         fontWeight: '700',
-        color: '#0F172A',
+        color: colors.text,
         marginBottom: 12,
         paddingBottom: 8,
         borderBottomWidth: 2,
-        borderBottomColor: Colors.primary,
+        borderBottomColor: colors.primary,
     },
     reportTable: {
         gap: 0,
@@ -714,28 +716,28 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingVertical: 10,
         borderBottomWidth: 1,
-        borderBottomColor: '#E2E8F0',
+        borderBottomColor: colors.border,
     },
     tableRowHighlight: {
-        backgroundColor: '#F8FAFC',
+        backgroundColor: theme === 'dark' ? colors.backgroundMuted : '#FFF7ED',
         paddingHorizontal: 12,
         marginHorizontal: -12,
         paddingVertical: 12,
     },
     tableLabel: {
         fontSize: 13,
-        color: '#0F172A',
+        color: colors.text,
         fontWeight: '500',
     },
     tableValue: {
         fontSize: 13,
-        color: '#0F172A',
+        color: colors.text,
         fontWeight: '500',
         textAlign: 'right',
     },
     tableValueBold: {
         fontSize: 13,
-        color: '#0F172A',
+        color: colors.text,
         fontWeight: '700',
         textAlign: 'right',
     },
@@ -745,7 +747,7 @@ const styles = StyleSheet.create({
     },
     groupTableHeader: {
         flexDirection: 'row',
-        backgroundColor: Colors.primary,
+        backgroundColor: colors.primary,
         paddingVertical: 12,
         paddingHorizontal: 8,
         borderTopLeftRadius: 8,
@@ -753,18 +755,18 @@ const styles = StyleSheet.create({
     },
     groupTableRow: {
         flexDirection: 'row',
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.background,
         paddingVertical: 12,
         paddingHorizontal: 8,
         borderBottomWidth: 1,
-        borderBottomColor: '#E2E8F0',
+        borderBottomColor: colors.border,
     },
     groupTableRowExpanded: {
-        backgroundColor: '#F0F5FF',
+        backgroundColor: theme === 'dark' ? colors.backgroundMuted : '#F0F5FF',
     },
     groupTableCell: {
         fontSize: 12,
-        color: '#0F172A',
+        color: colors.text,
         fontWeight: '400',
         paddingHorizontal: 4,
     },
@@ -774,14 +776,14 @@ const styles = StyleSheet.create({
         fontSize: 11,
     },
     expandedRow: {
-        backgroundColor: '#F0F5FF',
+        backgroundColor: theme === 'dark' ? colors.backgroundMuted : '#F0F5FF',
         paddingVertical: 12,
         paddingHorizontal: 8,
         borderBottomWidth: 1,
-        borderBottomColor: '#E2E8F0',
+        borderBottomColor: colors.border,
     },
     expandedBtn: {
-        backgroundColor: Colors.primary,
+        backgroundColor: colors.primary,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
@@ -801,18 +803,18 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingVertical: 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#E2E8F0',
+        borderBottomColor: colors.border,
     },
     modalTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: '#0F172A',
+        color: colors.text,
     },
     exportButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: Colors.primary,
+        backgroundColor: colors.primary,
         paddingVertical: 12,
         paddingHorizontal: 20,
         borderRadius: 8,
@@ -828,7 +830,7 @@ const styles = StyleSheet.create({
 });
 
 // Personal Report Display Component
-const PersonalReportDisplay = ({ data, monthName, memberName, onExportPDF }: any) => {
+const PersonalReportDisplay = ({ data, monthName, memberName, onExportPDF, styles, colors }: any) => {
     const { t } = useTranslation();
     return (
         <View style={styles.reportContainer as ViewStyle}>
@@ -939,7 +941,7 @@ const PersonalReportDisplay = ({ data, monthName, memberName, onExportPDF }: any
 };
 
 // Group Report Display Component
-const GroupReportDisplay = ({ data, monthName, onMemberPress, expandedMember, setExpandedMember, onExportPDF }: any) => {
+const GroupReportDisplay = ({ data, monthName, onMemberPress, expandedMember, setExpandedMember, onExportPDF, styles, colors }: any) => {
     const { t } = useTranslation();
     return (
         <View style={styles.reportContainer as ViewStyle}>
@@ -1001,5 +1003,3 @@ const GroupReportDisplay = ({ data, monthName, onMemberPress, expandedMember, se
         </View>
     );
 };
-
-

@@ -10,6 +10,7 @@ import '../i18n';
 import { AuthProvider, useAuth } from '../services/AuthContext';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { ThemeProvider as CustomThemeProvider, useTheme } from '../context/ThemeContext';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -36,15 +37,27 @@ function RootLayoutNav() {
   }, [user, loading, segments]);
 
   return (
+    <CustomThemeProvider>
+      <InnerRootLayoutNav />
+    </CustomThemeProvider>
+  );
+}
+
+function InnerRootLayoutNav() {
+  const { theme, colors } = useTheme();
+
+  return (
     <ThemeProvider value={{
       ...DefaultTheme,
+      dark: theme === 'dark',
       colors: {
         ...DefaultTheme.colors,
-        background: '#FFFFFF',
-        card: '#FFFFFF',
-        text: '#0F172A',
-        border: '#E2E8F0',
-        notification: '#F57C00',
+        background: colors.background,
+        card: colors.card,
+        text: colors.text,
+        border: colors.border,
+        notification: colors.primary,
+        primary: colors.primary,
       },
     }}>
       <Stack>
@@ -55,7 +68,7 @@ function RootLayoutNav() {
         <Stack.Screen name="member/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
-      <StatusBar style="dark" />
+      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
     </ThemeProvider>
   );
 }

@@ -29,7 +29,8 @@ import { auth, db } from '../../lib/firebase';
 
 export default function AuditLogsPage() {
     const [user, setUser] = useState<any>(null);
-    const [role, setRole] = useState<string>('Member');
+    const [role, setRole] = useState<string | null>(null); // Start as null to avoid wrong default
+    const [authLoading, setAuthLoading] = useState(true); // New loading state for auth
     const [logs, setLogs] = useState<ActivityLog[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
@@ -48,17 +49,23 @@ export default function AuditLogsPage() {
         const unsubscribeAuth = onAuthStateChanged(auth, async (u) => {
             if (u) {
                 setUser(u);
-                const userDoc = await getDoc(doc(db, 'users', u.uid));
-                if (userDoc.exists()) {
-                    const r = userDoc.data().role || 'Member';
-                    setRole(r);
-                    if (r !== 'Admin') {
-                        window.location.href = '/dashboard';
+                try {
+                    const userDoc = await getDoc(doc(db, 'users', u.uid));
+                    if (userDoc.exists()) {
+                        const r = userDoc.data().role || 'Member';
+                        setRole(r);
+                        if (r !== 'Admin') {
+                            window.location.href = '/dashboard';
+                            return;
+                        }
                     }
+                } catch (error) {
+                    console.error("Error fetching user role", error);
                 }
             } else {
                 window.location.href = '/login';
             }
+            setAuthLoading(false);
         });
 
         return () => unsubscribeAuth();
@@ -73,13 +80,16 @@ export default function AuditLogsPage() {
                 const q = query(
                     collection(db, 'activityLogs'),
                     orderBy('createdAt', 'desc'),
-                    limit(500) // Reasonable limit for client-side filtering
+                    limit(100) // Reduced limit for faster initial load
                 );
                 const snapshot = await getDocs(q);
                 const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ActivityLog));
-                setLogs(data);
 
-                // Fetch member IDs from user collection for both admin and affected members
+                // OPTIMIZATION: Render logs immediately!
+                setLogs(data);
+                setLoading(false);
+
+                // Fetch member IDs in background (Parallelized)
                 const memberIds = new Set<string>();
                 data.forEach(log => {
                     if (log.userId) memberIds.add(log.userId);
@@ -87,21 +97,29 @@ export default function AuditLogsPage() {
                     if (log.entityId) memberIds.add(log.entityId);
                 });
 
-                const memberIdMapLocal: { [key: string]: string } = {};
-                for (const memberId of Array.from(memberIds)) {
+                // Fetch in batch/parallel
+                const promises = Array.from(memberIds).map(async (memberId) => {
                     try {
                         const userDoc = await getDoc(doc(db, 'users', memberId));
                         if (userDoc.exists() && userDoc.data().memberId) {
-                            memberIdMapLocal[memberId] = userDoc.data().memberId;
+                            return { id: memberId, memberId: userDoc.data().memberId };
                         }
-                    } catch (error) {
-                        console.warn(`Failed to fetch member ID for ${memberId}:`, error);
+                    } catch (e) {
+                        return null;
                     }
-                }
-                setMemberIdMap(memberIdMapLocal);
+                    return null;
+                });
+
+                const results = await Promise.all(promises);
+                const newMap: { [key: string]: string } = {};
+                results.forEach(res => {
+                    if (res) newMap[res.id] = res.memberId;
+                });
+
+                setMemberIdMap(prev => ({ ...prev, ...newMap }));
+
             } catch (error) {
                 console.error("Error fetching logs:", error);
-            } finally {
                 setLoading(false);
             }
         };
@@ -187,18 +205,29 @@ export default function AuditLogsPage() {
         }
     }, [totalPages]);
 
+    if (authLoading) {
+        return (
+            <AppLayout>
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 80px)' }}>
+                    <div className="animate-spin" style={{ width: '3rem', height: '3rem', border: '3px solid var(--background-muted)', borderTopColor: '#F57C00', borderRadius: '50%' }}></div>
+                </div>
+            </AppLayout>
+        );
+    }
+
     if (role !== 'Admin') return null;
+
 
     return (
         <AppLayout>
             <div style={{ padding: '2rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                     <div>
-                        <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                             <Shield size={32} color="#F57C00" />
                             Audit Logs
                         </h1>
-                        <p style={{ color: '#64748B' }}>Track and monitor all admin activities and system changes</p>
+                        <p style={{ color: 'var(--text-secondary)' }}>Track and monitor all admin activities and system changes</p>
                     </div>
                 </div>
 
@@ -206,26 +235,26 @@ export default function AuditLogsPage() {
                 <div className="card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                         <div>
-                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748B', marginBottom: '0.5rem' }}>Search Admin/Action</label>
+                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Search Admin/Action</label>
                             <div style={{ position: 'relative' }}>
-                                <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                                <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
                                 <input
                                     type="text"
                                     placeholder="Name, ID or description..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.25rem', borderRadius: '0.5rem', border: '1px solid #E2E8F0', outline: 'none' }}
+                                    style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.25rem', borderRadius: '0.5rem', border: '1px solid var(--border)', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)', outline: 'none' }}
                                 />
                             </div>
                         </div>
                         <div>
-                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748B', marginBottom: '0.5rem' }}>Action Type</label>
+                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Action Type</label>
                             <div style={{ position: 'relative' }}>
-                                <Filter size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                                <Filter size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
                                 <select
                                     value={typeFilter}
                                     onChange={(e) => setTypeFilter(e.target.value)}
-                                    style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.25rem', borderRadius: '0.5rem', border: '1px solid #E2E8F0', outline: 'none', backgroundColor: 'white' }}
+                                    style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.25rem', borderRadius: '0.5rem', border: '1px solid var(--border)', outline: 'none', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}
                                 >
                                     <option value="All">All Actions</option>
                                     <option value="transaction_created">Transaction Created</option>
@@ -237,13 +266,13 @@ export default function AuditLogsPage() {
                             </div>
                         </div>
                         <div>
-                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748B', marginBottom: '0.5rem' }}>Status</label>
+                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Status</label>
                             <div style={{ position: 'relative' }}>
-                                <Filter size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                                <Filter size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
                                 <select
                                     value={statusFilter}
                                     onChange={(e) => setStatusFilter(e.target.value)}
-                                    style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.25rem', borderRadius: '0.5rem', border: '1px solid #E2E8F0', outline: 'none', backgroundColor: 'white' }}
+                                    style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.25rem', borderRadius: '0.5rem', border: '1px solid var(--border)', outline: 'none', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}
                                 >
                                     <option value="All">All Statuses</option>
                                     <option value="approved">Approved</option>
@@ -255,26 +284,26 @@ export default function AuditLogsPage() {
                             </div>
                         </div>
                         <div>
-                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748B', marginBottom: '0.5rem' }}>From Date</label>
+                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>From Date</label>
                             <div style={{ position: 'relative' }}>
-                                <Calendar size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                                <Calendar size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
                                 <input
                                     type="date"
                                     value={startDate}
                                     onChange={(e) => setStartDate(e.target.value)}
-                                    style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.25rem', borderRadius: '0.5rem', border: '1px solid #E2E8F0', outline: 'none' }}
+                                    style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.25rem', borderRadius: '0.5rem', border: '1px solid var(--border)', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)', outline: 'none' }}
                                 />
                             </div>
                         </div>
                         <div>
-                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748B', marginBottom: '0.5rem' }}>To Date</label>
+                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>To Date</label>
                             <div style={{ position: 'relative' }}>
-                                <Calendar size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                                <Calendar size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
                                 <input
                                     type="date"
                                     value={endDate}
                                     onChange={(e) => setEndDate(e.target.value)}
-                                    style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.25rem', borderRadius: '0.5rem', border: '1px solid #E2E8F0', outline: 'none' }}
+                                    style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.25rem', borderRadius: '0.5rem', border: '1px solid var(--border)', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)', outline: 'none' }}
                                 />
                             </div>
                         </div>
@@ -285,23 +314,23 @@ export default function AuditLogsPage() {
                 <div className="card" style={{ overflow: 'hidden' }}>
                     {loading ? (
                         <div style={{ padding: '4rem', textAlign: 'center' }}>
-                            <div className="animate-spin" style={{ margin: '0 auto', width: '2rem', height: '2rem', border: '3px solid #F1F5F9', borderTopColor: '#F57C00', borderRadius: '50%' }}></div>
+                            <div className="animate-spin" style={{ margin: '0 auto', width: '2rem', height: '2rem', border: '3px solid var(--background-muted)', borderTopColor: '#F57C00', borderRadius: '50%' }}></div>
                         </div>
                     ) : filteredLogs.length === 0 ? (
-                        <div style={{ padding: '4rem', textAlign: 'center', color: '#94A3B8' }}>
+                        <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
                             <History size={48} style={{ margin: '0 auto 1rem', opacity: 0.2 }} />
                             <p>No activity logs matching your filters.</p>
                         </div>
                     ) : (
                         <div style={{ overflowX: 'auto' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                                <thead style={{ backgroundColor: '#F8FAFC', fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748B', fontWeight: '600' }}>
+                                <thead style={{ backgroundColor: 'var(--background-muted)', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: '600' }}>
                                     <tr>
-                                        <th style={{ padding: '1rem 1.5rem', borderBottom: '2px solid #E5E7EB' }}>User</th>
-                                        <th style={{ padding: '1rem 1.5rem', borderBottom: '2px solid #E5E7EB' }}>Action</th>
-                                        <th style={{ padding: '1rem 1.5rem', borderBottom: '2px solid #E5E7EB' }}>Type</th>
-                                        <th style={{ padding: '1rem 1.5rem', borderBottom: '2px solid #E5E7EB' }}>Timestamp</th>
-                                        <th style={{ padding: '1rem 1.5rem', borderBottom: '2px solid #E5E7EB', textAlign: 'right' }}>Details</th>
+                                        <th style={{ padding: '1rem 1.5rem', borderBottom: '2px solid var(--border)' }}>User</th>
+                                        <th style={{ padding: '1rem 1.5rem', borderBottom: '2px solid var(--border)' }}>Action</th>
+                                        <th style={{ padding: '1rem 1.5rem', borderBottom: '2px solid var(--border)' }}>Type</th>
+                                        <th style={{ padding: '1rem 1.5rem', borderBottom: '2px solid var(--border)' }}>Timestamp</th>
+                                        <th style={{ padding: '1rem 1.5rem', borderBottom: '2px solid var(--border)', textAlign: 'right' }}>Details</th>
                                     </tr>
                                 </thead>
                                 <tbody style={{ fontSize: '0.875rem' }}>
@@ -314,8 +343,8 @@ export default function AuditLogsPage() {
                                             <React.Fragment key={log.id}>
                                                 <tr
                                                     style={{
-                                                        borderBottom: '1px solid #E5E7EB',
-                                                        backgroundColor: isExpanded ? '#F3F4F6' : index % 2 === 0 ? 'white' : '#FAFBFC',
+                                                        borderBottom: '1px solid var(--border)',
+                                                        backgroundColor: isExpanded ? 'var(--background-muted)' : 'transparent',
                                                         transition: 'background-color 0.2s'
                                                     }}
                                                 >
@@ -325,18 +354,18 @@ export default function AuditLogsPage() {
                                                                 width: '36px',
                                                                 height: '36px',
                                                                 borderRadius: '50%',
-                                                                backgroundColor: '#E5E7EB',
+                                                                backgroundColor: 'var(--background-muted)',
                                                                 display: 'flex',
                                                                 alignItems: 'center',
                                                                 justifyContent: 'center',
-                                                                color: '#6B7280',
+                                                                color: 'var(--text-secondary)',
                                                                 flexShrink: 0
                                                             }}>
                                                                 <User size={18} />
                                                             </div>
                                                             <div>
-                                                                <div style={{ fontWeight: '600', color: '#111827', fontSize: '0.9375rem' }}>{log.userName}</div>
-                                                                <div style={{ fontSize: '0.7rem', color: '#6B7280', fontFamily: 'monospace' }}>{log.adminMemberId || memberIdMap[log.userId] || 'N/A'}</div>
+                                                                <div style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '0.9375rem' }}>{log.userName}</div>
+                                                                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>{log.adminMemberId || memberIdMap[log.userId] || 'N/A'}</div>
                                                             </div>
                                                         </div>
                                                     </td>
@@ -349,16 +378,16 @@ export default function AuditLogsPage() {
                                                         <span style={{
                                                             padding: '0.25rem 0.75rem',
                                                             borderRadius: '1rem',
-                                                            backgroundColor: '#F1F5F9',
+                                                            backgroundColor: 'var(--background-muted)',
                                                             fontWeight: '600',
                                                             fontSize: '0.75rem',
-                                                            color: '#374151'
+                                                            color: 'var(--text-primary)'
                                                         }}>
                                                             {formatActivityType(log.activityType)}
                                                         </span>
                                                     </td>
                                                     <td style={{ padding: '1.25rem 1.5rem' }}>
-                                                        <div style={{ color: '#6B7280', fontSize: '0.875rem' }}>
+                                                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
                                                             {date.toLocaleDateString()} <br /> {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                         </div>
                                                     </td>
@@ -371,13 +400,13 @@ export default function AuditLogsPage() {
                                                                 backgroundColor: 'transparent',
                                                                 border: 'none',
                                                                 cursor: 'pointer',
-                                                                color: '#3B82F6',
+                                                                color: 'var(--primary)',
                                                                 fontSize: '0.875rem',
                                                                 fontWeight: '600',
-                                                                transition: 'color 0.2s'
+                                                                transition: 'opacity 0.2s'
                                                             }}
-                                                            onMouseEnter={(e) => (e.currentTarget.style.color = '#1D4ED8')}
-                                                            onMouseLeave={(e) => (e.currentTarget.style.color = '#3B82F6')}
+                                                            onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.7')}
+                                                            onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
                                                         >
                                                             View detail
                                                         </button>
@@ -385,17 +414,17 @@ export default function AuditLogsPage() {
                                                 </tr>
                                                 {isExpanded && (
                                                     <tr>
-                                                        <td colSpan={5} style={{ padding: '1.5rem', backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
+                                                        <td colSpan={5} style={{ padding: '1.5rem', backgroundColor: 'var(--background-muted)', borderBottom: '1px solid var(--border)' }}>
                                                             <div style={{
-                                                                backgroundColor: 'white',
+                                                                backgroundColor: 'var(--card-bg)',
                                                                 borderRadius: '0.5rem',
                                                                 padding: '1.5rem',
-                                                                border: '1px solid #E5E7EB',
+                                                                border: '1px solid var(--border)',
                                                                 boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                                                             }}>
                                                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem' }}>
                                                                     <div>
-                                                                        <h4 style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: '#6B7280', marginBottom: '1.25rem', letterSpacing: '0.05em' }}>
+                                                                        <h4 style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '1.25rem', letterSpacing: '0.05em' }}>
                                                                             Activity Details
                                                                         </h4>
                                                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -403,49 +432,49 @@ export default function AuditLogsPage() {
                                                                             {log.metadata?.bulkUpload && (
                                                                                 <>
                                                                                     <div>
-                                                                                        <span style={{ color: '#9CA3AF', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Detail Transaction Type:</span>
-                                                                                        <div style={{ fontWeight: '600', color: '#111827', fontSize: '0.9375rem' }}>{log.metadata.detailTransactionType || 'N/A'}</div>
+                                                                                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Detail Transaction Type:</span>
+                                                                                        <div style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '0.9375rem' }}>{log.metadata.detailTransactionType || 'N/A'}</div>
                                                                                     </div>
                                                                                     <div>
-                                                                                        <span style={{ color: '#9CA3AF', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Users Affected:</span>
-                                                                                        <div style={{ fontWeight: '600', color: '#111827', fontSize: '0.9375rem' }}>{log.metadata.bulkTotalAffectedUsers || 0}</div>
+                                                                                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Users Affected:</span>
+                                                                                        <div style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '0.9375rem' }}>{log.metadata.bulkTotalAffectedUsers || 0}</div>
                                                                                     </div>
-                                                                                    <div style={{ borderTop: '1px solid #E5E7EB', paddingTop: '0.75rem' }}>
-                                                                                        <span style={{ color: '#9CA3AF', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.75rem' }}>Transaction Breakdown:</span>
+                                                                                    <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.75rem' }}>
+                                                                                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.75rem' }}>Transaction Breakdown:</span>
                                                                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem', fontSize: '0.8rem' }}>
                                                                                             {(log.metadata.bulkHisaAmount || 0) > 0 && (
-                                                                                                <div style={{ backgroundColor: '#F0FDF4', padding: '0.5rem', borderRadius: '0.375rem' }}>
-                                                                                                    <div style={{ color: '#64748B', marginBottom: '0.25rem' }}>Hisa (Shares):</div>
+                                                                                                <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.05)', padding: '0.5rem', borderRadius: '0.375rem' }}>
+                                                                                                    <div style={{ color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Hisa (Shares):</div>
                                                                                                     <div style={{ fontWeight: '600', color: '#10B981' }}>TSH {(log.metadata.bulkHisaAmount || 0).toLocaleString()}</div>
                                                                                                 </div>
                                                                                             )}
                                                                                             {(log.metadata.bulkJamiiAmount || 0) > 0 && (
-                                                                                                <div style={{ backgroundColor: '#F0FDF4', padding: '0.5rem', borderRadius: '0.375rem' }}>
-                                                                                                    <div style={{ color: '#64748B', marginBottom: '0.25rem' }}>Jamii:</div>
+                                                                                                <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.05)', padding: '0.5rem', borderRadius: '0.375rem' }}>
+                                                                                                    <div style={{ color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Jamii:</div>
                                                                                                     <div style={{ fontWeight: '600', color: '#10B981' }}>TSH {(log.metadata.bulkJamiiAmount || 0).toLocaleString()}</div>
                                                                                                 </div>
                                                                                             )}
                                                                                             {(log.metadata.bulkStandardLoanAmount || 0) > 0 && (
-                                                                                                <div style={{ backgroundColor: '#FEF2F2', padding: '0.5rem', borderRadius: '0.375rem' }}>
-                                                                                                    <div style={{ color: '#64748B', marginBottom: '0.25rem' }}>Standard Loan:</div>
+                                                                                                <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.05)', padding: '0.5rem', borderRadius: '0.375rem' }}>
+                                                                                                    <div style={{ color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Standard Loan:</div>
                                                                                                     <div style={{ fontWeight: '600', color: '#EF4444' }}>TSH {(log.metadata.bulkStandardLoanAmount || 0).toLocaleString()}</div>
                                                                                                 </div>
                                                                                             )}
                                                                                             {(log.metadata.bulkDharuraLoanAmount || 0) > 0 && (
-                                                                                                <div style={{ backgroundColor: '#FEF2F2', padding: '0.5rem', borderRadius: '0.375rem' }}>
-                                                                                                    <div style={{ color: '#64748B', marginBottom: '0.25rem' }}>Dharura Loan:</div>
+                                                                                                <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.05)', padding: '0.5rem', borderRadius: '0.375rem' }}>
+                                                                                                    <div style={{ color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Dharura Loan:</div>
                                                                                                     <div style={{ fontWeight: '600', color: '#EF4444' }}>TSH {(log.metadata.bulkDharuraLoanAmount || 0).toLocaleString()}</div>
                                                                                                 </div>
                                                                                             )}
                                                                                             {(log.metadata.bulkStandardRepayAmount || 0) > 0 && (
-                                                                                                <div style={{ backgroundColor: '#FEF3C7', padding: '0.5rem', borderRadius: '0.375rem' }}>
-                                                                                                    <div style={{ color: '#64748B', marginBottom: '0.25rem' }}>Standard Repay:</div>
+                                                                                                <div style={{ backgroundColor: 'rgba(245, 124, 0, 0.05)', padding: '0.5rem', borderRadius: '0.375rem' }}>
+                                                                                                    <div style={{ color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Standard Repay:</div>
                                                                                                     <div style={{ fontWeight: '600', color: '#F59E0B' }}>TSH {(log.metadata.bulkStandardRepayAmount || 0).toLocaleString()}</div>
                                                                                                 </div>
                                                                                             )}
                                                                                             {(log.metadata.bulkDharuraRepayAmount || 0) > 0 && (
-                                                                                                <div style={{ backgroundColor: '#FEF3C7', padding: '0.5rem', borderRadius: '0.375rem' }}>
-                                                                                                    <div style={{ color: '#64748B', marginBottom: '0.25rem' }}>Dharura Repay:</div>
+                                                                                                <div style={{ backgroundColor: 'rgba(245, 124, 0, 0.05)', padding: '0.5rem', borderRadius: '0.375rem' }}>
+                                                                                                    <div style={{ color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Dharura Repay:</div>
                                                                                                     <div style={{ fontWeight: '600', color: '#F59E0B' }}>TSH {(log.metadata.bulkDharuraRepayAmount || 0).toLocaleString()}</div>
                                                                                                 </div>
                                                                                             )}
@@ -457,40 +486,40 @@ export default function AuditLogsPage() {
                                                                             {!log.metadata?.bulkUpload && (
                                                                                 <>
                                                                                     <div>
-                                                                                        <span style={{ color: '#9CA3AF', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Affected Member:</span>
-                                                                                        <div style={{ fontWeight: '600', color: '#111827', fontSize: '0.9375rem' }}>{log.entityName || 'N/A'}</div>
+                                                                                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Affected Member:</span>
+                                                                                        <div style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '0.9375rem' }}>{log.entityName || 'N/A'}</div>
                                                                                     </div>
                                                                                     <div>
-                                                                                        <span style={{ color: '#9CA3AF', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Affected Member ID:</span>
+                                                                                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Affected Member ID:</span>
                                                                                         {(() => {
                                                                                             const getMapped = (id?: string) => id ? (memberIdMap[id] || id) : null;
                                                                                             const mapped = getMapped(log.affectedMemberId) || getMapped(log.entityId) || getMapped(log.userId);
                                                                                             const display = mapped ? (mapped.toString().length > 12 ? mapped.toString().substring(0, 12) + '...' : mapped) : 'N/A';
-                                                                                            return <div style={{ fontFamily: 'monospace', fontWeight: '600', color: '#111827', fontSize: '0.9375rem' }}>{display}</div>;
+                                                                                            return <div style={{ fontFamily: 'monospace', fontWeight: '600', color: 'var(--text-primary)', fontSize: '0.9375rem' }}>{display}</div>;
                                                                                         })()}
                                                                                     </div>
                                                                                     {log.metadata?.transactionType && (
                                                                                         <div>
-                                                                                            <span style={{ color: '#9CA3AF', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Transaction Type:</span>
-                                                                                            <div style={{ fontWeight: '600', color: '#111827', fontSize: '0.9375rem' }}>{log.metadata.transactionType}</div>
+                                                                                            <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Transaction Type:</span>
+                                                                                            <div style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '0.9375rem' }}>{log.metadata.transactionType}</div>
                                                                                         </div>
                                                                                     )}
                                                                                     {log.metadata?.subTransactionType && (
                                                                                         <div>
-                                                                                            <span style={{ color: '#9CA3AF', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Sub Transaction Type:</span>
-                                                                                            <div style={{ fontWeight: '600', color: '#111827', fontSize: '0.9375rem' }}>{log.metadata.subTransactionType}</div>
+                                                                                            <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Sub Transaction Type:</span>
+                                                                                            <div style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '0.9375rem' }}>{log.metadata.subTransactionType}</div>
                                                                                         </div>
                                                                                     )}
                                                                                     {log.metadata?.loanType && (
                                                                                         <div>
-                                                                                            <span style={{ color: '#9CA3AF', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Loan Type:</span>
-                                                                                            <div style={{ fontWeight: '600', color: '#111827', fontSize: '0.9375rem' }}>{log.metadata?.loanType}</div>
+                                                                                            <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Loan Type:</span>
+                                                                                            <div style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '0.9375rem' }}>{log.metadata?.loanType}</div>
                                                                                         </div>
                                                                                     )}
                                                                                     {log.metadata?.transactionAmount && (
                                                                                         <div>
-                                                                                            <span style={{ color: '#9CA3AF', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Amount:</span>
-                                                                                            <div style={{ fontWeight: '600', color: '#111827', fontSize: '0.9375rem' }}>TSH {Number(log.metadata.transactionAmount || 0).toLocaleString()}</div>
+                                                                                            <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Amount:</span>
+                                                                                            <div style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '0.9375rem' }}>TSH {Number(log.metadata.transactionAmount || 0).toLocaleString()}</div>
                                                                                         </div>
                                                                                     )}
                                                                                 </>
@@ -498,12 +527,12 @@ export default function AuditLogsPage() {
                                                                         </div>
                                                                     </div>
                                                                     <div>
-                                                                        <h4 style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: '#6B7280', marginBottom: '1.25rem', letterSpacing: '0.05em' }}>
+                                                                        <h4 style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '1.25rem', letterSpacing: '0.05em' }}>
                                                                             Status & Notes
                                                                         </h4>
                                                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                                                             <div>
-                                                                                <span style={{ color: '#9CA3AF', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Status:</span>
+                                                                                <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Status:</span>
                                                                                 {(() => {
                                                                                     const status = getStatusFromLog(log);
                                                                                     const colors = getStatusColor(status);
@@ -525,13 +554,13 @@ export default function AuditLogsPage() {
                                                                             </div>
                                                                             {log.reason && (
                                                                                 <div>
-                                                                                    <span style={{ color: '#9CA3AF', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Reason/Notes:</span>
+                                                                                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Reason/Notes:</span>
                                                                                     <div style={{
-                                                                                        backgroundColor: '#F3F4F6',
+                                                                                        backgroundColor: 'var(--background-muted)',
                                                                                         padding: '0.75rem',
                                                                                         borderRadius: '0.375rem',
                                                                                         fontSize: '0.875rem',
-                                                                                        color: '#374151',
+                                                                                        color: 'var(--text-primary)',
                                                                                         lineHeight: '1.5'
                                                                                     }}>
                                                                                         {log.reason}
@@ -539,8 +568,8 @@ export default function AuditLogsPage() {
                                                                                 </div>
                                                                             )}
                                                                             <div>
-                                                                                <span style={{ color: '#9CA3AF', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Timestamp:</span>
-                                                                                <div style={{ fontWeight: '500', color: '#111827', fontSize: '0.9375rem' }}>{date && !isNaN(date.getTime()) ? date.toLocaleString() : '—'}</div>
+                                                                                <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Timestamp:</span>
+                                                                                <div style={{ fontWeight: '500', color: 'var(--text-primary)', fontSize: '0.9375rem' }}>{date && !isNaN(date.getTime()) ? date.toLocaleString() : '—'}</div>
                                                                             </div>
                                                                         </div>
                                                                     </div>
@@ -559,15 +588,15 @@ export default function AuditLogsPage() {
 
                     {/* Pagination */}
                     {filteredLogs.length > 0 && (
-                        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F8FAFC' }}>
-                            <div style={{ fontSize: '0.875rem', color: '#64748B' }}>
-                                Showing <span style={{ fontWeight: '600', color: '#0F172A' }}>{((currentPage - 1) * itemsPerPage) + 1}</span> to <span style={{ fontWeight: '600', color: '#0F172A' }}>{Math.min(currentPage * itemsPerPage, filteredLogs.length)}</span> of <span style={{ fontWeight: '600', color: '#0F172A' }}>{filteredLogs.length}</span> results
+                        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--background-muted)' }}>
+                            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                                Showing <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{((currentPage - 1) * itemsPerPage) + 1}</span> to <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{Math.min(currentPage * itemsPerPage, filteredLogs.length)}</span> of <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{filteredLogs.length}</span> results
                             </div>
                             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                                 <select
                                     value={itemsPerPage}
                                     onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                                    style={{ padding: '0.4rem 0.6rem', borderRadius: '0.4rem', border: '1px solid #E2E8F0', fontSize: '0.875rem', outline: 'none' }}
+                                    style={{ padding: '0.4rem 0.6rem', borderRadius: '0.4rem', border: '1px solid var(--border)', fontSize: '0.875rem', outline: 'none', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}
                                 >
                                     <option value={5}>5 per page</option>
                                     <option value={10}>10 per page</option>
@@ -579,7 +608,7 @@ export default function AuditLogsPage() {
                                     <button
                                         onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                                         disabled={currentPage === 1}
-                                        style={{ padding: '0.4rem 0.75rem', borderRadius: '0.4rem', border: '1px solid #E2E8F0', backgroundColor: 'white', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontSize: '0.875rem', opacity: currentPage === 1 ? 0.5 : 1 }}
+                                        style={{ padding: '0.4rem 0.75rem', borderRadius: '0.4rem', border: '1px solid var(--border)', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontSize: '0.875rem', opacity: currentPage === 1 ? 0.5 : 1 }}
                                     >
                                         <ChevronLeft size={16} />
                                     </button>
@@ -590,9 +619,9 @@ export default function AuditLogsPage() {
                                             style={{
                                                 padding: '0.4rem 0.75rem',
                                                 borderRadius: '0.4rem',
-                                                border: currentPage === i + 1 ? '1px solid #F57C00' : '1px solid #E2E8F0',
-                                                backgroundColor: currentPage === i + 1 ? '#F57C00' : 'white',
-                                                color: currentPage === i + 1 ? 'white' : '#6B7280',
+                                                border: currentPage === i + 1 ? '1px solid var(--primary)' : '1px solid var(--border)',
+                                                backgroundColor: currentPage === i + 1 ? 'var(--primary)' : 'var(--card-bg)',
+                                                color: currentPage === i + 1 ? 'white' : 'var(--text-secondary)',
                                                 cursor: 'pointer',
                                                 fontSize: '0.875rem',
                                                 fontWeight: currentPage === i + 1 ? '600' : '400'
@@ -604,7 +633,7 @@ export default function AuditLogsPage() {
                                     <button
                                         onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                                         disabled={currentPage === totalPages}
-                                        style={{ padding: '0.4rem 0.75rem', borderRadius: '0.4rem', border: '1px solid #E2E8F0', backgroundColor: 'white', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', fontSize: '0.875rem', opacity: currentPage === totalPages ? 0.5 : 1 }}
+                                        style={{ padding: '0.4rem 0.75rem', borderRadius: '0.4rem', border: '1px solid var(--border)', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', fontSize: '0.875rem', opacity: currentPage === totalPages ? 0.5 : 1 }}
                                     >
                                         <ChevronRight size={16} />
                                     </button>

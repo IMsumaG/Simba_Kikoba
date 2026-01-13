@@ -20,6 +20,7 @@ import {
 } from "recharts";
 import AppLayout from "../../components/AppLayout";
 import { auth, db } from "../../lib/firebase";
+import { penaltyService } from "../../lib/penaltyService";
 
 export default function DashboardPage() {
     const [user, setUser] = useState<any>(null);
@@ -40,12 +41,19 @@ export default function DashboardPage() {
     }, []);
 
     useEffect(() => {
-        fetchData();
-    }, []);
+        if (user) {
+            fetchData();
+        }
+    }, [user]);
 
     const fetchData = async () => {
         try {
             setLoading(true);
+
+            // Check for penalties logic
+            if (user?.uid) {
+                await penaltyService.checkAndApplyPenalties(user.uid);
+            }
 
             // Fetch Users
             const usersSnapshot = await getDocs(collection(db, "users"));
@@ -149,10 +157,10 @@ export default function DashboardPage() {
     return (
         <AppLayout>
             <div style={{ marginBottom: '2.5rem' }}>
-                <h1 style={{ fontSize: '1.875rem', fontWeight: '900', color: '#1E293B', marginBottom: '0.5rem' }}>
+                <h1 style={{ fontSize: '1.875rem', fontWeight: '900', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
                     Welcome Back, {user?.displayName?.split(' ')[0] || 'User'}
                 </h1>
-                <p style={{ color: '#64748B', fontSize: '0.95rem' }}>Here's an overview of your organization's financial performance</p>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Here's an overview of your organization's financial performance</p>
             </div>
 
             <div style={{
@@ -196,11 +204,11 @@ export default function DashboardPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', fontWeight: '700' }}>
                             <div style={{ width: '12px', height: '12px', borderRadius: '4px', backgroundColor: '#F57C00' }}></div>
-                            <span>Contributions</span>
+                            <span style={{ color: 'var(--text-primary)' }}>Contributions</span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', fontWeight: '700' }}>
-                            <div style={{ width: '12px', height: '12px', borderRadius: '4px', backgroundColor: '#CBD5E1' }}></div>
-                            <span>Loans</span>
+                            <div style={{ width: '12px', height: '12px', borderRadius: '4px', backgroundColor: 'var(--text-disabled)' }}></div>
+                            <span style={{ color: 'var(--text-primary)' }}>Loans</span>
                         </div>
                     </div>
                 </div>
@@ -208,28 +216,31 @@ export default function DashboardPage() {
                 <div style={{ width: '100%', height: 400 }}>
                     <ResponsiveContainer>
                         <BarChart data={chartData}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                             <XAxis
                                 dataKey="name"
                                 axisLine={false}
                                 tickLine={false}
-                                tick={{ fill: '#64748B', fontSize: 12 }}
+                                tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
                                 dy={10}
                             />
                             <YAxis
                                 axisLine={false}
                                 tickLine={false}
-                                tick={{ fill: '#64748B', fontSize: 12 }}
+                                tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
                                 tickFormatter={(value) => `TSh ${value / 1000}k`}
                             />
                             <Tooltip
                                 cursor={{ fill: 'rgba(245, 124, 0, 0.05)' }}
                                 contentStyle={{
                                     borderRadius: '12px',
-                                    border: 'none',
+                                    backgroundColor: 'var(--card-bg)',
+                                    border: '1px solid var(--border)',
                                     boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
-                                    padding: '12px'
+                                    padding: '12px',
+                                    color: 'var(--text-primary)'
                                 }}
+                                itemStyle={{ color: 'var(--text-primary)' }}
                                 formatter={(value: any, name: any) => [`TSh ${value.toLocaleString()}`, name === 'contribution' ? 'Total Contribution' : 'Loans Issued']}
                             />
                             <Bar
@@ -242,7 +253,7 @@ export default function DashboardPage() {
                             <Bar
                                 dataKey="loans"
                                 name="loans"
-                                fill="#CBD5E1"
+                                fill="var(--text-disabled)"
                                 radius={[6, 6, 0, 0]}
                                 barSize={30}
                             />

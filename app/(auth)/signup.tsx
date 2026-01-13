@@ -12,22 +12,27 @@ import {
     StyleSheet,
     Text,
     TextInput,
+    TextStyle,
     TouchableOpacity,
     View,
+    ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors } from '../../constants/Colors';
+import { useTheme } from '../../context/ThemeContext';
 import { auth, db } from '../../services/firebase';
 import { groupCodeService } from '../../services/groupCodeService';
-import { validateEmail, validateGroupCodeFormat, validateName, validatePassword, validatePasswordMatch } from '../../services/validationService';
+import { validateEmail, validateGroupCodeFormat, validateName, validatePassword, validatePasswordMatch, validatePhoneNumber } from '../../services/validationService';
 
 export default function SignUpScreen() {
     const { t } = useTranslation();
     const router = useRouter();
+    const { colors, theme } = useTheme();
+    const styles = createStyles(colors, theme);
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [phoneNumber, setPhoneNumber] = useState('');
     const [groupCode, setGroupCode] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -45,7 +50,14 @@ export default function SignUpScreen() {
         // Validate email
         const emailValidation = validateEmail(email);
         if (!emailValidation.isValid) {
-            setError(emailValidation.error || 'Invalid email');
+            setError(emailValidation.error || t('auth.invalidEmail'));
+            return;
+        }
+
+        // Validate phone number
+        const phoneValidation = validatePhoneNumber(phoneNumber);
+        if (!phoneValidation.isValid) {
+            setError(phoneValidation.error || t('auth.invalidPhone'));
             return;
         }
 
@@ -98,31 +110,28 @@ export default function SignUpScreen() {
                 // Fallback: ID will be assigned by admin if this fails
             }
 
-            // 5. Create user document in Firestore with 'Member' role and group code
+            // 5. Create user record in Firestore
             await setDoc(doc(db, 'users', user.uid), {
                 uid: user.uid,
                 displayName: name.trim(),
                 email: email.trim().toLowerCase(),
-                role: 'Member',
-                memberId: memberId || "", // Set generated ID or empty string
+                phoneNumber: phoneNumber.trim(),
                 groupCode: groupCode.trim().toUpperCase(),
-                createdAt: new Date().toISOString(),
+                role: 'Member',
                 status: 'Active',
+                memberId: memberId || null,
+                createdAt: new Date().toISOString()
             });
-
-            // 6. Increment redemption count for the group code
-            await groupCodeService.incrementRedemptionCount(groupCode);
 
             router.replace('/(tabs)');
         } catch (error) {
             const err = error as any;
-            // Provide user-friendly error messages
             if (err.code === 'auth/email-already-in-use') {
-                setError(t('auth.alreadyHaveAccount'));
-            } else if (err.code === 'auth/weak-password') {
-                setError(t('auth.invalidPassword'));
+                setError(t('auth.emailExists'));
             } else if (err.code === 'auth/invalid-email') {
                 setError(t('auth.invalidEmail'));
+            } else if (err.code === 'auth/weak-password') {
+                setError(t('auth.weakPassword'));
             } else {
                 setError(err.message || t('common.error'));
             }
@@ -135,47 +144,44 @@ export default function SignUpScreen() {
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.container}
+            style={styles.container as ViewStyle}
         >
-            <SafeAreaView style={styles.container}>
-                <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-                    <View style={styles.content}>
+            <SafeAreaView style={styles.container as ViewStyle}>
+                <ScrollView contentContainerStyle={styles.scrollContent as ViewStyle} keyboardShouldPersistTaps="handled">
+                    <View style={styles.content as ViewStyle}>
                         {/* Header */}
-                        <View style={styles.header}>
-                            <TouchableOpacity
-                                onPress={() => router.back()}
-                                style={styles.backButton}
-                            >
-                                <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+                        <View style={styles.header as ViewStyle}>
+                            <TouchableOpacity onPress={() => router.back()} style={styles.backButton as ViewStyle}>
+                                <Ionicons name="arrow-back" size={24} color={colors.text} />
                             </TouchableOpacity>
-                            <Text style={styles.title}>{t('common.signup')}</Text>
-                            <Text style={styles.subtitle}>{t('auth.join')}</Text>
+                            <Text style={styles.title as TextStyle}>{t('common.signup')}</Text>
+                            <Text style={styles.subtitle as TextStyle}>{t('auth.createAccountSubtitle')}</Text>
                         </View>
 
                         {/* Form */}
-                        <View style={styles.form}>
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.label}>{t('common.fullName')}</Text>
-                                <View style={styles.inputContainer}>
-                                    <Ionicons name="person-outline" size={20} color={Colors.textSecondary} />
+                        <View style={styles.form as ViewStyle}>
+                            <View style={styles.inputGroup as ViewStyle}>
+                                <Text style={styles.label as TextStyle}>{t('common.name')}</Text>
+                                <View style={styles.inputContainer as ViewStyle}>
+                                    <Ionicons name="person-outline" size={20} color={colors.textSecondary} />
                                     <TextInput
-                                        style={styles.input}
-                                        placeholder="John Doe"
-                                        placeholderTextColor={Colors.textDisabled}
+                                        style={styles.input as TextStyle}
+                                        placeholder={t('common.fullName')}
+                                        placeholderTextColor={colors.textSecondary}
                                         value={name}
                                         onChangeText={setName}
                                     />
                                 </View>
                             </View>
 
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.label}>{t('common.email')}</Text>
-                                <View style={styles.inputContainer}>
-                                    <Ionicons name="mail-outline" size={20} color={Colors.textSecondary} />
+                            <View style={styles.inputGroup as ViewStyle}>
+                                <Text style={styles.label as TextStyle}>{t('common.email')}</Text>
+                                <View style={styles.inputContainer as ViewStyle}>
+                                    <Ionicons name="mail-outline" size={20} color={colors.textSecondary} />
                                     <TextInput
-                                        style={styles.input}
+                                        style={styles.input as TextStyle}
                                         placeholder="name@example.com"
-                                        placeholderTextColor={Colors.textDisabled}
+                                        placeholderTextColor={colors.textSecondary}
                                         value={email}
                                         onChangeText={setEmail}
                                         autoCapitalize="none"
@@ -184,91 +190,106 @@ export default function SignUpScreen() {
                                 </View>
                             </View>
 
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.label}>{t('common.password')}</Text>
-                                <View style={styles.inputContainer}>
-                                    <Ionicons name="lock-closed-outline" size={20} color={Colors.textSecondary} />
+                            <View style={styles.inputGroup as ViewStyle}>
+                                <Text style={styles.label as TextStyle}>{t('common.phone')}</Text>
+                                <View style={styles.inputContainer as ViewStyle}>
+                                    <Ionicons name="call-outline" size={20} color={colors.textSecondary} />
                                     <TextInput
-                                        style={styles.input}
-                                        placeholder="••••••••"
-                                        placeholderTextColor={Colors.textDisabled}
-                                        value={password}
-                                        onChangeText={setPassword}
-                                        secureTextEntry={!showPassword}
+                                        style={styles.input as TextStyle}
+                                        placeholder="07XX XXX XXX"
+                                        placeholderTextColor={colors.textSecondary}
+                                        value={phoneNumber}
+                                        onChangeText={setPhoneNumber}
+                                        keyboardType="phone-pad"
                                     />
-                                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{ padding: 4 }}>
-                                        <Ionicons
-                                            name={showPassword ? "eye-outline" : "eye-off-outline"}
-                                            size={20}
-                                            color={Colors.textSecondary}
-                                        />
-                                    </TouchableOpacity>
                                 </View>
                             </View>
 
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.label}>{t('common.confirmPassword')}</Text>
-                                <View style={styles.inputContainer}>
-                                    <Ionicons name="lock-closed-outline" size={20} color={Colors.textSecondary} />
+                            <View style={styles.inputGroup as ViewStyle}>
+                                <Text style={styles.label as TextStyle}>{t('common.groupCode')}</Text>
+                                <View style={styles.inputContainer as ViewStyle}>
+                                    <Ionicons name="people-outline" size={20} color={colors.textSecondary} />
                                     <TextInput
-                                        style={styles.input}
-                                        placeholder="••••••••"
-                                        placeholderTextColor={Colors.textDisabled}
-                                        value={confirmPassword}
-                                        onChangeText={setConfirmPassword}
-                                        secureTextEntry={!showConfirmPassword}
-                                    />
-                                    <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={{ padding: 4 }}>
-                                        <Ionicons
-                                            name={showConfirmPassword ? "eye-outline" : "eye-off-outline"}
-                                            size={20}
-                                            color={Colors.textSecondary}
-                                        />
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.label}>{t('common.groupCode')}</Text>
-                                <View style={styles.inputContainer}>
-                                    <Ionicons name="key-outline" size={20} color={Colors.textSecondary} />
-                                    <TextInput
-                                        style={styles.input}
-                                        placeholder="e.g., SIMB2025"
-                                        placeholderTextColor={Colors.textDisabled}
+                                        style={styles.input as TextStyle}
+                                        placeholder={t('common.groupCode')}
+                                        placeholderTextColor={colors.textSecondary}
                                         value={groupCode}
                                         onChangeText={setGroupCode}
                                         autoCapitalize="characters"
                                     />
                                 </View>
-                                <Text style={styles.hint}>{t('auth.groupCodeHint')}</Text>
+                                <Text style={styles.helperText as TextStyle}>{t('auth.groupCodeHint')}</Text>
+                            </View>
+
+                            <View style={styles.inputGroup as ViewStyle}>
+                                <Text style={styles.label as TextStyle}>{t('common.password')}</Text>
+                                <View style={styles.inputContainer as ViewStyle}>
+                                    <Ionicons name="lock-closed-outline" size={20} color={colors.textSecondary} />
+                                    <TextInput
+                                        style={styles.input as TextStyle}
+                                        placeholder="••••••••"
+                                        placeholderTextColor={colors.textSecondary}
+                                        value={password}
+                                        onChangeText={setPassword}
+                                        secureTextEntry={!showPassword}
+                                    />
+                                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                                        <Ionicons
+                                            name={showPassword ? "eye-off-outline" : "eye-outline"}
+                                            size={20}
+                                            color={colors.textSecondary}
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
+                            <View style={styles.inputGroup as ViewStyle}>
+                                <Text style={styles.label as TextStyle}>{t('auth.confirmPassword')}</Text>
+                                <View style={styles.inputContainer as ViewStyle}>
+                                    <Ionicons name="lock-closed-outline" size={20} color={colors.textSecondary} />
+                                    <TextInput
+                                        style={styles.input as TextStyle}
+                                        placeholder="••••••••"
+                                        placeholderTextColor={colors.textSecondary}
+                                        value={confirmPassword}
+                                        onChangeText={setConfirmPassword}
+                                        secureTextEntry={!showConfirmPassword}
+                                    />
+                                    <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                                        <Ionicons
+                                            name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
+                                            size={20}
+                                            color={colors.textSecondary}
+                                        />
+                                    </TouchableOpacity>
+                                </View>
                             </View>
 
                             {error ? (
-                                <Text style={styles.error}>{error}</Text>
+                                <View style={styles.errorContainer as ViewStyle}>
+                                    <Ionicons name="alert-circle-outline" size={20} color={colors.danger} />
+                                    <Text style={styles.errorText as TextStyle}>{error}</Text>
+                                </View>
                             ) : null}
 
                             <TouchableOpacity
+                                style={[styles.button, loading && styles.buttonDisabled]}
                                 onPress={handleSignUp}
                                 disabled={loading}
-                                style={styles.button}
                             >
                                 {loading ? (
                                     <ActivityIndicator color="white" />
                                 ) : (
-                                    <View style={styles.buttonContent}>
-                                        <Text style={styles.buttonText}>{t('common.signup')}</Text>
-                                        <Ionicons name="person-add-outline" size={20} color="white" />
-                                    </View>
+                                    <Text style={styles.buttonText as TextStyle}>{t('common.signup')}</Text>
                                 )}
                             </TouchableOpacity>
-                        </View>
 
-                        <View style={styles.footer}>
-                            <Text style={styles.footerText}>{t('auth.alreadyHaveAccount')} </Text>
-                            <TouchableOpacity onPress={() => router.push('/login' as any)}>
-                                <Text style={styles.linkText}>{t('common.login')}</Text>
-                            </TouchableOpacity>
+                            <View style={styles.footer as ViewStyle}>
+                                <Text style={styles.footerText as TextStyle}>{t('auth.alreadyHaveAccount')}</Text>
+                                <TouchableOpacity onPress={() => router.back()}>
+                                    <Text style={styles.loginText as TextStyle}>{t('common.login')}</Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </View>
                 </ScrollView>
@@ -277,119 +298,131 @@ export default function SignUpScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any, theme: string) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.background,
     },
     scrollContent: {
         flexGrow: 1,
     },
     content: {
         flex: 1,
-        paddingHorizontal: 32,
-        paddingVertical: 48,
+        paddingHorizontal: 24,
+        paddingTop: 20,
+        paddingBottom: 40,
     },
     header: {
-        marginTop: 20,
-        marginBottom: 40,
+        marginBottom: 32,
     },
     backButton: {
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: Colors.backgroundMuted,
+        backgroundColor: colors.card,
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 24,
+        borderWidth: 1,
+        borderColor: colors.border,
     },
     title: {
-        color: Colors.textPrimary,
-        fontSize: 30,
-        fontWeight: 'bold',
+        fontSize: 32,
+        fontWeight: '900',
+        color: colors.text,
+        letterSpacing: -1,
+        marginBottom: 8,
     },
     subtitle: {
-        color: Colors.textSecondary,
         fontSize: 16,
-        marginTop: 8,
+        color: colors.textSecondary,
+        lineHeight: 24,
     },
     form: {
-        gap: 16,
+        gap: 20,
     },
     inputGroup: {
-        marginBottom: 16,
+        gap: 8,
     },
     label: {
         fontSize: 14,
-        fontWeight: '600',
-        marginBottom: 8,
+        fontWeight: '700',
+        color: colors.text,
         marginLeft: 4,
-        color: Colors.textSecondary,
     },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: Colors.backgroundMuted,
-        borderRadius: 12,
+        backgroundColor: colors.card,
+        borderRadius: 16,
         paddingHorizontal: 16,
-        paddingVertical: 12,
+        height: 56,
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: colors.border,
     },
     input: {
         flex: 1,
-        marginLeft: 12,
+        paddingHorizontal: 12,
         fontSize: 16,
-        color: Colors.textPrimary,
+        color: colors.text,
     },
-    error: {
-        color: '#EF4444',
-        fontSize: 14,
-        marginTop: 8,
-        textAlign: 'center',
+    helperText: {
+        fontSize: 12,
+        color: colors.textSecondary,
+        marginLeft: 4,
     },
-    button: {
-        backgroundColor: Colors.primary,
-        borderRadius: 12,
-        paddingVertical: 16,
-        marginTop: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
-        shadowColor: Colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
-    },
-    buttonContent: {
+    errorContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+        backgroundColor: colors.dangerBackground,
+        padding: 12,
+        borderRadius: 12,
         gap: 8,
+        borderWidth: 1,
+        borderColor: colors.dangerBorder,
+    },
+    errorText: {
+        color: colors.danger,
+        fontSize: 14,
+        fontWeight: '600',
+        flex: 1,
+    },
+    button: {
+        backgroundColor: colors.primary,
+        borderRadius: 16,
+        height: 56,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 10,
+        elevation: 4,
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+    },
+    buttonDisabled: {
+        opacity: 0.7,
     },
     buttonText: {
-        color: '#FFFFFF',
-        fontWeight: 'bold',
+        color: 'white',
         fontSize: 18,
+        fontWeight: '900',
+        letterSpacing: 0.5,
     },
     footer: {
         flexDirection: 'row',
         justifyContent: 'center',
-        marginTop: 32,
+        alignItems: 'center',
+        marginTop: 20,
+        gap: 8,
     },
     footerText: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 14,
     },
-    linkText: {
-        color: Colors.primary,
-        fontWeight: 'bold',
+    loginText: {
+        color: colors.primary,
         fontSize: 14,
-    },
-    hint: {
-        fontSize: 12,
-        color: Colors.textSecondary,
-        marginTop: 6,
-        marginLeft: 4,
-        fontStyle: 'italic',
+        fontWeight: '900',
     },
 });

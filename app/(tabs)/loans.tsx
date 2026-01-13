@@ -1,6 +1,6 @@
 
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -15,14 +15,16 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import { Colors } from '../../constants/Colors';
+import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../services/AuthContext';
 import { loanRequestService } from '../../services/loanRequestService';
 import { LoanRequest } from '../../types';
 
 export default function LoansScreen() {
     const { user, role } = useAuth();
+    const { colors, theme } = useTheme();
     const isAdmin = role === 'Admin';
+    const styles = createStyles(colors, theme);
 
     const [requests, setRequests] = useState<LoanRequest[]>([]);
     const [loading, setLoading] = useState(true);
@@ -56,21 +58,7 @@ export default function LoansScreen() {
     const [pickerOptions, setPickerOptions] = useState<{ label: string, value: any }[]>([]);
     const [onPickerSelect, setOnPickerSelect] = useState<(value: any) => void>(() => { });
 
-    useEffect(() => {
-        if (!user) return;
-
-        loadRequests();
-        const unsubscribe = loanRequestService.subscribeToRequests((data) => {
-            if (isAdmin) {
-                setRequests(data);
-            } else {
-                setRequests(data.filter(r => r.memberId === user.uid));
-            }
-        });
-        return () => unsubscribe();
-    }, [isAdmin, user]);
-
-    const loadRequests = async () => {
+    const loadRequests = useCallback(async () => {
         if (!user) return;
         try {
             setLoading(true);
@@ -83,7 +71,21 @@ export default function LoansScreen() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [isAdmin, user]);
+
+    useEffect(() => {
+        if (!user) return;
+
+        loadRequests();
+        const unsubscribe = loanRequestService.subscribeToRequests((data) => {
+            if (isAdmin) {
+                setRequests(data);
+            } else {
+                setRequests(data.filter(r => r.memberId === user.uid));
+            }
+        });
+        return () => unsubscribe();
+    }, [isAdmin, user, loadRequests]);
 
     const onRefresh = async () => {
         setRefreshing(true);
@@ -97,8 +99,8 @@ export default function LoansScreen() {
             Alert.alert("Error", "Please enter a valid amount");
             return;
         }
-        if (!description || description.trim() === '') {
-            Alert.alert("Error", "Please provide the purpose of the loan");
+        if (!description || description.trim().length < 5) {
+            Alert.alert("Error", "Please provide a more detailed purpose for this loan (at least 5 characters)");
             return;
         }
 
@@ -204,10 +206,10 @@ export default function LoansScreen() {
         const isExpanded = expandedLoanId === request.id;
 
         return (
-            <TouchableOpacity 
-                key={request.id} 
+            <TouchableOpacity
+                key={request.id}
                 style={styles.card}
-                onPress={() => setExpandedLoanId(isExpanded ? null : request.id)}
+                onPress={() => setExpandedLoanId(isExpanded ? null : (request.id ?? null))}
                 activeOpacity={0.7}
             >
                 <View style={styles.cardHeader}>
@@ -217,10 +219,10 @@ export default function LoansScreen() {
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                         {renderApprovalBadge(request.status)}
-                        <Ionicons 
-                            name={isExpanded ? 'chevron-up' : 'chevron-down'} 
-                            size={18} 
-                            color="#64748B" 
+                        <Ionicons
+                            name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                            size={18}
+                            color="#64748B"
                         />
                     </View>
                 </View>
@@ -387,9 +389,9 @@ export default function LoansScreen() {
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             >
                 {!user ? (
-                    <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 50 }} />
+                    <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 50 }} />
                 ) : loading && !refreshing ? (
-                    <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 50 }} />
+                    <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 50 }} />
                 ) : filteredRequests.length === 0 ? (
                     <View style={styles.emptyContainer}>
                         <Ionicons name="search-outline" size={64} color="#CBD5E1" />
@@ -582,32 +584,32 @@ export default function LoansScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any, theme: string) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.background,
     },
     header: {
         paddingTop: 60,
         paddingBottom: 20,
         paddingHorizontal: 24,
-        backgroundColor: 'white',
+        backgroundColor: colors.card,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
+        borderBottomColor: colors.border,
     },
     title: {
         fontSize: 24,
         fontWeight: '900',
-        color: '#0F172A',
+        color: colors.text,
     },
     addBtn: {
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: Colors.primary,
+        backgroundColor: colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -615,7 +617,7 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     card: {
-        backgroundColor: 'white',
+        backgroundColor: colors.card,
         borderRadius: 20,
         padding: 20,
         marginBottom: 16,
@@ -634,11 +636,11 @@ const styles = StyleSheet.create({
     memberName: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#0F172A',
+        color: colors.text,
     },
     requestDate: {
         fontSize: 12,
-        color: '#94A3B8',
+        color: colors.textSecondary,
         marginTop: 2,
     },
     badge: {
@@ -648,71 +650,73 @@ const styles = StyleSheet.create({
     },
     badgeText: {
         fontSize: 10,
-        fontWeight: '900',
-    },
-    cardBody: {
-        gap: 12,
+        fontWeight: '800',
     },
     collapsedCardBody: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingBottom: 8,
+        borderTopWidth: 1,
+        borderTopColor: colors.border,
+        paddingTop: 12,
     },
     compactRow: {
         flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        gap: 12,
     },
     compactLabel: {
         fontSize: 13,
+        color: colors.textSecondary,
         fontWeight: '600',
-        color: '#64748B',
+    },
+    cardBody: {
+        borderTopWidth: 1,
+        borderTopColor: colors.border,
+        paddingTop: 16,
     },
     row: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
+        marginBottom: 12,
     },
     label: {
         fontSize: 14,
-        color: '#64748B',
+        color: colors.textSecondary,
     },
     value: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#0F172A',
+        color: colors.text,
     },
     amountText: {
         fontSize: 16,
         fontWeight: '900',
-        color: Colors.primary,
+        color: colors.primary,
     },
     descriptionBox: {
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.backgroundMuted,
         padding: 12,
         borderRadius: 12,
     },
     descriptionLabel: {
         fontSize: 11,
-        color: '#94A3B8',
+        color: colors.textSecondary,
         marginBottom: 4,
     },
     descriptionText: {
-        fontSize: 13,
-        color: '#334155',
+        fontSize: 14,
+        lineHeight: 20,
+        color: colors.text,
         fontStyle: 'italic',
     },
     approvalTracker: {
-        marginTop: 10,
+        marginTop: 16,
         paddingTop: 10,
         borderTopWidth: 1,
-        borderTopColor: '#F1F5F9',
+        borderTopColor: colors.border,
     },
     trackerTitle: {
         fontSize: 12,
         fontWeight: '700',
-        color: '#64748B',
+        color: colors.textSecondary,
         marginBottom: 8,
     },
     adminList: {
@@ -724,7 +728,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        backgroundColor: '#F1F5F9',
+        backgroundColor: colors.backgroundMuted,
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 8,
@@ -732,59 +736,117 @@ const styles = StyleSheet.create({
     adminName: {
         fontSize: 11,
         fontWeight: '500',
-        color: '#475569',
+        color: colors.text,
     },
     actionRow: {
         flexDirection: 'row',
         gap: 12,
-        marginTop: 20,
+        marginTop: 24,
     },
     actionBtn: {
         flex: 1,
-        flexDirection: 'row',
         height: 48,
         borderRadius: 12,
+        flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
         gap: 8,
     },
     approveBtn: {
-        backgroundColor: '#10B981',
+        backgroundColor: colors.success,
     },
     rejectBtn: {
-        backgroundColor: '#EF4444',
+        backgroundColor: colors.danger,
     },
     actionBtnText: {
         color: 'white',
         fontWeight: 'bold',
+        fontSize: 14,
     },
     votedNotice: {
         marginTop: 16,
         padding: 10,
-        backgroundColor: '#F0FDFA',
+        backgroundColor: colors.backgroundMuted,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#CCFBF1',
+        borderColor: colors.border,
     },
     votedText: {
         fontSize: 12,
-        color: '#0D9488',
+        color: colors.textSecondary,
         textAlign: 'center',
         fontStyle: 'italic',
     },
+    paginationContainer: {
+        marginTop: 20,
+        paddingBottom: 40,
+    },
+    pageInfo: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    pageInfoText: {
+        fontSize: 13,
+        color: colors.textSecondary,
+    },
+    limitPicker: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: colors.backgroundMuted,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+    },
+    limitText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: colors.textSecondary,
+    },
+    pageBtns: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 16,
+    },
+    pageBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 12,
+        backgroundColor: colors.card,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    pageBtnDisabled: {
+        opacity: 0.5,
+    },
+    pageNum: {
+        minWidth: 100,
+        alignItems: 'center',
+    },
+    pageNumText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: colors.text,
+    },
     emptyContainer: {
+        flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
         marginTop: 80,
     },
     emptyText: {
         fontSize: 16,
-        color: '#94A3B8',
+        color: colors.textSecondary,
         marginTop: 16,
         marginBottom: 24,
     },
     emptyBtn: {
-        backgroundColor: Colors.primary,
+        backgroundColor: colors.primary,
         paddingHorizontal: 24,
         paddingVertical: 12,
         borderRadius: 12,
@@ -795,11 +857,11 @@ const styles = StyleSheet.create({
     },
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(15, 23, 42, 0.5)',
+        backgroundColor: 'rgba(0,0,0,0.5)',
         justifyContent: 'flex-end',
     },
     modalContent: {
-        backgroundColor: 'white',
+        backgroundColor: colors.card,
         borderTopLeftRadius: 32,
         borderTopRightRadius: 32,
         height: '80%',
@@ -814,24 +876,24 @@ const styles = StyleSheet.create({
     modalTitle: {
         fontSize: 20,
         fontWeight: '900',
-        color: '#0F172A',
+        color: colors.text,
     },
     modalBody: {},
     inputLabel: {
         fontSize: 14,
         fontWeight: '700',
-        color: '#475569',
+        color: colors.textSecondary,
         marginBottom: 8,
         marginTop: 16,
     },
     input: {
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.backgroundMuted,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: colors.border,
         borderRadius: 12,
         padding: 16,
         fontSize: 16,
-        color: '#0F172A',
+        color: colors.text,
     },
     textArea: {
         height: 100,
@@ -846,27 +908,28 @@ const styles = StyleSheet.create({
         padding: 16,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: colors.border,
         alignItems: 'center',
+        backgroundColor: colors.card,
     },
     typeBtnActive: {
-        borderColor: Colors.primary,
-        backgroundColor: '#FFF7ED',
+        borderColor: colors.primary,
+        backgroundColor: theme === 'dark' ? 'rgba(245, 124, 0, 0.1)' : '#FFF7ED',
     },
     typeBtnText: {
         fontWeight: '700',
-        color: '#64748B',
+        color: colors.textSecondary,
     },
     typeBtnTextActive: {
-        color: Colors.primary,
+        color: colors.primary,
     },
     interestNote: {
         fontSize: 10,
-        color: '#F97316',
+        color: colors.warning,
         marginTop: 4,
     },
     submitBtn: {
-        backgroundColor: Colors.primary,
+        backgroundColor: colors.primary,
         height: 56,
         borderRadius: 16,
         justifyContent: 'center',
@@ -880,23 +943,23 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     rejectionBox: {
-        backgroundColor: '#FEF2F2',
+        backgroundColor: theme === 'dark' ? 'rgba(239, 68, 68, 0.1)' : '#FEF2F2',
         padding: 12,
         borderRadius: 10,
         borderLeftWidth: 4,
-        borderLeftColor: '#EF4444',
+        borderLeftColor: colors.danger,
     },
     rejectionText: {
         fontSize: 12,
-        color: '#B91C1C',
+        color: colors.danger,
         fontWeight: '500',
     },
     filterBar: {
-        backgroundColor: 'white',
+        backgroundColor: colors.card,
         paddingHorizontal: 20,
         paddingBottom: 15,
         borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
+        borderBottomColor: colors.border,
         gap: 10,
     },
     filterRow: {
@@ -906,95 +969,33 @@ const styles = StyleSheet.create({
     inputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.backgroundMuted,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: colors.border,
         borderRadius: 8,
         paddingHorizontal: 10,
-        height: 40,
+        height: 44,
     },
     inputIcon: {
-        marginRight: 6,
+        marginRight: 8,
     },
     filterInput: {
         flex: 1,
-        fontSize: 13,
-        color: '#0F172A',
-        padding: 0,
-    },
-    paginationContainer: {
-        marginTop: 10,
-        marginBottom: 30,
-        paddingTop: 20,
-        borderTopWidth: 1,
-        borderTopColor: '#F1F5F9',
-    },
-    pageInfo: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 15,
-    },
-    pageInfoText: {
-        fontSize: 12,
-        color: '#64748B',
-    },
-    limitPicker: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        backgroundColor: 'white',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 6,
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-    },
-    limitText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#0F172A',
-    },
-    pageBtns: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 15,
-    },
-    pageBtn: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: 'white',
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-    },
-    pageBtnDisabled: {
-        opacity: 0.5,
-    },
-    pageNum: {
-        minWidth: 100,
-        alignItems: 'center',
-    },
-    pageNumText: {
         fontSize: 14,
-        fontWeight: '700',
-        color: '#0F172A',
+        color: colors.text,
+        height: '100%',
     },
     pickerItem: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 16,
-        paddingHorizontal: 12,
+        padding: 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
+        borderBottomColor: colors.border,
     },
     pickerItemText: {
         fontSize: 16,
-        color: '#0F172A',
+        color: colors.text,
         fontWeight: '500',
-    }
+    },
 });

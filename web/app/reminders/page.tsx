@@ -170,7 +170,7 @@ export default function RemindersPage() {
         <AppLayout>
             <div style={{ minHeight: '100vh', backgroundColor: 'var(--background-muted)' }}>
                 {/* Header */}
-                <div style={{ backgroundColor: 'white', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)' }}>
+                <div style={{ backgroundColor: 'var(--card-bg)', borderBottom: '1px solid var(--border)', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)' }}>
                     <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '2rem 1rem', paddingTop: '2rem' }}>
                         <h1 style={{ fontSize: '1.875rem', fontWeight: '900', letterSpacing: '-0.5px', color: 'var(--text-primary)' }}>Send Reminders</h1>
                         <p style={{ marginTop: '0.5rem', color: 'var(--text-secondary)' }}>Manage email notifications for members and admins</p>
@@ -183,9 +183,9 @@ export default function RemindersPage() {
                         <div style={{
                             padding: '1rem',
                             borderRadius: 'var(--radius)',
-                            backgroundColor: message.type === 'success' ? '#ECFDF5' : '#FEF2F2',
-                            border: `1px solid ${message.type === 'success' ? '#BBCF47' : '#FECACA'}`,
-                            color: message.type === 'success' ? '#065F46' : '#7F1D1D'
+                            backgroundColor: message.type === 'success' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                            border: `1px solid ${message.type === 'success' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
+                            color: message.type === 'success' ? '#10B981' : '#EF4444'
                         }}>
                             <p>{message.text}</p>
                         </div>
@@ -208,7 +208,7 @@ export default function RemindersPage() {
                                         Remind all members to contribute their monthly savings
                                     </p>
                                 </div>
-                                <div style={{ backgroundColor: '#ECFDF5', padding: '0.75rem', borderRadius: 'var(--radius)' }}>
+                                <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: '0.75rem', borderRadius: 'var(--radius)' }}>
                                     <svg style={{ width: '1.5rem', height: '1.5rem', color: '#10B981' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
@@ -256,8 +256,8 @@ export default function RemindersPage() {
                                         Remind members with outstanding loans to make repayments
                                     </p>
                                 </div>
-                                <div style={{ backgroundColor: '#FEE2E2', padding: '0.75rem', borderRadius: 'var(--radius)' }}>
-                                    <svg style={{ width: '1.5rem', height: '1.5rem', color: '#DC2626' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '0.75rem', borderRadius: 'var(--radius)' }}>
+                                    <svg style={{ width: '1.5rem', height: '1.5rem', color: '#EF4444' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4v2m0 4v2m-6-4a2 2 0 11-4 0 2 2 0 014 0zM7 20a7 7 0 1114 0M17 12a5 5 0 11-10 0 5 5 0 0110 0z" />
                                     </svg>
                                 </div>
@@ -348,23 +348,23 @@ export default function RemindersPage() {
 
                     {/* Information Section */}
                     <div style={{
-                        backgroundColor: '#EFF6FF',
-                        border: '1px solid #BFDBFE',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        border: '1px solid rgba(59, 130, 246, 0.2)',
                         borderRadius: 'var(--radius)',
                         padding: '1.5rem',
                         marginTop: '2rem'
                     }}>
-                        <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#1E40AF', marginBottom: '0.75rem' }}>📧 How Email Reminders Work</h3>
+                        <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#3B82F6', marginBottom: '0.75rem' }}>📧 How Email Reminders Work</h3>
                         <div style={{
                             display: 'grid',
                             gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
                             gap: '1.5rem',
                             fontSize: '0.875rem',
-                            color: '#1E3A8A'
+                            color: 'var(--text-secondary)'
                         }}>
                             <div>
-                                <h4 style={{ fontWeight: '600', marginBottom: '0.5rem' }}>Contribution Reminder</h4>
-                                <ul style={{ listStyle: 'none', padding: 0, color: '#1E40AF' }}>
+                                <h4 style={{ fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Contribution Reminder</h4>
+                                <ul style={{ listStyle: 'none', padding: 0, color: 'var(--text-secondary)' }}>
                                     <li>• Sends to all active members</li>
                                     <li>• Uses BCC for privacy (members can't see others)</li>
                                     <li>• Single batch email to all</li>
@@ -372,8 +372,8 @@ export default function RemindersPage() {
                                 </ul>
                             </div>
                             <div>
-                                <h4 style={{ fontWeight: '600', marginBottom: '0.5rem' }}>Loan Reminder</h4>
-                                <ul style={{ listStyle: 'none', padding: 0, color: '#1E40AF' }}>
+                                <h4 style={{ fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Loan Reminder</h4>
+                                <ul style={{ listStyle: 'none', padding: 0, color: 'var(--text-secondary)' }}>
                                     <li>• Sends only to members with outstanding loans</li>
                                     <li>• Individual personalized emails</li>
                                     <li>• Includes current loan balance for each loan</li>

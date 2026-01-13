@@ -16,19 +16,40 @@ function initFirebaseAdmin() {
     return admin;
 }
 
+/**
+ * POST /api/email/loan-notification
+ * Sends loan-related email notifications
+ * 
+ * Authentication: Requires Bearer token with valid admin user
+ */
 export async function POST(request: NextRequest) {
-    initFirebaseAdmin();
+    const app = initFirebaseAdmin();
+
+    // Verify authentication
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return NextResponse.json({ error: 'Unauthorized - Missing token' }, { status: 401 });
     }
 
+    const token = authHeader.substring(7);
+
     try {
+        // Verify Firebase ID token
+        const decodedToken = await admin.auth().verifyIdToken(token);
+        const db = admin.firestore();
+
+        // SECURITY: Verify user has Admin role
+        const userDoc = await db.collection('users').doc(decodedToken.uid).get();
+        if (!userDoc.exists || userDoc.data()?.role !== 'Admin') {
+            return NextResponse.json(
+                { error: 'Forbidden - Admin access required' },
+                { status: 403 }
+            );
+        }
+
         const body = await request.json();
         const { type, payload } = body;
         // type: 'request' | 'decision'
-
-        const db = admin.firestore();
 
         if (type === 'request') {
             const { memberName, amount, loanType } = payload;
@@ -43,8 +64,8 @@ export async function POST(request: NextRequest) {
         } else if (type === 'decision') {
             const { memberId, status, loanType, amount, reason } = payload;
 
-            const userDoc = await db.collection('users').doc(memberId).get();
-            const userData = userDoc.data();
+            const memberDoc = await db.collection('users').doc(memberId).get();
+            const userData = memberDoc.data();
 
             if (userData?.email) {
                 await sendLoanDecisionNotification(
@@ -61,6 +82,12 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true });
     } catch (error: any) {
         console.error('Email API Error:', error);
+
+        // Check if it's an auth error
+        if (error.code === 'auth/invalid-id-token' || error.code === 'auth/argument-error') {
+            return NextResponse.json({ error: 'Invalid authorization token' }, { status: 401 });
+        }
+
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

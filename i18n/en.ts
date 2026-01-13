@@ -21,6 +21,7 @@ export const en = {
         next: "Next",
         confirm: "Confirm",
         send: "Send",
+        phone: "Phone Number",
     },
     auth: {
         forgotPassword: "Forgot Password?",
@@ -38,6 +39,8 @@ export const en = {
         resetLinkSent: "We've sent a password reset link to:",
         spamFolderHint: "If you don't see the email within a few minutes, please check your spam folder.",
         tryAnotherEmail: "Try another email",
+        phoneRequired: "Phone number is required",
+        invalidPhone: "Please enter a valid phone number",
     },
     dashboard: {
         title: "Dashboard",

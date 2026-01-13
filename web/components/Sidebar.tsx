@@ -1,44 +1,34 @@
 "use client";
 
-import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
 import {
     BarChart3,
     ChevronLeft,
     ChevronRight,
     LayoutDashboard,
     Mail,
+    Moon,
     PlusCircle,
     Settings,
     Shield,
+    Sun,
     Users
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { auth, db } from "../lib/firebase";
+import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 
 interface SidebarProps {
     isMinimized: boolean;
     setIsMinimized: (val: boolean) => void;
+    isMobile?: boolean; // Optional to avoid breaking other usages immediately
 }
 
-export default function Sidebar({ isMinimized, setIsMinimized }: SidebarProps) {
+export default function Sidebar({ isMinimized, setIsMinimized, isMobile = false }: SidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
-    const [role, setRole] = useState<string | null>(null);
-
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                const userDoc = await getDoc(doc(db, 'users', user.uid));
-                if (userDoc.exists()) {
-                    setRole(userDoc.data().role);
-                }
-            }
-        });
-        return () => unsubscribe();
-    }, []);
+    const { role } = useAuth();
+    const { theme, toggleTheme } = useTheme();
 
     const menuItems = [
         { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -57,20 +47,27 @@ export default function Sidebar({ isMinimized, setIsMinimized }: SidebarProps) {
         router.push('/settings');
     };
 
+    const sidebarWidth = isMobile
+        ? (isMinimized ? '0px' : '260px')
+        : (isMinimized ? '80px' : '260px');
+
     return (
         <div
             style={{
-                width: isMinimized ? '80px' : '260px',
+                width: sidebarWidth,
                 height: '100vh',
-                backgroundColor: '#1E293B',
-                color: 'white',
-                transition: 'width 0.3s ease',
+                backgroundColor: 'var(--card-bg)',
+                color: 'var(--text-primary)',
+                borderRight: '1px solid var(--border)',
+                transition: 'width 0.3s ease, transform 0.3s ease',
                 display: 'flex',
                 flexDirection: 'column',
                 position: 'fixed',
                 left: 0,
                 top: 0,
-                zIndex: 50
+                zIndex: 50,
+                overflow: 'hidden', // Hide content when width is 0
+                transform: isMobile && isMinimized ? 'translateX(-100%)' : 'translateX(0)',
             }}
         >
             <div style={{ height: '80px', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: isMinimized ? 'center' : 'space-between' }}>
@@ -98,10 +95,16 @@ export default function Sidebar({ isMinimized, setIsMinimized }: SidebarProps) {
             <nav style={{ flex: 1, padding: '12px' }}>
                 {menuItems.map((item) => {
                     const isActive = pathname === item.href;
+                    const handleItemClick = () => {
+                        if (isMobile) {
+                            setIsMinimized(true);
+                        }
+                    };
                     return (
                         <Link
                             key={item.href}
                             href={item.href}
+                            onClick={handleItemClick}
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',
@@ -109,8 +112,8 @@ export default function Sidebar({ isMinimized, setIsMinimized }: SidebarProps) {
                                 marginBottom: '8px',
                                 borderRadius: '12px',
                                 textDecoration: 'none',
-                                color: isActive ? 'white' : '#94A3B8',
-                                backgroundColor: isActive ? '#F57C00' : 'transparent',
+                                color: isActive ? 'white' : 'var(--text-secondary)',
+                                backgroundColor: isActive ? 'var(--primary)' : 'transparent',
                                 justifyContent: isMinimized ? 'center' : 'flex-start',
                                 transition: 'all 0.2s',
                                 boxShadow: isActive ? '0 4px 12px rgba(245, 124, 0, 0.3)' : 'none'
@@ -123,7 +126,34 @@ export default function Sidebar({ isMinimized, setIsMinimized }: SidebarProps) {
                 })}
             </nav>
 
-            <div style={{ padding: '12px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            <div style={{ padding: '12px', borderTop: '1px solid var(--border)' }}>
+                <button
+                    onClick={toggleTheme}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        width: '100%',
+                        padding: '14px 16px',
+                        borderRadius: '12px',
+                        color: 'var(--text-secondary)',
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        justifyContent: isMinimized ? 'center' : 'flex-start',
+                        transition: 'all 0.2s',
+                        marginBottom: '8px'
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--background-muted)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                >
+                    {theme === 'dark' ? (
+                        <Moon size={20} style={{ marginRight: isMinimized ? 0 : '12px' }} />
+                    ) : (
+                        <Sun size={20} style={{ marginRight: isMinimized ? 0 : '12px' }} />
+                    )}
+                    {!isMinimized && <span style={{ fontWeight: '600', fontSize: '14px' }}>{theme === 'dark' ? 'Dark Mode' : 'Light Mode'}</span>}
+                </button>
+
                 <button
                     onClick={handleSettings}
                     style={{
@@ -132,15 +162,14 @@ export default function Sidebar({ isMinimized, setIsMinimized }: SidebarProps) {
                         width: '100%',
                         padding: '14px 16px',
                         borderRadius: '12px',
-                        color: '#94A3B8',
+                        color: 'var(--text-secondary)',
                         backgroundColor: 'transparent',
                         border: 'none',
                         cursor: 'pointer',
                         justifyContent: isMinimized ? 'center' : 'flex-start',
-                        transition: 'all 0.2s',
-                        borderRadius: '12px'
+                        transition: 'all 0.2s'
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)')}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--background-muted)')}
                     onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
                     <Settings size={20} style={{ marginRight: isMinimized ? 0 : '12px' }} />

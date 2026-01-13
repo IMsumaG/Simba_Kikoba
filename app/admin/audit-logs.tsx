@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Stack } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { Stack, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     KeyboardAvoidingView,
     Modal,
@@ -11,12 +12,14 @@ import {
     StyleSheet,
     Text,
     TextInput,
+    TextStyle,
     TouchableOpacity,
-    View
+    View,
+    ViewStyle
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SkeletonLoader } from '../../components/SkeletonLoader';
-import { Colors } from '../../constants/Colors';
+import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../services/AuthContext';
 import { activityLogger } from '../../services/activityLogger';
 import { memberService } from '../../services/memberService';
@@ -30,7 +33,11 @@ import { ActivityLog } from '../../types/ActivityLog';
  */
 export default function AuditLogScreen() {
     const { user: currentUser, userProfile, role } = useAuth();
+    const { colors, theme } = useTheme();
+    const router = useRouter();
+    const styles = createStyles(colors, theme);
     const isAdmin = role === 'Admin';
+    const { t } = useTranslation();
 
     const [activities, setActivities] = useState<ActivityLog[]>([]);
     const [loading, setLoading] = useState(true);
@@ -39,32 +46,24 @@ export default function AuditLogScreen() {
     const [showFilters, setShowFilters] = useState(false);
     const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null);
     const [memberIdMap, setMemberIdMap] = useState<{ [key: string]: string }>({});
-    
+
     // Filtering State
     const [statusFilter, setStatusFilter] = useState('All');
     const [typeFilter, setTypeFilter] = useState('All');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
-    
+
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
-    
+
     // Picker State
     const [pickerVisible, setPickerVisible] = useState(false);
     const [pickerTitle, setPickerTitle] = useState('');
     const [pickerOptions, setPickerOptions] = useState<{ label: string, value: any }[]>([]);
     const [onPickerSelect, setOnPickerSelect] = useState<(value: any) => void>(() => () => { });
 
-    const groupCode = userProfile?.groupCode || 'DEFAULT';
-
-    useEffect(() => {
-        if (isAdmin && userProfile) {
-            fetchActivities();
-        }
-    }, [isAdmin, userProfile]);
-
-    const fetchActivities = async () => {
+    const fetchActivities = useCallback(async () => {
         if (!isAdmin) return;
 
         setLoading(true);
@@ -97,615 +96,535 @@ export default function AuditLogScreen() {
             setLoading(false);
             setRefreshing(false);
         }
-    };
+    }, [isAdmin]);
+
+    useEffect(() => {
+        if (isAdmin && userProfile) {
+            fetchActivities();
+        }
+    }, [isAdmin, userProfile, fetchActivities]);
 
     const onRefresh = () => {
         setRefreshing(true);
         fetchActivities();
     };
 
-    // Robust Filtering Logic
+    // Filter Logic
     const filteredActivities = activities.filter(activity => {
-        const searchLower = search.toLowerCase();
-        const matchesSearch = search === '' ||
-            activity.description.toLowerCase().includes(searchLower) ||
-            activity.userName.toLowerCase().includes(searchLower) ||
-            activity.userId.toLowerCase().includes(searchLower);
+        const matchesSearch =
+            activity.userName?.toLowerCase().includes(search.toLowerCase()) ||
+            activity.activityType?.toLowerCase().includes(search.toLowerCase()) ||
+            activity.description?.toLowerCase().includes(search.toLowerCase()) ||
+            memberIdMap[activity.userId || '']?.toLowerCase().includes(search.toLowerCase());
 
-        const matchesStatus = statusFilter === 'All' || 
-            getStatusFromLog(activity).toLowerCase() === statusFilter.toLowerCase();
-            
-        const matchesType = typeFilter === 'All' || 
-            activity.activityType === typeFilter;
+        const matchesStatus = statusFilter === 'All' || activity.status === statusFilter;
+        const matchesType = typeFilter === 'All' || activity.activityType === typeFilter;
 
-        let matchesStartDate = true;
-        let matchesEndDate = true;
-        
-        const activityDate = activity.createdAtISO ? new Date(activity.createdAtISO) : new Date();
+        let matchesDate = true;
+        const createdAtDate = activity.createdAt?.toDate ? activity.createdAt.toDate() : new Date(activity.createdAtISO || '');
 
         if (startDate) {
-            const date = new Date(startDate);
-            if (!isNaN(date.getTime())) {
-                matchesStartDate = activityDate >= date;
-            }
+            matchesDate = matchesDate && createdAtDate >= new Date(startDate);
         }
         if (endDate) {
-            const date = new Date(endDate);
-            if (!isNaN(date.getTime())) {
-                const end = new Date(date);
-                end.setHours(23, 59, 59, 999);
-                matchesEndDate = activityDate <= end;
-            }
+            // End of day logic
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            matchesDate = matchesDate && createdAtDate <= end;
         }
 
-        return matchesSearch && matchesStatus && matchesType && matchesStartDate && matchesEndDate;
+        return matchesSearch && matchesStatus && matchesType && matchesDate;
     });
 
     // Pagination Logic
     const totalPages = Math.ceil(filteredActivities.length / itemsPerPage);
-    const paginatedActivities = filteredActivities.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+    const paginatedActivities = filteredActivities.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
 
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [search, statusFilter, typeFilter, startDate, endDate, itemsPerPage]);
+    const toggleExpand = (id: string) => {
+        setExpandedActivityId(expandedActivityId === id ? null : id);
+    };
 
-    const openPicker = (title: string, options: { label: string, value: any }[], onSelect: (value: any) => void) => {
+    const formatDate = (activity: ActivityLog) => {
+        const date = activity.createdAt?.toDate ? activity.createdAt.toDate() : new Date(activity.createdAtISO || '');
+        return date.toLocaleString();
+    };
+
+    const openPicker = (title: string, options: { label: string, value: any }[], currentVal: any, onSelect: (val: any) => void) => {
         setPickerTitle(title);
         setPickerOptions(options);
         setOnPickerSelect(() => onSelect);
         setPickerVisible(true);
     };
 
-    const getActivityIcon = (activityType: string): any => {
-        switch (activityType) {
-            case 'transaction_created':
-                return 'add-circle-outline';
-            case 'transaction_updated':
-                return 'create-outline';
-            case 'transaction_deleted':
-                return 'trash-outline';
-            case 'member_added':
-                return 'person-add-outline';
-            case 'member_deleted':
-                return 'person-remove-outline';
-            case 'member_status_changed':
-                return 'person-outline';
-            case 'user_login':
-                return 'log-in-outline';
-            case 'user_logout':
-                return 'log-out-outline';
-            case 'loan_approved':
-                return 'checkmark-done-circle-outline';
-            case 'loan_rejected':
-                return 'close-circle-outline';
-            case 'bulk_upload':
-                return 'cloud-upload-outline';
-            default:
-                return 'information-circle-outline';
-        }
-    };
-
-    const getActivityColor = (activityType: string): string => {
-        if (activityType.includes('deleted') || activityType.includes('rejected')) return '#EF4444';
-        if (activityType.includes('created') || activityType.includes('approved')) return '#10B981';
-        if (activityType.includes('updated')) return '#F59E0B';
-        if (activityType.includes('upload')) return '#3B82F6';
-        return Colors.primary;
-    };
-
-    const getStatusColor = (status: string): string => {
-        switch (status.toLowerCase()) {
-            case 'success':
-                return '#10B981';
-            case 'failed':
-                return '#EF4444';
-            case 'approved':
-                return '#10B981';
-            case 'rejected':
-                return '#EF4444';
-            case 'pending':
-                return '#F59E0B';
-            default:
-                return '#94A3B8';
-        }
-    };
-
-    const getStatusFromLog = (activity: ActivityLog): string => {
-        // Try to get status from changes.after first
-        if (activity.changes?.after?.status) {
-            return activity.changes.after.status;
-        }
-        // Fall back to direct status field
-        return activity.status || 'pending';
-    };
-
-    const formatDate = (dateString: string): string => {
-        if (!dateString) return 'Unknown';
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffMs = now.getTime() - date.getTime();
-        const diffMins = Math.floor(diffMs / 60000);
-        const diffHours = Math.floor(diffMs / 3600000);
-        const diffDays = Math.floor(diffMs / 86400000);
-
-        if (diffMins < 60) return `${diffMins}m ago`;
-        if (diffHours < 24) return `${diffHours}h ago`;
-        if (diffDays < 7) return `${diffDays}d ago`;
-        return date.toLocaleDateString();
-    };
-
     if (!isAdmin) {
         return (
-            <SafeAreaView style={styles.container}>
-                <Stack.Screen options={{ title: 'Audit Logs', headerShown: true }} />
-                <View style={styles.restrictedContainer}>
-                    <Ionicons name="lock-closed" size={48} color={Colors.primary} />
-                    <Text style={styles.restrictedText}>Admin Access Required</Text>
-                    <Text style={styles.restrictedSubtext}>
-                        Only administrators can view the audit log
-                    </Text>
+            <SafeAreaView style={styles.container as ViewStyle}>
+                <View style={styles.restrictedContainer as ViewStyle}>
+                    <Ionicons name="lock-closed" size={64} color={colors.danger} />
+                    <Text style={styles.restrictedText as TextStyle}>{t('common.accessDenied')}</Text>
+                    <Text style={styles.restrictedSubtext as TextStyle}>You do not have permission to view this page.</Text>
+                    <TouchableOpacity
+                        style={[styles.pageBtn, { width: 'auto', paddingHorizontal: 24, marginTop: 16 }]}
+                        onPress={() => router.back()}
+                    >
+                        <Text style={styles.pageNumText as TextStyle}>{t('common.back')}</Text>
+                    </TouchableOpacity>
                 </View>
             </SafeAreaView>
         );
     }
 
     return (
-        <SafeAreaView style={styles.container}>
-            <Stack.Screen options={{ title: 'Audit Logs', headerShown: true }} />
-            <StatusBar barStyle="dark-content" />
-            
-            {/* Header Content */}
-            <View style={styles.header}>
-                <View>
-                    <Text style={styles.title}>Audit Log</Text>
-                    <Text style={styles.subtitle}>Track all system activities</Text>
+        <SafeAreaView style={styles.container as ViewStyle}>
+            <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} />
+            <Stack.Screen options={{ headerShown: false }} />
+
+            <View style={styles.header as ViewStyle}>
+                <View style={styles.headerTop as ViewStyle}>
+                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton as ViewStyle}>
+                        <Ionicons name="arrow-back" size={24} color={colors.text} />
+                    </TouchableOpacity>
+                    <Text style={styles.title as TextStyle}>{t('auditLogs.title') || 'Audit Logs'}</Text>
+                    <TouchableOpacity
+                        style={[styles.filterToggle, showFilters && styles.filterToggleActive]}
+                        onPress={() => setShowFilters(!showFilters)}
+                    >
+                        <Ionicons name={showFilters ? "funnel" : "funnel-outline"} size={20} color={showFilters ? 'white' : colors.text} />
+                    </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                    style={[styles.filterToggle, showFilters && styles.filterToggleActive]}
-                    onPress={() => setShowFilters(!showFilters)}
-                >
-                    <Ionicons name="filter" size={20} color={showFilters ? 'white' : '#64748B'} />
-                </TouchableOpacity>
+
+                {/* Search Bar */}
+                <View style={styles.searchBarContainer as ViewStyle}>
+                    <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
+                    <TextInput
+                        style={styles.searchInput as TextStyle}
+                        placeholder={t('auditLogs.searchPlaceholder') || 'Search users, actions, or IDs...'}
+                        placeholderTextColor={colors.textSecondary}
+                        value={search}
+                        onChangeText={(val) => {
+                            setSearch(val);
+                            setCurrentPage(1);
+                        }}
+                    />
+                    {search.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearch('')}>
+                            <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
+                        </TouchableOpacity>
+                    )}
+                </View>
+
+                {/* Filters Panel */}
+                {showFilters && (
+                    <View style={styles.filtersPanel as ViewStyle}>
+                        <View style={styles.filterRow as ViewStyle}>
+                            <TouchableOpacity
+                                style={styles.filterChip as ViewStyle}
+                                onPress={() => openPicker('Filter Action Type', [
+                                    { label: 'All Actions', value: 'All' },
+                                    { label: 'Member Transaction', value: 'transaction_created' },
+                                    { label: 'Member Status', value: 'member_status_changed' },
+                                    { label: 'Member Added', value: 'member_added' },
+                                    { label: 'Member Deleted', value: 'member_deleted' },
+                                    { label: 'Login', value: 'user_login' },
+                                    { label: 'Report Generated', value: 'report_generated' },
+                                    { label: 'Loan Status', value: 'loan_approved' },
+                                ], typeFilter, setTypeFilter)}
+                            >
+                                <Text style={styles.filterChipLabel as TextStyle}>Type: </Text>
+                                <Text style={styles.filterChipValue as TextStyle} numberOfLines={1}>{typeFilter}</Text>
+                                <Ionicons name="chevron-down" size={12} color={colors.primary} />
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.filterChip as ViewStyle}
+                                onPress={() => openPicker('Filter Status', [
+                                    { label: 'All Statuses', value: 'All' },
+                                    { label: 'Success', value: 'success' },
+                                    { label: 'Failed', value: 'failed' },
+                                    { label: 'Pending', value: 'pending' },
+                                ], statusFilter, setStatusFilter)}
+                            >
+                                <Text style={styles.filterChipLabel as TextStyle}>Status: </Text>
+                                <Text style={styles.filterChipValue as TextStyle} numberOfLines={1}>{statusFilter.toUpperCase()}</Text>
+                                <Ionicons name="chevron-down" size={12} color={colors.primary} />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                )}
             </View>
 
-            {/* Enhanced Filtering Section */}
-            {showFilters && (
-                <View style={styles.filterBar}>
-                    <View style={styles.filterRow}>
-                        <View style={[styles.inputWrapper, { flex: 1 }]}>
-                            <Ionicons name="search" size={16} color="#94A3B8" style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.filterInput}
-                                placeholder="Search Admin/ID/Action"
-                                value={search}
-                                onChangeText={setSearch}
-                            />
-                        </View>
-                    </View>
-                    
-                    <View style={styles.filterRow}>
-                        <TouchableOpacity
-                            style={[styles.inputWrapper, { flex: 1 }]}
-                            onPress={() => {
-                                openPicker("Select Status", [
-                                    { label: "All Statuses", value: "All" },
-                                    { label: "Success", value: "success" },
-                                    { label: "Failed", value: "failed" },
-                                    { label: "Pending", value: "pending" },
-                                ], (val) => setStatusFilter(val));
-                            }}
-                        >
-                            <Ionicons name="shield-checkmark-outline" size={16} color="#94A3B8" style={styles.inputIcon} />
-                            <Text style={[styles.filterInput, statusFilter === 'All' ? { color: '#94A3B8' } : {}]}>
-                                {statusFilter === 'All' ? 'Status' : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
-                            </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[styles.inputWrapper, { flex: 1 }]}
-                            onPress={() => {
-                                openPicker("Select Action Type", [
-                                    { label: "All Actions", value: "All" },
-                                    { label: "Transaction Created", value: "transaction_created" },
-                                    { label: "Loan Approved", value: "loan_approved" },
-                                    { label: "Loan Rejected", value: "loan_rejected" },
-                                    { label: "Bulk Upload", value: "bulk_upload" },
-                                    { label: "Member Added", value: "member_added" },
-                                ], (val) => setTypeFilter(val));
-                            }}
-                        >
-                            <Ionicons name="list-outline" size={16} color="#94A3B8" style={styles.inputIcon} />
-                            <Text style={[styles.filterInput, typeFilter === 'All' ? { color: '#94A3B8' } : {}]} numberOfLines={1}>
-                                {typeFilter === 'All' ? 'Action Type' : typeFilter.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    <View style={styles.filterRow}>
-                        <View style={[styles.inputWrapper, { flex: 1 }]}>
-                            <Ionicons name="calendar-outline" size={16} color="#94A3B8" style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.filterInput}
-                                placeholder="From: YYYY-MM-DD"
-                                value={startDate}
-                                onChangeText={setStartDate}
-                            />
-                        </View>
-                        <View style={[styles.inputWrapper, { flex: 1 }]}>
-                            <Ionicons name="calendar-outline" size={16} color="#94A3B8" style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.filterInput}
-                                placeholder="To: YYYY-MM-DD"
-                                value={endDate}
-                                onChangeText={setEndDate}
-                            />
-                        </View>
-                    </View>
-                </View>
-            )}
-
-            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{flex:1}}>
-            <ScrollView 
-                showsVerticalScrollIndicator={false} 
-                style={styles.scrollView}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            <ScrollView
+                style={styles.flex1 as ViewStyle}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
             >
-                {/* Activity List */}
-                {loading && !refreshing ? (
-                    <View style={styles.loadingContainer}>
-                        <SkeletonLoader height={100} count={5} marginVertical={12} borderRadius={20} />
+                {loading && activities.length === 0 ? (
+                    <View style={{ padding: 24, gap: 16 }}>
+                        <SkeletonLoader height={80} count={5} borderRadius={16} />
                     </View>
-                ) : filteredActivities.length === 0 ? (
-                    <View style={styles.emptyContainer}>
-                        <Ionicons name="document-text-outline" size={64} color="#CBD5E1" />
-                        <Text style={styles.emptyText}>No activities found matching filters</Text>
-                    </View>
-                ) : (
-                    <View style={styles.activitiesList}>
-                        {paginatedActivities.map((activity) => {
-                            const isExpanded = expandedActivityId === activity.id;
-                            return (
-                                <TouchableOpacity 
-                                    key={activity.id} 
-                                    style={styles.activityCard}
-                                    onPress={() => setExpandedActivityId(isExpanded ? null : activity.id)}
-                                    activeOpacity={0.7}
-                                >
-                                    <View style={styles.activityCardContent}>
-                                        {/* Collapsed View - Icon and Quick Info */}
-                                        <View style={styles.activityHeader}>
-                                            <View
-                                                style={[
-                                                    styles.activityIcon,
-                                                    { backgroundColor: getActivityColor(activity.activityType) + '15' },
-                                                ]}
-                                            >
-                                                <Ionicons
-                                                    name={getActivityIcon(activity.activityType)}
-                                                    size={24}
-                                                    color={getActivityColor(activity.activityType)}
-                                                />
-                                            </View>
+                ) : paginatedActivities.length > 0 ? (
+                    <View style={styles.listContainer as ViewStyle}>
+                        {paginatedActivities.map((activity) => (
+                            <TouchableOpacity
+                                key={activity.id}
+                                style={[styles.activityCard, expandedActivityId === activity.id && styles.activityCardExpanded]}
+                                onPress={() => toggleExpand(activity.id!)}
+                                activeOpacity={0.7}
+                            >
+                                <View style={styles.activityMain as ViewStyle}>
+                                    <View style={[
+                                        styles.typeIndicator,
+                                        {
+                                            backgroundColor:
+                                                activity.activityType?.includes('deleted') ? colors.danger :
+                                                    activity.activityType?.includes('added') || activity.activityType?.includes('created') ? colors.success :
+                                                        activity.activityType?.includes('updated') || activity.activityType?.includes('changed') ? colors.info : colors.primary
+                                        }
+                                    ]} />
 
-                                            <View style={styles.activityInfo}>
-                                                <Text style={styles.activityDescription} numberOfLines={1}>
-                                                    {activity.description}
-                                                </Text>
-                                                <View style={styles.adminRow}>
-                                                    <Ionicons name="person-outline" size={10} color="#94A3B8" />
-                                                    <Text style={styles.adminText} numberOfLines={1}>{activity.userName}</Text>
-                                                    <Text style={styles.dot}>•</Text>
-                                                    <Text style={styles.activityTimestamp}>
-                                                        {formatDate(activity.createdAtISO)}
-                                                    </Text>
-                                                </View>
-                                            </View>
-
-                                            <View
-                                                style={[
-                                                    styles.statusBadge,
-                                                    { backgroundColor: getStatusColor(getStatusFromLog(activity)) + '15' },
-                                                ]}
-                                            >
+                                    <View style={styles.activityContent as ViewStyle}>
+                                        <View style={styles.activityHeader as ViewStyle}>
+                                            <Text style={styles.userName as TextStyle} numberOfLines={1}>
+                                                {activity.userName || 'System'}
+                                            </Text>
+                                            <View style={[
+                                                styles.statusBadge,
+                                                {
+                                                    backgroundColor:
+                                                        activity.status === 'success' ? colors.successBackground :
+                                                            activity.status === 'failed' ? colors.dangerBackground :
+                                                                colors.warningBackground
+                                                }
+                                            ]}>
                                                 <Ionicons
-                                                    name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                                                    name={activity.status === 'success' ? "checkmark-circle" : activity.status === 'failed' ? "close-circle" : "warning"}
                                                     size={16}
-                                                    color={getStatusColor(getStatusFromLog(activity))}
+                                                    color={
+                                                        activity.status === 'success' ? colors.success :
+                                                            activity.status === 'failed' ? colors.danger :
+                                                                colors.warning
+                                                    }
                                                 />
                                             </View>
                                         </View>
 
-                                        {/* Expanded View - Detailed Information */}
-                                        {isExpanded && (
-                                            <View style={styles.expandedContent}>
-                                                <View style={styles.expandedDivider} />
-                                                
-                                                <View style={styles.expandedSection}>
-                                                    <Text style={styles.expandedLabel}>Affected Member</Text>
-                                                    <Text style={styles.expandedValue}>{activity.entityName || 'N/A'}</Text>
+                                        <Text style={styles.actionText as TextStyle}>{activity.description}</Text>
+
+                                        <View style={styles.activityMeta as ViewStyle}>
+                                            <Text style={styles.memberIdText as TextStyle}>
+                                                {memberIdMap[activity.userId || ''] || 'ID: ---'}
+                                            </Text>
+                                            <Text style={styles.dot as TextStyle}>•</Text>
+                                            <Text style={styles.activityTimestamp as TextStyle}>{formatDate(activity)}</Text>
+                                        </View>
+
+                                        {/* Expanded Details */}
+                                        {expandedActivityId === activity.id && (
+                                            <View style={styles.expandedContent as ViewStyle}>
+                                                <View style={styles.expandedDivider as ViewStyle} />
+
+                                                <View style={styles.expandedSection as ViewStyle}>
+                                                    <Text style={styles.expandedLabel as TextStyle}>Details</Text>
+                                                    <Text style={styles.expandedValue as TextStyle}>{activity.description}</Text>
                                                 </View>
 
-                                                {activity.affectedMemberId ? (
-                                                    <View style={styles.expandedSection}>
-                                                        <Text style={styles.expandedLabel}>Member ID</Text>
-                                                        <Text style={styles.expandedValue}>{activity.affectedMemberId}</Text>
-                                                    </View>
-                                                ) : memberIdMap[activity.userId] ? (
-                                                    <View style={styles.expandedSection}>
-                                                        <Text style={styles.expandedLabel}>Admin Member ID</Text>
-                                                        <Text style={styles.expandedValue}>{memberIdMap[activity.userId]}</Text>
-                                                    </View>
-                                                ) : null}
-
-                                                {activity.metadata?.transactionType && (
-                                                    <View style={styles.expandedSection}>
-                                                        <Text style={styles.expandedLabel}>Transaction Type</Text>
-                                                        <Text style={styles.expandedValue}>{activity.metadata.transactionType}</Text>
-                                                    </View>
-                                                )}
-
-                                                {activity.metadata?.loanType && (
-                                                    <View style={styles.expandedSection}>
-                                                        <Text style={styles.expandedLabel}>Loan Type</Text>
-                                                        <Text style={styles.expandedValue}>{activity.metadata?.loanType}</Text>
-                                                    </View>
-                                                )}
-
-                                                {activity.metadata?.transactionAmount && (
-                                                    <View style={styles.expandedSection}>
-                                                        <Text style={styles.expandedLabel}>Amount</Text>
-                                                        <Text style={styles.expandedValue}>TSH {activity.metadata.transactionAmount.toLocaleString()}</Text>
-                                                    </View>
-                                                )}
-
-                                                {activity.reason && (
-                                                    <View style={styles.expandedSection}>
-                                                        <Text style={styles.expandedLabel}>Reason/Notes</Text>
-                                                        <Text style={styles.expandedValue}>{activity.reason}</Text>
-                                                    </View>
-                                                )}
-
-                                                <View style={styles.expandedSection}>
-                                                    <Text style={styles.expandedLabel}>Status</Text>
-                                                    <View style={[
-                                                        styles.expandedStatusBadge,
-                                                        { backgroundColor: getStatusColor(getStatusFromLog(activity)) + '20' }
-                                                    ]}>
-                                                        <Text style={[
-                                                            styles.expandedStatusText,
-                                                            { color: getStatusColor(getStatusFromLog(activity)) }
-                                                        ]}>
-                                                            {getStatusFromLog(activity).toUpperCase()}
-                                                        </Text>
-                                                    </View>
+                                                <View style={styles.expandedSection as ViewStyle}>
+                                                    <Text style={styles.expandedLabel as TextStyle}>Metadata</Text>
+                                                    <Text style={[styles.expandedValue as TextStyle, { fontSize: 11, color: colors.textSecondary }]}>
+                                                        IP: {activity.metadata?.ipAddress || 'N/A'} {'\n'}
+                                                        U-Agent: {activity.metadata?.userAgent || 'N/A'} {'\n'}
+                                                        Type: {activity.activityType || 'N/A'}
+                                                    </Text>
                                                 </View>
+
+                                                {activity.status === 'failed' && activity.failureReason && (
+                                                    <View style={[styles.expandedSection, { backgroundColor: colors.dangerBackground, padding: 8, borderRadius: 8 }]}>
+                                                        <Text style={[styles.expandedLabel, { color: colors.danger }]}>Error Message</Text>
+                                                        <Text style={[styles.expandedValue, { color: colors.danger }]}>{activity.failureReason}</Text>
+                                                    </View>
+                                                )}
                                             </View>
                                         )}
                                     </View>
-                                </TouchableOpacity>
-                            );
-                        })}
 
-                        {/* Pagination Controls - Consistent with Loans */}
-                        <View style={styles.paginationContainer}>
-                            <View style={styles.pageInfo}>
-                                <Text style={styles.pageInfoText}>
-                                    Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredActivities.length)} of {filteredActivities.length}
+                                    <Ionicons
+                                        name={expandedActivityId === activity.id ? "chevron-up" : "chevron-down"}
+                                        size={20}
+                                        color={colors.textSecondary}
+                                        style={{ alignSelf: 'flex-start', marginTop: 4 }}
+                                    />
+                                </View>
+                            </TouchableOpacity>
+                        ))}
+
+                        {/* Pagination Footer */}
+                        <View style={styles.paginationContainer as ViewStyle}>
+                            <View style={styles.pageInfo as ViewStyle}>
+                                <Text style={styles.pageInfoText as TextStyle}>
+                                    Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredActivities.length)} of {filteredActivities.length} logs
                                 </Text>
                                 <TouchableOpacity
-                                    style={styles.limitPicker}
-                                    onPress={() => {
-                                        openPicker("Items Per Page", [
-                                            { label: "10 per page", value: 10 },
-                                            { label: "50 per page", value: 50 },
-                                            { label: "100 per page", value: 100 },
-                                        ], (val) => setItemsPerPage(val));
-                                    }}
+                                    style={styles.limitPicker as ViewStyle}
+                                    onPress={() => openPicker('Rows Per Page', [
+                                        { label: '5 Rows', value: 5 },
+                                        { label: '10 Rows', value: 10 },
+                                        { label: '25 Rows', value: 25 },
+                                        { label: '50 Rows', value: 50 },
+                                    ], itemsPerPage, (val) => {
+                                        setItemsPerPage(val);
+                                        setCurrentPage(1);
+                                    })}
                                 >
-                                    <Text style={styles.limitText}>{itemsPerPage} / page</Text>
-                                    <Ionicons name="chevron-down" size={12} color="#64748B" />
+                                    <Text style={styles.limitText as TextStyle}>{itemsPerPage} rows</Text>
+                                    <Ionicons name="chevron-down" size={12} color={colors.textSecondary} />
                                 </TouchableOpacity>
                             </View>
 
-                            <View style={styles.pageBtns}>
+                            <View style={styles.pageBtns as ViewStyle}>
                                 <TouchableOpacity
-                                    style={[styles.pageBtn, currentPage === 1 && styles.pageBtnDisabled]}
+                                    style={[styles.pageBtn as ViewStyle, currentPage === 1 && styles.pageBtnDisabled]}
+                                    onPress={() => setCurrentPage(Math.max(1, currentPage - 1))}
                                     disabled={currentPage === 1}
-                                    onPress={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                                 >
-                                    <Ionicons name="chevron-back" size={20} color={currentPage === 1 ? "#CBD5E1" : "#0F172A"} />
+                                    <Ionicons name="chevron-back" size={20} color={currentPage === 1 ? colors.border : colors.text} />
                                 </TouchableOpacity>
 
-                                <View style={styles.pageNum}>
-                                    <Text style={styles.pageNumText}>Page {currentPage} of {totalPages}</Text>
+                                <View style={styles.pageNum as ViewStyle}>
+                                    <Text style={styles.pageNumText as TextStyle}>Page {currentPage} of {Math.max(1, totalPages)}</Text>
                                 </View>
 
                                 <TouchableOpacity
-                                    style={[styles.pageBtn, currentPage === totalPages && styles.pageBtnDisabled]}
-                                    disabled={currentPage === totalPages}
-                                    onPress={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                    style={[styles.pageBtn as ViewStyle, currentPage === totalPages && styles.pageBtnDisabled]}
+                                    onPress={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                                    disabled={currentPage === totalPages || totalPages === 0}
                                 >
-                                    <Ionicons name="chevron-forward" size={20} color={currentPage === totalPages ? "#CBD5E1" : "#0F172A"} />
+                                    <Ionicons name="chevron-forward" size={20} color={currentPage === totalPages || totalPages === 0 ? colors.border : colors.text} />
                                 </TouchableOpacity>
                             </View>
                         </View>
                     </View>
+                ) : (
+                    <View style={styles.emptyContainer as ViewStyle}>
+                        <Ionicons name="document-text-outline" size={64} color={colors.border} />
+                        <Text style={styles.emptyText as TextStyle}>No activities found matching filters</Text>
+                    </View>
                 )}
             </ScrollView>
-            </KeyboardAvoidingView>
 
-            {/* Custom Picker Modal */}
-            <Modal visible={pickerVisible} animationType="fade" transparent={true}>
-                <View style={[styles.modalOverlay, { justifyContent: 'center', padding: 30 }]}>
-                    <View style={[styles.modalContent, { height: 'auto', borderRadius: 24 }]}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>{pickerTitle}</Text>
-                            <TouchableOpacity onPress={() => setPickerVisible(false)}>
-                                <Ionicons name="close" size={24} color="#64748B" />
-                            </TouchableOpacity>
-                        </View>
-                        <View style={{ paddingBottom: 10 }}>
-                            {pickerOptions.map((opt, idx) => (
-                                <TouchableOpacity
-                                    key={idx}
-                                    style={styles.pickerItem}
-                                    onPress={() => {
-                                        onPickerSelect(opt.value);
-                                        setPickerVisible(false);
-                                    }}
-                                >
-                                    <Text style={styles.pickerItemText}>{opt.label}</Text>
-                                    <Ionicons name="chevron-forward" size={16} color="#CBD5E1" />
+            {/* Selection Modal (Picker) */}
+            <Modal
+                transparent
+                visible={pickerVisible}
+                animationType="fade"
+                onRequestClose={() => setPickerVisible(false)}
+            >
+                <TouchableOpacity
+                    style={styles.modalOverlay as ViewStyle}
+                    activeOpacity={1}
+                    onPress={() => setPickerVisible(false)}
+                >
+                    <View style={{ flex: 1 }} />
+                    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+                        <View style={styles.modalContent as ViewStyle}>
+                            <View style={styles.modalHeader as ViewStyle}>
+                                <Text style={styles.modalTitle as TextStyle}>{pickerTitle}</Text>
+                                <TouchableOpacity onPress={() => setPickerVisible(false)}>
+                                    <Ionicons name="close" size={24} color={colors.text} />
                                 </TouchableOpacity>
-                            ))}
+                            </View>
+
+                            <ScrollView style={{ maxHeight: 400 }}>
+                                {pickerOptions.map((opt, i) => (
+                                    <TouchableOpacity
+                                        key={opt.label || i}
+                                        style={styles.pickerItem as ViewStyle}
+                                        onPress={() => {
+                                            onPickerSelect(opt.value);
+                                            setPickerVisible(false);
+                                            setCurrentPage(1);
+                                        }}
+                                    >
+                                        <Text style={styles.pickerItemText as TextStyle}>{opt.label}</Text>
+                                        <Ionicons name="chevron-forward" size={16} color={colors.border} />
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
                         </View>
-                    </View>
-                </View>
+                    </KeyboardAvoidingView>
+                </TouchableOpacity>
             </Modal>
         </SafeAreaView>
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any, theme: string) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.background,
     },
-    scrollView: {
+    flex1: {
         flex: 1,
     },
     header: {
-        paddingHorizontal: 24,
-        paddingTop: 10,
-        paddingBottom: 16,
-        backgroundColor: 'white',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    title: {
-        color: '#0F172A',
-        fontSize: 24,
-        fontWeight: '900',
-        marginBottom: 2,
-    },
-    subtitle: {
-        color: '#64748B',
-        fontSize: 12,
-    },
-    filterToggle: {
-        width: 44,
-        height: 44,
-        borderRadius: 12,
-        backgroundColor: '#F1F5F9',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    filterToggleActive: {
-        backgroundColor: Colors.primary,
-    },
-    filterBar: {
-        backgroundColor: 'white',
-        paddingHorizontal: 24,
+        backgroundColor: colors.card,
+        paddingHorizontal: 20,
+        paddingTop: 16,
         paddingBottom: 20,
         borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
+        borderBottomColor: colors.border,
+        gap: 16,
+    },
+    headerTop: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: colors.backgroundMuted,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    title: {
+        fontSize: 20,
+        fontWeight: '900',
+        color: colors.text,
+        letterSpacing: -0.5,
+    },
+    filterToggle: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: colors.backgroundMuted,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    filterToggleActive: {
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
+    },
+    searchBarContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.backgroundMuted,
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        height: 48,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    searchIcon: {
+        marginRight: 10,
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 14,
+        color: colors.text,
+    },
+    filtersPanel: {
+        paddingTop: 4,
     },
     filterRow: {
         flexDirection: 'row',
-        gap: 12,
-        marginBottom: 12,
+        flexWrap: 'wrap',
+        gap: 8,
     },
-    inputWrapper: {
+    filterChip: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F8FAFC',
-        borderRadius: 12,
+        backgroundColor: colors.background,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#F1F5F9',
-        height: 44,
-        paddingHorizontal: 12,
+        borderColor: colors.border,
+        gap: 6,
     },
-    inputIcon: {
-        marginRight: 8,
+    filterChipLabel: {
+        fontSize: 11,
+        color: colors.textSecondary,
     },
-    filterInput: {
-        flex: 1,
-        fontSize: 13,
-        color: '#0F172A',
+    filterChipValue: {
+        fontSize: 11,
+        fontWeight: 'bold',
+        color: colors.primary,
     },
-    loadingContainer: {
-        padding: 24,
-    },
-    emptyContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 80,
-    },
-    emptyText: {
-        fontSize: 14,
-        color: '#94A3B8',
-        marginTop: 16,
-        fontWeight: '500',
-    },
-    activitiesList: {
+    listContainer: {
         padding: 20,
         paddingBottom: 40,
     },
     activityCard: {
-        backgroundColor: 'white',
+        backgroundColor: colors.card,
         borderRadius: 20,
+        padding: 16,
         marginBottom: 12,
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: colors.border,
         elevation: 2,
-        shadowColor: '#000',
+        shadowColor: colors.shadow,
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.03,
+        shadowOpacity: 0.05,
         shadowRadius: 8,
     },
-    activityCardContent: {
-        padding: 16,
+    activityCardExpanded: {
+        borderColor: colors.primary,
+        elevation: 4,
+    },
+    activityMain: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    typeIndicator: {
+        width: 4,
+        borderRadius: 2,
+        height: '100%',
+    },
+    activityContent: {
+        flex: 1,
     },
     activityHeader: {
         flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
-    },
-    activityIcon: {
-        width: 48,
-        height: 48,
-        borderRadius: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: 12,
-    },
-    activityInfo: {
-        flex: 1,
-    },
-    activityDescription: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#0F172A',
         marginBottom: 4,
     },
-    adminRow: {
+    userName: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: colors.text,
+        flex: 1,
+    },
+    actionText: {
+        fontSize: 13,
+        color: colors.text,
+        marginBottom: 8,
+        fontWeight: '500',
+    },
+    activityMeta: {
         flexDirection: 'row',
         alignItems: 'center',
     },
-    adminText: {
+    memberIdText: {
         fontSize: 11,
-        color: '#64748B',
-        marginLeft: 4,
-        fontWeight: '600',
+        color: colors.primary,
+        fontWeight: '700',
     },
     dot: {
         fontSize: 11,
-        color: '#CBD5E1',
+        color: colors.border,
         marginHorizontal: 6,
     },
     activityTimestamp: {
         fontSize: 11,
-        color: '#94A3B8',
+        color: colors.textSecondary,
     },
     statusBadge: {
         width: 32,
@@ -726,19 +645,18 @@ const styles = StyleSheet.create({
     restrictedText: {
         fontSize: 18,
         fontWeight: '700',
-        color: '#0F172A',
+        color: colors.text,
     },
     restrictedSubtext: {
         fontSize: 14,
-        color: '#64748B',
+        color: colors.textSecondary,
         textAlign: 'center',
     },
-    // Pagination Styles
     paginationContainer: {
         marginTop: 20,
         paddingTop: 20,
         borderTopWidth: 1,
-        borderTopColor: '#F1F5F9',
+        borderTopColor: colors.border,
     },
     pageInfo: {
         flexDirection: 'row',
@@ -748,12 +666,12 @@ const styles = StyleSheet.create({
     },
     pageInfoText: {
         fontSize: 12,
-        color: '#64748B',
+        color: colors.textSecondary,
     },
     limitPicker: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F1F5F9',
+        backgroundColor: colors.backgroundMuted,
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 8,
@@ -762,7 +680,7 @@ const styles = StyleSheet.create({
     limitText: {
         fontSize: 11,
         fontWeight: 'bold',
-        color: '#64748B',
+        color: colors.textSecondary,
     },
     pageBtns: {
         flexDirection: 'row',
@@ -774,15 +692,16 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 12,
-        backgroundColor: 'white',
+        backgroundColor: colors.card,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: colors.border,
         justifyContent: 'center',
         alignItems: 'center',
     },
     pageBtnDisabled: {
-        backgroundColor: '#F8FAFC',
-        borderColor: '#F1F5F9',
+        backgroundColor: colors.backgroundMuted,
+        borderColor: colors.border,
+        opacity: 0.5,
     },
     pageNum: {
         paddingHorizontal: 12,
@@ -790,15 +709,14 @@ const styles = StyleSheet.create({
     pageNumText: {
         fontSize: 13,
         fontWeight: 'bold',
-        color: '#0F172A',
+        color: colors.text,
     },
-    // Picker Modal Styles
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(15, 23, 42, 0.4)',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
     },
     modalContent: {
-        backgroundColor: 'white',
+        backgroundColor: colors.card,
         borderTopLeftRadius: 32,
         borderTopRightRadius: 32,
         padding: 24,
@@ -812,7 +730,7 @@ const styles = StyleSheet.create({
     modalTitle: {
         fontSize: 20,
         fontWeight: '900',
-        color: '#0F172A',
+        color: colors.text,
     },
     pickerItem: {
         flexDirection: 'row',
@@ -821,21 +739,20 @@ const styles = StyleSheet.create({
         paddingVertical: 16,
         paddingHorizontal: 8,
         borderBottomWidth: 1,
-        borderBottomColor: '#F8FAFC',
+        borderBottomColor: colors.border,
     },
     pickerItemText: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#334155',
+        color: colors.text,
     },
-    // Expanded Content Styles
     expandedContent: {
         paddingTop: 16,
         marginTop: 12,
     },
     expandedDivider: {
         height: 1,
-        backgroundColor: '#F1F5F9',
+        backgroundColor: colors.border,
         marginBottom: 12,
     },
     expandedSection: {
@@ -844,24 +761,24 @@ const styles = StyleSheet.create({
     expandedLabel: {
         fontSize: 11,
         fontWeight: '700',
-        color: '#94A3B8',
+        color: colors.textSecondary,
         textTransform: 'uppercase',
         marginBottom: 4,
     },
     expandedValue: {
         fontSize: 13,
         fontWeight: '600',
-        color: '#0F172A',
+        color: colors.text,
     },
-    expandedStatusBadge: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 12,
-        alignSelf: 'flex-start',
+    emptyContainer: {
+        padding: 60,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
     },
-    expandedStatusText: {
-        fontSize: 11,
-        fontWeight: '700',
+    emptyText: {
+        color: colors.textSecondary,
+        fontSize: 14,
+        textAlign: 'center',
     },
 });
-

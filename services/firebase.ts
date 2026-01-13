@@ -1,8 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { initializeApp } from "firebase/app";
-// @ts-ignore
-import { getReactNativePersistence, initializeAuth } from "firebase/auth";
+import { initializeAuth } from "firebase/auth";
 import { initializeFirestore, persistentLocalCache } from "firebase/firestore";
+
+// Note: getReactNativePersistence is available in React Native/Expo environment
+// but TypeScript doesn't recognize it in the standard firebase/auth types
+const { getReactNativePersistence } = require("firebase/auth") as any;
 
 // Load Firebase config from environment variables
 // In Expo, public environment variables must be prefixed with EXPO_PUBLIC_

@@ -12,17 +12,21 @@ import {
     StyleSheet,
     Text,
     TextInput,
+    TextStyle,
     TouchableOpacity,
     View,
+    ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors } from '../../constants/Colors';
+import { useTheme } from '../../context/ThemeContext';
 import { auth } from '../../services/firebase';
 import { validateEmail } from '../../services/validationService';
 
 export default function ForgotPasswordScreen() {
     const { t } = useTranslation();
     const router = useRouter();
+    const { colors, theme } = useTheme();
+    const styles = createStyles(colors, theme);
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
@@ -57,21 +61,21 @@ export default function ForgotPasswordScreen() {
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.container}
+            style={styles.container as ViewStyle}
         >
-            <SafeAreaView style={styles.container}>
-                <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-                    <View style={styles.content}>
+            <SafeAreaView style={styles.container as ViewStyle}>
+                <ScrollView contentContainerStyle={styles.scrollContent as ViewStyle} keyboardShouldPersistTaps="handled">
+                    <View style={styles.content as ViewStyle}>
                         {/* Header */}
-                        <View style={styles.header}>
+                        <View style={styles.header as ViewStyle}>
                             <TouchableOpacity
                                 onPress={() => router.back()}
-                                style={styles.backButton}
+                                style={styles.backButton as ViewStyle}
                             >
-                                <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+                                <Ionicons name="arrow-back" size={24} color={colors.text} />
                             </TouchableOpacity>
-                            <Text style={styles.title}>{t('auth.resetPassword')}</Text>
-                            <Text style={styles.subtitle}>
+                            <Text style={styles.title as TextStyle}>{t('auth.resetPassword')}</Text>
+                            <Text style={styles.subtitle as TextStyle}>
                                 {success
                                     ? t('auth.checkInbox')
                                     : t('auth.groupCodeHint')}
@@ -79,40 +83,40 @@ export default function ForgotPasswordScreen() {
                         </View>
 
                         {success ? (
-                            <View style={styles.successContainer}>
-                                <View style={styles.successIcon}>
-                                    <Ionicons name="mail-unread-outline" size={60} color={Colors.primary} />
+                            <View style={styles.successContainer as ViewStyle}>
+                                <View style={styles.successIcon as ViewStyle}>
+                                    <Ionicons name="mail-unread-outline" size={60} color={colors.primary} />
                                 </View>
-                                <Text style={styles.successText}>
+                                <Text style={styles.successText as TextStyle}>
                                     {t('auth.resetLinkSent')}
                                 </Text>
-                                <Text style={styles.emailText}>{email.trim().toLowerCase()}</Text>
-                                <Text style={styles.infoText}>
+                                <Text style={styles.emailText as TextStyle}>{email.trim().toLowerCase()}</Text>
+                                <Text style={styles.infoText as TextStyle}>
                                     {t('auth.spamFolderHint')}
                                 </Text>
                                 <TouchableOpacity
                                     onPress={() => router.replace('/login')}
-                                    style={styles.button}
+                                    style={styles.button as ViewStyle}
                                 >
-                                    <Text style={styles.buttonText}>{t('auth.backToLogin')}</Text>
+                                    <Text style={styles.buttonText as TextStyle}>{t('auth.backToLogin')}</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     onPress={() => setSuccess(false)}
-                                    style={styles.resendButton}
+                                    style={styles.resendButton as ViewStyle}
                                 >
-                                    <Text style={styles.resendText}>{t('auth.tryAnotherEmail')}</Text>
+                                    <Text style={styles.resendText as TextStyle}>{t('auth.tryAnotherEmail')}</Text>
                                 </TouchableOpacity>
                             </View>
                         ) : (
-                            <View style={styles.form}>
-                                <View style={styles.inputGroup}>
-                                    <Text style={styles.label}>{t('common.email')}</Text>
-                                    <View style={styles.inputContainer}>
-                                        <Ionicons name="mail-outline" size={20} color={Colors.textSecondary} />
+                            <View style={styles.form as ViewStyle}>
+                                <View style={styles.inputGroup as ViewStyle}>
+                                    <Text style={styles.label as TextStyle}>{t('common.email')}</Text>
+                                    <View style={styles.inputContainer as ViewStyle}>
+                                        <Ionicons name="mail-outline" size={20} color={colors.textSecondary} />
                                         <TextInput
-                                            style={styles.input}
+                                            style={styles.input as TextStyle}
                                             placeholder="name@example.com"
-                                            placeholderTextColor={Colors.textDisabled}
+                                            placeholderTextColor={colors.textSecondary}
                                             value={email}
                                             onChangeText={setEmail}
                                             autoCapitalize="none"
@@ -124,22 +128,22 @@ export default function ForgotPasswordScreen() {
                                 <TouchableOpacity
                                     onPress={handleResetPassword}
                                     disabled={loading}
-                                    style={styles.button}
+                                    style={styles.button as ViewStyle}
                                 >
                                     {loading ? (
                                         <ActivityIndicator color="white" />
                                     ) : (
-                                        <View style={styles.buttonContent}>
-                                            <Text style={styles.buttonText}>{t('auth.sendResetLink')}</Text>
+                                        <View style={styles.buttonContent as ViewStyle}>
+                                            <Text style={styles.buttonText as TextStyle}>{t('auth.sendResetLink')}</Text>
                                             <Ionicons name="paper-plane-outline" size={20} color="white" />
                                         </View>
                                     )}
                                 </TouchableOpacity>
 
-                                <View style={styles.footer}>
-                                    <Text style={styles.footerText}>{t('auth.alreadyHaveAccount')} </Text>
+                                <View style={styles.footer as ViewStyle}>
+                                    <Text style={styles.footerText as TextStyle}>{t('auth.alreadyHaveAccount')} </Text>
                                     <TouchableOpacity onPress={() => router.back()}>
-                                        <Text style={styles.linkText}>{t('common.login')}</Text>
+                                        <Text style={styles.linkText as TextStyle}>{t('common.login')}</Text>
                                     </TouchableOpacity>
                                 </View>
                             </View>
@@ -151,10 +155,10 @@ export default function ForgotPasswordScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any, theme: string) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.background,
     },
     scrollContent: {
         flexGrow: 1,
@@ -172,18 +176,20 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: Colors.backgroundMuted,
+        backgroundColor: colors.backgroundMuted,
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 24,
+        borderWidth: 1,
+        borderColor: colors.border,
     },
     title: {
-        color: Colors.textPrimary,
+        color: colors.text,
         fontSize: 30,
         fontWeight: 'bold',
     },
     subtitle: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 16,
         marginTop: 8,
     },
@@ -198,33 +204,32 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         marginBottom: 8,
         marginLeft: 4,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
     },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: Colors.backgroundMuted,
+        backgroundColor: colors.card,
         borderRadius: 12,
         paddingHorizontal: 16,
-        paddingVertical: 12,
+        height: 56,
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: colors.border,
     },
     input: {
         flex: 1,
         marginLeft: 12,
         fontSize: 16,
-        color: Colors.textPrimary,
+        color: colors.text,
     },
     button: {
-        backgroundColor: Colors.primary,
+        backgroundColor: colors.primary,
         borderRadius: 12,
-        paddingVertical: 20,
-        paddingHorizontal: 24,
+        height: 56,
         marginTop: 16,
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: Colors.primary,
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
@@ -248,26 +253,26 @@ const styles = StyleSheet.create({
         width: 120,
         height: 120,
         borderRadius: 60,
-        backgroundColor: '#F0F9FF',
+        backgroundColor: colors.primaryBackground,
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 32,
     },
     successText: {
         fontSize: 18,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         textAlign: 'center',
     },
     emailText: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: Colors.textPrimary,
+        color: colors.text,
         marginTop: 8,
         marginBottom: 24,
     },
     infoText: {
         fontSize: 14,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         textAlign: 'center',
         fontStyle: 'italic',
         lineHeight: 20,
@@ -278,7 +283,7 @@ const styles = StyleSheet.create({
         padding: 8,
     },
     resendText: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 14,
         textDecorationLine: 'underline',
     },
@@ -288,11 +293,11 @@ const styles = StyleSheet.create({
         marginTop: 32,
     },
     footerText: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 14,
     },
     linkText: {
-        color: Colors.primary,
+        color: colors.primary,
         fontWeight: 'bold',
         fontSize: 14,
     },

@@ -12,7 +12,7 @@ export interface ActivityLog {
   activityType: 'transaction_created' | 'transaction_updated' | 'transaction_deleted' |
   'member_added' | 'member_deleted' | 'member_status_changed' |
   'user_login' | 'user_logout' | 'settings_changed' | 'report_generated' |
-  'loan_approved' | 'loan_rejected' | 'payment_recorded';
+  'loan_approved' | 'loan_rejected' | 'payment_recorded' | 'loan_penalty_applied';
 
   /** User who performed the action */
   userId: string;
@@ -60,6 +60,9 @@ export interface ActivityLog {
     bulkStandardLoanAmount?: number;
     bulkDharuraLoanAmount?: number;
     detailTransactionType?: string; // e.g., 'Bulk Upload Transaction'
+    penaltyAmount?: number;
+    platform?: string;
+    loanId?: string;
   };
 
   /** Status of action */

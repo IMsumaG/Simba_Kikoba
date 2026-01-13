@@ -1,6 +1,6 @@
-import { Colors } from '@/constants/Colors';
 import React from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 import { ThemedText } from './themed-text';
 
 export interface LoadingSpinnerProps {
@@ -9,23 +9,23 @@ export interface LoadingSpinnerProps {
    * @default 'large'
    */
   size?: 'small' | 'large';
-  
+
   /**
    * Loading text to display below spinner
    */
   text?: string;
-  
+
   /**
    * Whether spinner is centered (full screen overlay style)
    * @default false
    */
   centered?: boolean;
-  
+
   /**
    * Custom color for spinner
    */
   color?: string;
-  
+
   /**
    * Whether to show semi-transparent overlay background
    * @default false
@@ -52,7 +52,8 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   color,
   overlay = false,
 }) => {
-  const spinnerColor = color || Colors.primary;
+  const { colors } = useTheme();
+  const spinnerColor = color || colors.primary;
 
   if (centered) {
     return (

@@ -4,13 +4,15 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, ScrollView, StatusBar, StyleSheet, Text, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors } from '../../constants/Colors';
+import { useTheme } from '../../context/ThemeContext';
 import { Transaction, transactionService } from '../../services/transactionService';
 
 export default function MemberDetailScreen() {
     const { t } = useTranslation();
     const { id, name } = useLocalSearchParams();
     const router = useRouter();
+    const { colors, theme } = useTheme();
+    const styles = createStyles(colors, theme);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
         totalContributions: 0,
@@ -94,25 +96,28 @@ export default function MemberDetailScreen() {
         let color = '';
         if (type === 'Contribution') {
             sign = '+';
-            color = '#059669';
+            color = colors.success;
         } else if (type === 'Loan') {
             sign = '-';
-            color = '#DC2626';
+            color = colors.danger;
         } else {
             sign = '+';
-            color = '#D97706';
+            color = colors.warning;
         }
+
+        const iconBg = type === 'Contribution' ? colors.successBackground : (type === 'Loan' ? colors.dangerBackground : colors.warningBackground);
+        const iconColor = type === 'Contribution' ? colors.success : (type === 'Loan' ? colors.danger : colors.warning);
 
         return (
             <View style={styles.transactionItem as ViewStyle}>
                 <View style={styles.transactionLeft as ViewStyle}>
                     <View
-                        style={[styles.transactionIcon as ViewStyle, { backgroundColor: type === 'Contribution' ? '#DCFCE7' : (type === 'Loan' ? '#FEE2E2' : '#FEF3C7') }]}
+                        style={[styles.transactionIcon as ViewStyle, { backgroundColor: iconBg }]}
                     >
                         <Ionicons
                             name={type === 'Contribution' ? 'arrow-down-outline' : (type === 'Loan' ? 'arrow-up-outline' : 'refresh-outline')}
                             size={20}
-                            color={type === 'Contribution' ? '#166534' : (type === 'Loan' ? '#991B1B' : '#92400E')}
+                            color={iconColor}
                         />
                     </View>
                     <View style={styles.transactionTextContainer as ViewStyle}>
@@ -129,7 +134,7 @@ export default function MemberDetailScreen() {
                         {sign} TSh {(amount || 0).toLocaleString()}
                     </Text>
                     <TouchableOpacity onPress={() => handleDeleteTransaction(transId)}>
-                        <Ionicons name="trash-outline" size={18} color="#94A3B8" />
+                        <Ionicons name="trash-outline" size={18} color={colors.textSecondary} />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -138,10 +143,10 @@ export default function MemberDetailScreen() {
 
     return (
         <SafeAreaView style={styles.container as ViewStyle}>
-            <StatusBar barStyle="dark-content" />
+            <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} />
             <View style={styles.header as ViewStyle}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton as ViewStyle}>
-                    <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+                    <Ionicons name="arrow-back" size={24} color={colors.text} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle as TextStyle}>{t('members.memberProfile')}</Text>
                 <View style={{ width: 40 }} />
@@ -149,7 +154,7 @@ export default function MemberDetailScreen() {
 
             {loading ? (
                 <View style={styles.centered as ViewStyle}>
-                    <ActivityIndicator size="large" color={Colors.primary} />
+                    <ActivityIndicator size="large" color={colors.primary} />
                 </View>
             ) : (
                 <ScrollView
@@ -166,8 +171,8 @@ export default function MemberDetailScreen() {
 
                         {/* Member ID Display */}
                         {memberIdDisplay ? (
-                            <View style={{ backgroundColor: '#E0F2FE', paddingHorizontal: 16, paddingVertical: 4, borderRadius: 99, marginTop: 8, borderWidth: 1, borderColor: '#BAE6FD' }}>
-                                <Text style={{ color: '#0369A1', fontWeight: '900', fontSize: 12, letterSpacing: 1.5 }}>ID: {memberIdDisplay}</Text>
+                            <View style={styles.memberIdBadge}>
+                                <Text style={styles.memberIdText}>ID: {memberIdDisplay}</Text>
                             </View>
                         ) : null}
                     </View>
@@ -175,16 +180,16 @@ export default function MemberDetailScreen() {
                     {/* Financial Summary Cards */}
                     <View style={styles.summaryContainer as ViewStyle}>
                         <View style={styles.summaryCard as ViewStyle}>
-                            <View style={[styles.summaryIcon as ViewStyle, { backgroundColor: '#DCFCE7' }]}>
-                                <Ionicons name="wallet-outline" size={20} color="#166534" />
+                            <View style={[styles.summaryIcon as ViewStyle, { backgroundColor: colors.successBackground }]}>
+                                <Ionicons name="wallet-outline" size={20} color={colors.success} />
                             </View>
                             <Text style={styles.summaryLabel as TextStyle}>{t('members.totalContribution')}</Text>
                             <Text style={styles.summaryValue as TextStyle}>TSh {stats.totalContributions.toLocaleString()}</Text>
                         </View>
 
                         <View style={styles.summaryCard as ViewStyle}>
-                            <View style={[styles.summaryIcon as ViewStyle, { backgroundColor: '#FEE2E2' }]}>
-                                <Ionicons name="cash-outline" size={20} color="#991B1B" />
+                            <View style={[styles.summaryIcon as ViewStyle, { backgroundColor: colors.dangerBackground }]}>
+                                <Ionicons name="cash-outline" size={20} color={colors.danger} />
                             </View>
                             <Text style={styles.summaryLabel as TextStyle}>{t('members.currentLoan')}</Text>
                             <Text style={styles.summaryValue as TextStyle}>TSh {stats.currentLoan.toLocaleString()}</Text>
@@ -195,11 +200,11 @@ export default function MemberDetailScreen() {
                     <View style={styles.section as ViewStyle}>
                         <Text style={styles.sectionTitle as TextStyle}>{t('members.contributionsByCategory')}</Text>
                         <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
-                            <View style={[styles.categoryCard as ViewStyle, { flex: 1 }]}>
+                            <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: colors.success, borderLeftWidth: 4 }]}>
                                 <Text style={styles.categoryLabel as TextStyle}>{t('dashboard.hisa')} ({t('reports.memberAccount')})</Text>
                                 <Text style={styles.categoryValue as TextStyle}>TSh {contributionsByCategory.Hisa.toLocaleString()}</Text>
                             </View>
-                            <View style={[styles.categoryCard as ViewStyle, { flex: 1 }]}>
+                            <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: colors.info, borderLeftWidth: 4 }]}>
                                 <Text style={styles.categoryLabel as TextStyle}>{t('dashboard.jamii')}</Text>
                                 <Text style={styles.categoryValue as TextStyle}>TSh {contributionsByCategory.Jamii.toLocaleString()}</Text>
                             </View>
@@ -210,11 +215,11 @@ export default function MemberDetailScreen() {
                     <View style={styles.section as ViewStyle}>
                         <Text style={styles.sectionTitle as TextStyle}>{t('members.loansByCategory')}</Text>
                         <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
-                            <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#DC2626', borderLeftWidth: 4 }]}>
+                            <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: colors.danger, borderLeftWidth: 4 }]}>
                                 <Text style={styles.categoryLabel as TextStyle}>{t('dashboard.standard')}</Text>
                                 <Text style={styles.categoryValue as TextStyle}>TSh {loansByCategory.Standard.toLocaleString()}</Text>
                             </View>
-                            <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#F59E0B', borderLeftWidth: 4 }]}>
+                            <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: colors.warning, borderLeftWidth: 4 }]}>
                                 <Text style={styles.categoryLabel as TextStyle}>{t('dashboard.dharura')}</Text>
                                 <Text style={styles.categoryValue as TextStyle}>TSh {loansByCategory.Dharura.toLocaleString()}</Text>
                             </View>
@@ -246,10 +251,10 @@ export default function MemberDetailScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any, theme: string) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: 'white',
+        backgroundColor: colors.background,
     },
     flex1: {
         flex: 1,
@@ -261,20 +266,22 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingVertical: 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
+        borderBottomColor: colors.border,
     },
     backButton: {
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.card,
         alignItems: 'center',
         justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: colors.border,
     },
     headerTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#0F172A',
+        color: colors.text,
     },
     centered: {
         flex: 1,
@@ -292,27 +299,37 @@ const styles = StyleSheet.create({
         width: 100,
         height: 100,
         borderRadius: 50,
-        backgroundColor: 'rgba(234, 88, 12, 0.1)',
+        backgroundColor: colors.primaryBackground,
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 16,
         borderWidth: 4,
-        borderColor: '#FFF7ED',
+        borderColor: colors.primaryBorder,
     },
     avatarTextLarge: {
-        color: '#EA580C',
+        color: colors.primary,
         fontSize: 40,
         fontWeight: '900',
     },
     profileName: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: '#0F172A',
+        color: colors.text,
     },
-    profileId: {
-        fontSize: 14,
-        color: '#94A3B8',
-        marginTop: 4,
+    memberIdBadge: {
+        backgroundColor: colors.infoBackground,
+        paddingHorizontal: 16,
+        paddingVertical: 4,
+        borderRadius: 99,
+        marginTop: 8,
+        borderWidth: 1,
+        borderColor: colors.infoBorder,
+    },
+    memberIdText: {
+        color: colors.info,
+        fontWeight: '900',
+        fontSize: 12,
+        letterSpacing: 1.5,
     },
     summaryContainer: {
         flexDirection: 'row',
@@ -322,11 +339,11 @@ const styles = StyleSheet.create({
     },
     summaryCard: {
         flex: 1,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.card,
         borderRadius: 24,
         padding: 20,
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: colors.border,
     },
     summaryIcon: {
         width: 40,
@@ -338,14 +355,14 @@ const styles = StyleSheet.create({
     },
     summaryLabel: {
         fontSize: 12,
-        color: '#64748B',
+        color: colors.textSecondary,
         fontWeight: '600',
         marginBottom: 4,
     },
     summaryValue: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#0F172A',
+        color: colors.text,
     },
     section: {
         paddingHorizontal: 20,
@@ -353,7 +370,7 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#0F172A',
+        color: colors.text,
         marginBottom: 16,
     },
     transactionItem: {
@@ -362,7 +379,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#F8FAFC',
+        borderBottomColor: colors.border,
     },
     transactionLeft: {
         flexDirection: 'row',
@@ -382,11 +399,11 @@ const styles = StyleSheet.create({
     transactionType: {
         fontSize: 14,
         fontWeight: 'bold',
-        color: '#0F172A',
+        color: colors.text,
     },
     transactionDate: {
         fontSize: 12,
-        color: '#94A3B8',
+        color: colors.textSecondary,
         marginTop: 2,
     },
     transactionAmount: {
@@ -396,28 +413,28 @@ const styles = StyleSheet.create({
     emptyBox: {
         padding: 40,
         alignItems: 'center',
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.backgroundMuted,
         borderRadius: 20,
     },
     emptyText: {
-        color: '#94A3B8',
+        color: colors.textSecondary,
     },
     categoryCard: {
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.card,
         borderRadius: 12,
         padding: 16,
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: colors.border,
     },
     categoryLabel: {
         fontSize: 12,
-        color: '#64748B',
+        color: colors.textSecondary,
         fontWeight: '600',
         marginBottom: 8,
     },
     categoryValue: {
         fontSize: 16,
         fontWeight: '700',
-        color: '#0F172A',
+        color: colors.text,
     },
 });

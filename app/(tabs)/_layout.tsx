@@ -4,7 +4,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '../../constants/Colors';
+import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../services/AuthContext';
 
 export default function TabLayout() {
@@ -12,17 +12,18 @@ export default function TabLayout() {
   const { t } = useTranslation();
   const isAdmin = role === 'Admin';
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.textSecondary,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textSecondary,
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: colors.card,
           borderTopWidth: 1,
-          borderTopColor: '#F1F5F9',
+          borderTopColor: colors.border,
           height: 60 + (Platform.OS === 'ios' ? insets.bottom : Math.max(insets.bottom, 15)),
           paddingBottom: Platform.OS === 'ios' ? insets.bottom : Math.max(insets.bottom, 15),
           paddingTop: 10,

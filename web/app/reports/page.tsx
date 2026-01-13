@@ -391,7 +391,7 @@ export default function ReportsPage() {
         <AppLayout>
             <div style={{ marginBottom: "2.5rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
-                    <h1 style={{ fontSize: "2rem", fontWeight: "900", letterSpacing: "-0.5px" }}>Reports & Analytics</h1>
+                    <h1 style={{ fontSize: "2rem", fontWeight: "900", letterSpacing: "-0.5px", color: "var(--text-primary)" }}>Reports & Analytics</h1>
                     <p style={{ color: "var(--text-secondary)" }}>Monthly member and group financial reports</p>
                 </div>
                 <button
@@ -452,7 +452,7 @@ export default function ReportsPage() {
                 <>
                     {/* Month & Year Selection */}
                     <div className="card" style={{ padding: "1.5rem", marginBottom: "2rem" }}>
-                        <h2 style={{ fontSize: "1.125rem", fontWeight: "700", marginBottom: "1.5rem" }}>Select Period & Member</h2>
+                        <h2 style={{ fontSize: "1.125rem", fontWeight: "700", marginBottom: "1.5rem", color: "var(--text-primary)" }}>Select Period & Member</h2>
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.5rem" }}>
                             <div>
                                 <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "var(--text-secondary)", marginBottom: "0.5rem", textTransform: "uppercase" }}>
@@ -468,7 +468,9 @@ export default function ReportsPage() {
                                         border: "1px solid var(--border)",
                                         outline: "none",
                                         fontSize: "0.875rem",
-                                        fontWeight: "500"
+                                        fontWeight: "500",
+                                        backgroundColor: "var(--card-bg)",
+                                        color: "var(--text-primary)"
                                     }}
                                 >
                                     {months.map(m => (
@@ -488,7 +490,8 @@ export default function ReportsPage() {
                                             padding: "0.75rem 1rem",
                                             borderRadius: "0.75rem",
                                             border: "1px solid var(--border)",
-                                            backgroundColor: "white",
+                                            backgroundColor: "var(--background-muted)",
+                                            color: "var(--text-primary)",
                                             cursor: "pointer",
                                             fontWeight: "600"
                                         }}
@@ -505,7 +508,9 @@ export default function ReportsPage() {
                                             borderRadius: "0.75rem",
                                             border: "1px solid var(--border)",
                                             textAlign: "center",
-                                            fontWeight: "600"
+                                            fontWeight: "600",
+                                            backgroundColor: "var(--background-muted)",
+                                            color: "var(--text-primary)"
                                         }}
                                     />
                                     <button
@@ -514,7 +519,8 @@ export default function ReportsPage() {
                                             padding: "0.75rem 1rem",
                                             borderRadius: "0.75rem",
                                             border: "1px solid var(--border)",
-                                            backgroundColor: "white",
+                                            backgroundColor: "var(--background-muted)",
+                                            color: "var(--text-primary)",
                                             cursor: "pointer",
                                             fontWeight: "600"
                                         }}
@@ -538,7 +544,9 @@ export default function ReportsPage() {
                                         border: "1px solid var(--border)",
                                         outline: "none",
                                         fontSize: "0.875rem",
-                                        fontWeight: "500"
+                                        fontWeight: "500",
+                                        backgroundColor: "var(--card-bg)",
+                                        color: "var(--text-primary)"
                                     }}
                                 >
                                     {members.map(m => (
@@ -576,7 +584,7 @@ export default function ReportsPage() {
                         <div className="card" style={{ padding: "2rem" }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
                                 <div>
-                                    <h2 style={{ fontSize: "1.5rem", fontWeight: "900", marginBottom: "0.5rem" }}>Simba Bingwa Kikoba Endelevu</h2>
+                                    <h2 style={{ fontSize: "1.5rem", fontWeight: "900", marginBottom: "0.5rem", color: "var(--text-primary)" }}>Simba Bingwa Kikoba Endelevu</h2>
                                     <p style={{ color: "var(--text-secondary)", marginBottom: "0.5rem" }}>
                                         Taarifa za Mwanachama - {monthName} {selectedYear}
                                     </p>
@@ -603,40 +611,40 @@ export default function ReportsPage() {
 
                             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem" }}>
                                 {/* Hisa Card */}
-                                <div style={{ backgroundColor: "#F0F9FF", borderRadius: "0.75rem", padding: "1.5rem", border: "2px solid #0EA5E9" }}>
+                                <div style={{ backgroundColor: "rgba(14, 165, 233, 0.1)", borderRadius: "0.75rem", padding: "1.5rem", border: "2px solid #0EA5E9" }}>
                                     <h3 style={{ fontSize: "1rem", fontWeight: "700", marginBottom: "1rem", color: "#0EA5E9" }}>Hisa (Shares)</h3>
-                                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.75rem", fontSize: "0.875rem", borderBottom: "1px solid #BAE6FD", paddingBottom: "0.75rem" }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.75rem", fontSize: "0.875rem", borderBottom: "1px solid rgba(14, 165, 233, 0.2)", paddingBottom: "0.75rem", color: "var(--text-primary)" }}>
                                         <span>Total Hisa:</span>
                                         <span style={{ fontWeight: "700" }}>TSh {reportData.hisa.totalHisa.toLocaleString()}</span>
                                     </div>
                                 </div>
 
                                 {/* Jamii Card */}
-                                <div style={{ backgroundColor: "#FDF2F8", borderRadius: "0.75rem", padding: "1.5rem", border: "2px solid #EC4899" }}>
+                                <div style={{ backgroundColor: "rgba(236, 72, 153, 0.1)", borderRadius: "0.75rem", padding: "1.5rem", border: "2px solid #EC4899" }}>
                                     <h3 style={{ fontSize: "1rem", fontWeight: "700", marginBottom: "1rem", color: "#EC4899" }}>Jamii</h3>
-                                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.75rem", fontSize: "0.875rem", borderBottom: "1px solid #F9A8D4", paddingBottom: "0.75rem" }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.75rem", fontSize: "0.875rem", borderBottom: "1px solid rgba(236, 72, 153, 0.2)", paddingBottom: "0.75rem", color: "var(--text-primary)" }}>
                                         <span>Total Jamii:</span>
                                         <span style={{ fontWeight: "700" }}>TSh {reportData.jamii.toLocaleString()}</span>
                                     </div>
                                 </div>
 
                                 {/* Standard Loan Card */}
-                                <div style={{ backgroundColor: "#FEF3C7", borderRadius: "0.75rem", padding: "1.5rem", border: "2px solid #F59E0B" }}>
+                                <div style={{ backgroundColor: "rgba(245, 158, 11, 0.1)", borderRadius: "0.75rem", padding: "1.5rem", border: "2px solid #F59E0B" }}>
                                     <h3 style={{ fontSize: "1rem", fontWeight: "700", marginBottom: "1rem", color: "#F59E0B" }}>Standard Loan (10% Interest)</h3>
-                                    <div style={{ fontSize: "0.875rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                                        <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #FCD34D", paddingBottom: "0.5rem" }}>
+                                    <div style={{ fontSize: "0.875rem", display: "flex", flexDirection: "column", gap: "0.75rem", color: "var(--text-primary)" }}>
+                                        <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid rgba(245, 158, 11, 0.2)", paddingBottom: "0.5rem" }}>
                                             <span>Amount Loaned:</span>
                                             <span style={{ fontWeight: "700" }}>TSh {reportData.standardLoan.totalLoaned.toLocaleString()}</span>
                                         </div>
-                                        <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #FCD34D", paddingBottom: "0.5rem" }}>
+                                        <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid rgba(245, 158, 11, 0.2)", paddingBottom: "0.5rem" }}>
                                             <span>With Interest:</span>
                                             <span style={{ fontWeight: "700" }}>TSh {reportData.standardLoan.totalWithInterest.toLocaleString()}</span>
                                         </div>
-                                        <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #FCD34D", paddingBottom: "0.5rem" }}>
+                                        <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid rgba(245, 158, 11, 0.2)", paddingBottom: "0.5rem" }}>
                                             <span>Repaid:</span>
                                             <span style={{ fontWeight: "700" }}>TSh {reportData.standardLoan.totalRepayments.toLocaleString()}</span>
                                         </div>
-                                        <div style={{ display: "flex", justifyContent: "space-between", backgroundColor: "white", padding: "0.5rem", borderRadius: "0.5rem" }}>
+                                        <div style={{ display: "flex", justifyContent: "space-between", backgroundColor: "var(--card-bg)", padding: "0.5rem", borderRadius: "0.5rem" }}>
                                             <span style={{ fontWeight: "700" }}>Remaining:</span>
                                             <span style={{ fontWeight: "900" }}>TSh {reportData.standardLoan.remainingBalance.toLocaleString()}</span>
                                         </div>
@@ -644,18 +652,18 @@ export default function ReportsPage() {
                                 </div>
 
                                 {/* Dharura Card */}
-                                <div style={{ backgroundColor: "#F3E8FF", borderRadius: "0.75rem", padding: "1.5rem", border: "2px solid #A855F7" }}>
+                                <div style={{ backgroundColor: "rgba(168, 85, 247, 0.1)", borderRadius: "0.75rem", padding: "1.5rem", border: "2px solid #A855F7" }}>
                                     <h3 style={{ fontSize: "1rem", fontWeight: "700", marginBottom: "1rem", color: "#A855F7" }}>Dharura (Emergency)</h3>
-                                    <div style={{ fontSize: "0.875rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                                        <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #E9D5FF", paddingBottom: "0.5rem" }}>
+                                    <div style={{ fontSize: "0.875rem", display: "flex", flexDirection: "column", gap: "0.75rem", color: "var(--text-primary)" }}>
+                                        <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid rgba(168, 85, 247, 0.2)", paddingBottom: "0.5rem" }}>
                                             <span>Amount Loaned:</span>
                                             <span style={{ fontWeight: "700" }}>TSh {reportData.dharuraLoan.totalLoaned.toLocaleString()}</span>
                                         </div>
-                                        <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #E9D5FF", paddingBottom: "0.5rem" }}>
+                                        <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid rgba(168, 85, 247, 0.2)", paddingBottom: "0.5rem" }}>
                                             <span>Repaid:</span>
                                             <span style={{ fontWeight: "700" }}>TSh {reportData.dharuraLoan.totalRepayments.toLocaleString()}</span>
                                         </div>
-                                        <div style={{ display: "flex", justifyContent: "space-between", backgroundColor: "white", padding: "0.5rem", borderRadius: "0.5rem" }}>
+                                        <div style={{ display: "flex", justifyContent: "space-between", backgroundColor: "var(--card-bg)", padding: "0.5rem", borderRadius: "0.5rem" }}>
                                             <span style={{ fontWeight: "700" }}>Remaining:</span>
                                             <span style={{ fontWeight: "900" }}>TSh {reportData.dharuraLoan.remainingBalance.toLocaleString()}</span>
                                         </div>
@@ -669,7 +677,7 @@ export default function ReportsPage() {
                 <>
                     {/* Group Report Selection */}
                     <div className="card" style={{ padding: "1.5rem", marginBottom: "2rem" }}>
-                        <h2 style={{ fontSize: "1.125rem", fontWeight: "700", marginBottom: "1.5rem" }}>Select Period</h2>
+                        <h2 style={{ fontSize: "1.125rem", fontWeight: "700", marginBottom: "1.5rem", color: "var(--text-primary)" }}>Select Period</h2>
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.5rem" }}>
                             <div>
                                 <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "var(--text-secondary)", marginBottom: "0.5rem", textTransform: "uppercase" }}>
@@ -685,7 +693,9 @@ export default function ReportsPage() {
                                         border: "1px solid var(--border)",
                                         outline: "none",
                                         fontSize: "0.875rem",
-                                        fontWeight: "500"
+                                        fontWeight: "500",
+                                        backgroundColor: "var(--card-bg)",
+                                        color: "var(--text-primary)"
                                     }}
                                 >
                                     {months.map(m => (
@@ -705,7 +715,8 @@ export default function ReportsPage() {
                                             padding: "0.75rem 1rem",
                                             borderRadius: "0.75rem",
                                             border: "1px solid var(--border)",
-                                            backgroundColor: "white",
+                                            backgroundColor: "var(--background-muted)",
+                                            color: "var(--text-primary)",
                                             cursor: "pointer",
                                             fontWeight: "600"
                                         }}
@@ -722,7 +733,9 @@ export default function ReportsPage() {
                                             borderRadius: "0.75rem",
                                             border: "1px solid var(--border)",
                                             textAlign: "center",
-                                            fontWeight: "600"
+                                            fontWeight: "600",
+                                            backgroundColor: "var(--background-muted)",
+                                            color: "var(--text-primary)"
                                         }}
                                     />
                                     <button
@@ -731,7 +744,8 @@ export default function ReportsPage() {
                                             padding: "0.75rem 1rem",
                                             borderRadius: "0.75rem",
                                             border: "1px solid var(--border)",
-                                            backgroundColor: "white",
+                                            backgroundColor: "var(--background-muted)",
+                                            color: "var(--text-primary)",
                                             cursor: "pointer",
                                             fontWeight: "600"
                                         }}
@@ -770,7 +784,7 @@ export default function ReportsPage() {
                         <div className="card" style={{ padding: "2rem", overflow: "auto" }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
                                 <div>
-                                    <h2 style={{ fontSize: "1.5rem", fontWeight: "900", marginBottom: "0.5rem" }}>Simba Bingwa Kikoba Endelevu</h2>
+                                    <h2 style={{ fontSize: "1.5rem", fontWeight: "900", marginBottom: "0.5rem", color: "var(--text-primary)" }}>Simba Bingwa Kikoba Endelevu</h2>
                                     <p style={{ color: "var(--text-secondary)", marginBottom: "0.5rem" }}>
                                         Taarifa za Kikoba - {monthName} {selectedYear}
                                     </p>
@@ -815,11 +829,12 @@ export default function ReportsPage() {
                                         <tr
                                             key={member.memberId}
                                             style={{
-                                                backgroundColor: index % 2 === 0 ? "#F8FAFC" : "white",
-                                                borderBottom: "1px solid var(--border)"
+                                                backgroundColor: index % 2 === 0 ? "var(--background-muted)" : "var(--card-bg)",
+                                                borderBottom: "1px solid var(--border)",
+                                                color: "var(--text-primary)"
                                             }}
                                         >
-                                            <td style={{ padding: "1rem", fontWeight: "700" }}>{member.memberName}</td>
+                                            <td style={{ padding: "1rem", fontWeight: "700", color: "var(--text-primary)" }}>{member.memberName}</td>
                                             <td style={{ padding: "1rem", textAlign: "right" }}>TSh {Math.round(member.hisa.totalHisa).toLocaleString()}</td>
                                             <td style={{ padding: "1rem", textAlign: "right" }}>TSh {Math.round(member.jamii).toLocaleString()}</td>
                                             <td style={{ padding: "1rem", textAlign: "right" }}>TSh {Math.round(member.standardLoan.totalLoaned).toLocaleString()}</td>

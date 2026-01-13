@@ -10,6 +10,22 @@
   --border: #E2E8F0;
   --ring: #F57C00;
   --radius: 1rem;
+  --card-bg: #FFFFFF;
+}
+
+.dark {
+  --primary: #FF9800;
+  --secondary: #E2E8F0;
+  /* Used for what? Maybe icon colors? */
+  --accent: #FFB703;
+  --background: #111827;
+  --background-muted: #030712;
+  --text-primary: #F9FAFB;
+  --text-secondary: #9CA3AF;
+  --text-disabled: #6B7280;
+  --border: #374151;
+  --ring: #F59E0B;
+  --card-bg: #1F2937;
 }
 
 * {
@@ -23,6 +39,7 @@ body {
   background-color: var(--background-muted);
   color: var(--text-primary);
   line-height: 1.5;
+  transition: background-color 0.3s, color 0.3s;
 }
 
 button {
@@ -32,12 +49,17 @@ button {
   font-family: inherit;
 }
 
-input, select, textarea {
+input,
+select,
+textarea {
   font-family: inherit;
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
 }
 
 .card {
-  background: white;
+  background: var(--card-bg);
   border-radius: var(--radius);
   border: 1px solid var(--border);
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
@@ -61,4 +83,29 @@ input, select, textarea {
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-disabled);
+}
+
+/* Selection */
+::selection {
+  background-color: var(--primary);
+  color: white;
 }

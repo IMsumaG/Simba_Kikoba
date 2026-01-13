@@ -1,6 +1,6 @@
-import { Colors } from '@/constants/Colors';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 
 export interface SkeletonLoaderProps {
   /**
@@ -8,31 +8,31 @@ export interface SkeletonLoaderProps {
    * @default '100%'
    */
   width?: number | string;
-  
+
   /**
    * Height of skeleton
    * @default 12
    */
   height?: number;
-  
+
   /**
    * Border radius for skeleton
    * @default 4
    */
   borderRadius?: number;
-  
+
   /**
    * Vertical margin between skeletons in a list
    * @default 0
    */
   marginVertical?: number;
-  
+
   /**
    * Number of skeleton items to render
    * @default 1
    */
   count?: number;
-  
+
   /**
    * Additional style properties
    */
@@ -59,6 +59,8 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
   count = 1,
   style,
 }) => {
+  const { colors } = useTheme();
+
   return (
     <View>
       {Array.from({ length: count }).map((_, index) => (
@@ -70,7 +72,7 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
               width,
               height,
               borderRadius,
-              backgroundColor: Colors.backgroundMuted,
+              backgroundColor: colors.backgroundMuted,
               marginVertical: index > 0 ? marginVertical : 0,
             },
             style,

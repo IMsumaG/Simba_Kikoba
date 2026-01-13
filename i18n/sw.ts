@@ -21,6 +21,7 @@ export const sw = {
         next: "Inayofuata",
         confirm: "Thibitisha",
         send: "Tuma",
+        phone: "Namba ya Simu",
     },
     auth: {
         forgotPassword: "Umesahau Nywila?",
@@ -38,6 +39,8 @@ export const sw = {
         resetLinkSent: "Tumekutumia kiungo cha kubadilisha nywila kwenda:",
         spamFolderHint: "Ikiwa huoni barua pepe ndani ya dakika chache, tafadhali angalia folda ya spam.",
         tryAnotherEmail: "Jaribu barua pepe nyingine",
+        phoneRequired: "Namba ya simu inahitajika",
+        invalidPhone: "Tafadhali weka namba ya simu sahihi",
     },
     dashboard: {
         title: "Dashibodi",

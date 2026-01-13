@@ -5,15 +5,19 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, RefreshControl, ScrollView, StatusBar, StyleSheet, Text, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors } from '../../constants/Colors';
 import { useAuth } from '../../services/AuthContext';
 import { memberService } from '../../services/memberService';
+import { penaltyService } from '../../services/penaltyService';
 import { Transaction, transactionService } from '../../services/transactionService';
+
+import { useTheme } from '../../context/ThemeContext';
 
 export default function DashboardScreen() {
   const { role, user } = useAuth();
   const { t } = useTranslation();
   const router = useRouter();
+  const { theme, toggleTheme, colors } = useTheme();
+  const styles = createStyles(colors, theme);
   const isAdmin = role === 'Admin';
 
   const [stats, setStats] = useState({
@@ -52,9 +56,13 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     if (!user) return;
     try {
+      // Check for penalties before loading data
+      // This ensures displayed data reflects any newly applied penalties
+      await penaltyService.checkAndApplyPenalties(user.uid);
+
       const dashboardTotals = await transactionService.getDashboardTotals();
       const allMembers = await memberService.getAllUsers();
 
@@ -105,16 +113,16 @@ export default function DashboardScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [user, isAdmin]);
 
   useEffect(() => {
     fetchDashboardData();
-  }, [user, role]);
+  }, [fetchDashboardData]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchDashboardData();
-  }, [user, role]);
+  }, [fetchDashboardData]);
 
   const StatCard = ({ title, value, icon, color, subtitle }: any) => (
     <View style={styles.statCard as ViewStyle}>
@@ -136,28 +144,31 @@ export default function DashboardScreen() {
 
     if (type === 'Contribution') {
       sign = '+';
-      color = '#059669'; // Green
+      color = colors.success;
       displayType = t('transactions.contribution');
     } else if (type === 'Loan') {
       sign = '-';
-      color = '#DC2626'; // Red
+      color = colors.danger;
       displayType = t('transactions.loan');
     } else {
       sign = '+';
-      color = '#D97706'; // Orange
+      color = colors.warning;
       displayType = t('transactions.repayment');
     }
+
+    const iconBg = type === 'Contribution' ? colors.successBackground : (type === 'Loan' ? colors.dangerBackground : colors.warningBackground);
+    const iconColor = type === 'Contribution' ? colors.success : (type === 'Loan' ? colors.danger : colors.warning);
 
     return (
       <View style={styles.transactionItem as ViewStyle}>
         <View style={styles.transactionLeft as ViewStyle}>
           <View
-            style={[styles.transactionIcon as ViewStyle, { backgroundColor: type === 'Contribution' ? '#DCFCE7' : (type === 'Loan' ? '#FEE2E2' : '#FEF3C7') }]}
+            style={[styles.transactionIcon as ViewStyle, { backgroundColor: iconBg }]}
           >
             <Ionicons
               name={type === 'Contribution' ? 'arrow-down-outline' : (type === 'Loan' ? 'arrow-up-outline' : 'refresh-outline')}
               size={20}
-              color={type === 'Contribution' ? '#166534' : (type === 'Loan' ? '#991B1B' : '#92400E')}
+              color={iconColor}
             />
           </View>
           <View style={styles.transactionTextContainer as ViewStyle}>
@@ -176,13 +187,13 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView style={styles.container as ViewStyle}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} />
       <ScrollView
         style={styles.flex1 as ViewStyle}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent as ViewStyle}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />
         }
       >
         {/* Header */}
@@ -193,17 +204,25 @@ export default function DashboardScreen() {
               {user?.displayName?.split(' ')[0] || t('common.member')}
             </Text>
           </View>
-          <TouchableOpacity
-            style={styles.headerIconBtn as ViewStyle}
-            onPress={() => router.push('/profile' as any)}
-          >
-            <Ionicons name="settings-outline" size={24} color={Colors.textPrimary} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <TouchableOpacity
+              style={styles.headerIconBtn as ViewStyle}
+              onPress={toggleTheme}
+            >
+              <Ionicons name={theme === 'dark' ? 'sunny' : 'moon'} size={24} color={colors.text} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.headerIconBtn as ViewStyle}
+              onPress={() => router.push('/profile' as any)}
+            >
+              <Ionicons name="settings-outline" size={24} color={colors.text} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Main Balance Card - Personal Stats */}
         <LinearGradient
-          colors={[Colors.primary, Colors.accent]}
+          colors={[colors.primary, colors.accent]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.balanceCard as ViewStyle}
@@ -241,11 +260,11 @@ export default function DashboardScreen() {
             <Text style={styles.sectionTitle as TextStyle}>{t('dashboard.myContributions')}</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 12 }}>
-            <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#10B981', borderLeftWidth: 4 }]}>
+            <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: colors.success, borderLeftWidth: 4 }]}>
               <Text style={styles.categoryLabel as TextStyle}>{t('dashboard.hisa')}</Text>
               <Text style={styles.categoryValue as TextStyle}>TSh {personalContributionsByCategory.Hisa.toLocaleString()}</Text>
             </View>
-            <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#3B82F6', borderLeftWidth: 4 }]}>
+            <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: colors.info, borderLeftWidth: 4 }]}>
               <Text style={styles.categoryLabel as TextStyle}>{t('dashboard.jamii')}</Text>
               <Text style={styles.categoryValue as TextStyle}>TSh {personalContributionsByCategory.Jamii.toLocaleString()}</Text>
             </View>
@@ -258,11 +277,11 @@ export default function DashboardScreen() {
             <Text style={styles.sectionTitle as TextStyle}>{t('dashboard.myLoans')}</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 12 }}>
-            <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#DC2626', borderLeftWidth: 4 }]}>
+            <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: colors.danger, borderLeftWidth: 4 }]}>
               <Text style={styles.categoryLabel as TextStyle}>{t('dashboard.standard')}</Text>
               <Text style={styles.categoryValue as TextStyle}>TSh {personalLoansByCategory.Standard.toLocaleString()}</Text>
             </View>
-            <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#F59E0B', borderLeftWidth: 4 }]}>
+            <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: colors.warning, borderLeftWidth: 4 }]}>
               <Text style={styles.categoryLabel as TextStyle}>{t('dashboard.dharura')}</Text>
               <Text style={styles.categoryValue as TextStyle}>TSh {personalLoansByCategory.Dharura.toLocaleString()}</Text>
             </View>
@@ -281,14 +300,14 @@ export default function DashboardScreen() {
                   title={t('dashboard.vaultBalance')}
                   value={`TSh ${(stats.vaultBalance / 1000000).toFixed(1)}M`}
                   icon="cash"
-                  color="#10B981"
+                  color={colors.success}
                   subtitle={t('dashboard.totalAssets')}
                 />
                 <StatCard
                   title={t('dashboard.totalDebt')}
                   value={`TSh ${(stats.loanPool / 1000000).toFixed(1)}M`}
                   icon="trending-down"
-                  color="#F57C00"
+                  color={colors.warning}
                   subtitle={t('dashboard.outstandingLoans')}
                 />
               </>
@@ -297,14 +316,14 @@ export default function DashboardScreen() {
               title={t('members.list')}
               value={`${stats.totalMembers}`}
               icon="people"
-              color="#3B82F6"
+              color={colors.info}
               subtitle={t('dashboard.activeSociety')}
             />
             <StatCard
               title={t('dashboard.activeLoans')}
               value={`${stats.activeLoans}`}
               icon="document-text"
-              color="#8B5CF6"
+              color={colors.primary}
               subtitle={t('dashboard.activeLoans')}
             />
           </ScrollView>
@@ -317,11 +336,11 @@ export default function DashboardScreen() {
               <Text style={styles.sectionTitle as TextStyle}>{t('dashboard.totalContributions')}</Text>
             </View>
             <View style={{ flexDirection: 'row', gap: 12 }}>
-              <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#10B981', borderLeftWidth: 4 }]}>
+              <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: colors.success, borderLeftWidth: 4 }]}>
                 <Text style={styles.categoryLabel as TextStyle}>{t('dashboard.hisa')}</Text>
                 <Text style={styles.categoryValue as TextStyle}>TSh {totalContributionsByCategory.Hisa.toLocaleString()}</Text>
               </View>
-              <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#3B82F6', borderLeftWidth: 4 }]}>
+              <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: colors.info, borderLeftWidth: 4 }]}>
                 <Text style={styles.categoryLabel as TextStyle}>{t('dashboard.jamii')}</Text>
                 <Text style={styles.categoryValue as TextStyle}>TSh {totalContributionsByCategory.Jamii.toLocaleString()}</Text>
               </View>
@@ -336,11 +355,11 @@ export default function DashboardScreen() {
               <Text style={styles.sectionTitle as TextStyle}>{t('dashboard.totalDebt')}</Text>
             </View>
             <View style={{ flexDirection: 'row', gap: 12 }}>
-              <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#DC2626', borderLeftWidth: 4 }]}>
+              <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: colors.danger, borderLeftWidth: 4 }]}>
                 <Text style={styles.categoryLabel as TextStyle}>{t('dashboard.standard')}</Text>
                 <Text style={styles.categoryValue as TextStyle}>TSh {totalLoansByCategory.Standard.toLocaleString()}</Text>
               </View>
-              <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: '#F59E0B', borderLeftWidth: 4 }]}>
+              <View style={[styles.categoryCard as ViewStyle, { flex: 1, borderLeftColor: colors.warning, borderLeftWidth: 4 }]}>
                 <Text style={styles.categoryLabel as TextStyle}>{t('dashboard.dharura')}</Text>
                 <Text style={styles.categoryValue as TextStyle}>TSh {totalLoansByCategory.Dharura.toLocaleString()}</Text>
               </View>
@@ -356,7 +375,7 @@ export default function DashboardScreen() {
             </Text>
           </View>
           {loading ? (
-            <ActivityIndicator color={Colors.primary} style={{ marginVertical: 20 }} />
+            <ActivityIndicator color={colors.primary} style={{ marginVertical: 20 }} />
           ) : recentTransactions.length > 0 ? (
             recentTransactions.map((item, index) => (
               <TransactionItem
@@ -413,7 +432,7 @@ export default function DashboardScreen() {
               style={[styles.adminActionBtn as ViewStyle, { opacity: loading ? 0.6 : 1 }]}
             >
               <View style={styles.adminActionLeft as ViewStyle}>
-                <View style={[styles.adminActionIconContainer as ViewStyle, { backgroundColor: '#10B981' }]}>
+                <View style={[styles.adminActionIconContainer as ViewStyle, { backgroundColor: colors.success }]}>
                   {loading ? <ActivityIndicator color="white" /> : <Ionicons name="cash" size={24} color="white" />}
                 </View>
                 <View>
@@ -455,7 +474,7 @@ export default function DashboardScreen() {
               style={[styles.adminActionBtn as ViewStyle, { opacity: loading ? 0.6 : 1, marginTop: 12 }]}
             >
               <View style={styles.adminActionLeft as ViewStyle}>
-                <View style={[styles.adminActionIconContainer as ViewStyle, { backgroundColor: '#E74C3C' }]}>
+                <View style={[styles.adminActionIconContainer as ViewStyle, { backgroundColor: colors.danger }]}>
                   {loading ? <ActivityIndicator color="white" /> : <Ionicons name="alert-circle" size={24} color="white" />}
                 </View>
                 <View>
@@ -471,10 +490,10 @@ export default function DashboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any, theme: string) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
   },
   flex1: {
     flex: 1,
@@ -491,12 +510,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   welcomeText: {
-    color: '#94A3B8',
+    color: colors.textSecondary,
     fontSize: 14,
     fontWeight: '500',
   },
   userName: {
-    color: '#0F172A',
+    color: colors.text,
     fontSize: 24,
     fontWeight: 'bold',
     letterSpacing: -0.5,
@@ -505,18 +524,18 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 16,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.border,
   },
   balanceCard: {
     borderRadius: 32,
     padding: 32,
     marginBottom: 40,
     elevation: 8,
-    shadowColor: '#F57C00',
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.2,
     shadowRadius: 20,
@@ -590,7 +609,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionTitle: {
-    color: '#0F172A',
+    color: colors.text,
     fontSize: 18,
     fontWeight: '900',
     letterSpacing: -0.5,
@@ -599,15 +618,15 @@ const styles = StyleSheet.create({
     paddingRight: 24,
   },
   statCard: {
-    backgroundColor: 'white',
+    backgroundColor: colors.card,
     borderRadius: 24,
     padding: 20,
     marginRight: 16,
     width: 170,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.border,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -621,7 +640,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   statTitle: {
-    color: '#94A3B8',
+    color: colors.textSecondary,
     fontSize: 12,
     fontWeight: '600',
     textTransform: 'uppercase',
@@ -629,17 +648,17 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   statValue: {
-    color: '#0F172A',
+    color: colors.text,
     fontSize: 20,
     fontWeight: 'bold',
   },
   statSubtitle: {
-    color: '#94A3B8',
+    color: colors.textSecondary,
     fontSize: 10,
     marginTop: 4,
   },
   adminActionBtn: {
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.card,
     borderRadius: 24,
     padding: 24,
     marginBottom: 16,
@@ -647,7 +666,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     elevation: 6,
-    shadowColor: '#000',
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.2,
     shadowRadius: 15,
@@ -657,18 +678,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   adminActionIconContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     padding: 12,
     borderRadius: 16,
     marginRight: 16,
   },
   adminActionTitle: {
-    color: 'white',
+    color: colors.text,
     fontSize: 16,
     fontWeight: 'bold',
   },
   adminActionSubtitle: {
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: colors.textSecondary,
     fontSize: 12,
   },
   transactionItem: {
@@ -677,7 +697,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F8FAFC',
+    borderBottomColor: colors.border,
   },
   transactionLeft: {
     flexDirection: 'row',
@@ -697,11 +717,11 @@ const styles = StyleSheet.create({
   transactionType: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#0F172A',
+    color: colors.text,
   },
   transactionDate: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   transactionAmount: {
@@ -711,29 +731,29 @@ const styles = StyleSheet.create({
   emptyBox: {
     padding: 30,
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.backgroundMuted,
     borderRadius: 20,
     marginTop: 10,
   },
   emptyText: {
-    color: '#94A3B8',
+    color: colors.textSecondary,
   },
   categoryCard: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.card,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.border,
   },
   categoryLabel: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.textSecondary,
     fontWeight: '600',
     marginBottom: 8,
   },
   categoryValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#0F172A',
+    color: colors.text,
   },
 });

@@ -4,6 +4,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../../context/ThemeContext';
 import i18n from '../../i18n';
 import { useAuth } from '../../services/AuthContext';
 import { auth } from '../../services/firebase';
@@ -13,6 +14,8 @@ export default function ProfileScreen() {
     const { user, userProfile, role } = useAuth();
     const router = useRouter();
     const { t } = useTranslation();
+    const { theme, toggleTheme, colors } = useTheme();
+    const styles = createStyles(colors, theme);
 
     const handleLogout = () => {
         auth.signOut();
@@ -23,27 +26,27 @@ export default function ProfileScreen() {
         i18n.changeLanguage(nextLang);
     };
 
-    const MenuItem: React.FC<MenuItemProps> = ({ icon, title, value, onPress, color = '#64748B', isLast = false }) => (
+    const MenuItem: React.FC<MenuItemProps> = ({ icon, title, value, onPress, color = colors.textSecondary, isLast = false }) => (
         <TouchableOpacity
             onPress={onPress}
             style={[styles.menuItem, !isLast && styles.menuItemBorder]}
         >
-            <View style={styles.menuIconContainer}>
+            <View style={[styles.menuIconContainer, { backgroundColor: colors.backgroundMuted }]}>
                 <Ionicons name={icon as any} size={22} color={color} />
             </View>
             <View style={styles.menuTextContainer}>
                 <Text style={styles.menuTitle}>{title}</Text>
                 {value && <Text style={styles.menuValue}>{value}</Text>}
             </View>
-            <View style={styles.menuChevron}>
-                <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
+            <View style={[styles.menuChevron, { backgroundColor: colors.backgroundMuted }]}>
+                <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
             </View>
         </TouchableOpacity>
     );
 
     return (
         <SafeAreaView style={styles.container as ViewStyle}>
-            <StatusBar barStyle="dark-content" />
+            <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} />
             <ScrollView
                 style={styles.flex1 as ViewStyle}
                 showsVerticalScrollIndicator={false}
@@ -51,7 +54,7 @@ export default function ProfileScreen() {
             >
                 <View style={styles.profileHeader as ViewStyle}>
                     <View style={styles.avatarContainer}>
-                        <View style={styles.avatar}>
+                        <View style={[styles.avatar, { borderColor: userProfile?.memberId ? colors.primary : colors.card }]}>
                             <Text style={styles.avatarText}>{user?.displayName?.[0] || 'U'}</Text>
                         </View>
                     </View>
@@ -60,8 +63,8 @@ export default function ProfileScreen() {
                         <Text style={styles.roleText}>{role || t('common.member')}</Text>
                     </View>
                     {userProfile?.memberId && (
-                        <View style={{ backgroundColor: '#E0F2FE', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 99, marginTop: 6, borderWidth: 1, borderColor: '#BAE6FD' }}>
-                            <Text style={{ color: '#0369A1', fontWeight: '900', fontSize: 12, letterSpacing: 1.5 }}>ID: {userProfile.memberId}</Text>
+                        <View style={styles.memberIdBadge}>
+                            <Text style={styles.memberIdText}>ID: {userProfile.memberId}</Text>
                         </View>
                     )}
                 </View>
@@ -69,22 +72,29 @@ export default function ProfileScreen() {
                 <Text style={styles.sectionTitle}>{t('settings.general')}</Text>
                 <View style={styles.menuGroup}>
                     <MenuItem
+                        icon="color-palette"
+                        title="Appearance"
+                        value={theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
+                        onPress={toggleTheme}
+                        color={colors.primary}
+                    />
+                    <MenuItem
                         icon="language"
                         title={t('settings.language')}
                         value={i18n.language === 'en' ? t('settings.english') : t('settings.swahili')}
                         onPress={toggleLanguage}
-                        color="#F57C00"
+                        color={colors.warning}
                     />
                     <MenuItem
                         icon="notifications"
                         title={t('settings.notifications')}
                         value={t('common.success')}
-                        color="#3B82F6"
+                        color={colors.info}
                     />
                     <MenuItem
                         icon="shield-checkmark"
                         title={t('settings.privacy')}
-                        color="#10B981"
+                        color={colors.success}
                         isLast
                     />
                 </View>
@@ -95,59 +105,12 @@ export default function ProfileScreen() {
                         <Text style={styles.sectionTitle}>ADMIN TOOLS</Text>
                         <View style={styles.menuGroup}>
                             <MenuItem
-                                icon="id-card"
-                                title="Generate Member IDs (SBK###)"
-                                color="#0EA5E9"
-                                onPress={async () => {
-                                    const { Alert } = await import('react-native');
-                                    Alert.alert(
-                                        'Generate Member IDs',
-                                        'This will generate unique IDs (e.g., SBK001) for all members who don\'t have one yet based on their sign-up order. Continue?',
-                                        [
-                                            { text: 'Cancel', style: 'cancel' },
-                                            {
-                                                text: 'Generate',
-                                                onPress: async () => {
-                                                    try {
-                                                        const { generateMemberIds } = await import('../../services/memberIdService');
-                                                        const result = await generateMemberIds();
-                                                        if (result.success) {
-                                                            Alert.alert(
-                                                                'Success',
-                                                                `Generated IDs for ${result.count} members.`
-                                                            );
-                                                        } else {
-                                                            Alert.alert('Error', result.errors[0] || 'Generation failed');
-                                                        }
-                                                    } catch (error: any) {
-                                                        Alert.alert('Error', error.message || 'Generation failed');
-                                                    }
-                                                }
-                                            }
-                                        ]
-                                    );
-                                }}
-                            />
-                            <MenuItem
                                 icon="shield-half"
                                 title="System Audit Logs"
-                                color="#F57C00"
+                                color={colors.warning}
                                 onPress={() => router.push('/admin/audit-logs' as any)}
                                 isLast
                             />
-                            {/* Migration Tool Hidden (Automated Interest Disabled) */}
-                            {/* 
-                            <MenuItem
-                                icon="construct"
-                                title="Migrate Standard Loans (10% Interest)"
-                                color="#8B5CF6"
-                                onPress={async () => {
-                                    const { Alert } = await import('react-native');
-                                    // ...
-                                }}
-                                isLast
-                            />
-                            */}
                         </View>
                     </>
                 )}
@@ -157,7 +120,7 @@ export default function ProfileScreen() {
                     <MenuItem
                         icon="log-out"
                         title={t('common.logout')}
-                        color="#F43F5E"
+                        color={colors.danger}
                         onPress={handleLogout}
                         isLast
                     />
@@ -171,10 +134,10 @@ export default function ProfileScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any, theme: string) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: 'white',
+        backgroundColor: colors.background,
     },
     flex1: {
         flex: 1,
@@ -195,13 +158,13 @@ const styles = StyleSheet.create({
         width: 110,
         height: 110,
         borderRadius: 40,
-        backgroundColor: '#EA580C',
+        backgroundColor: colors.primary,
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 4,
-        borderColor: '#FFF7ED',
+        borderColor: colors.card,
         elevation: 10,
-        shadowColor: '#EA580C',
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.2,
         shadowRadius: 15,
@@ -212,30 +175,45 @@ const styles = StyleSheet.create({
         fontWeight: '900',
     },
     userName: {
-        color: '#0F172A',
+        color: colors.text,
         fontSize: 24,
         fontWeight: '900',
         marginTop: 24,
         letterSpacing: -0.5,
     },
     roleBadge: {
-        backgroundColor: '#FFF7ED',
+        backgroundColor: colors.card,
         paddingHorizontal: 16,
         paddingVertical: 6,
         borderRadius: 99,
         marginTop: 8,
         borderWidth: 1,
-        borderColor: '#FFEDD5',
+        borderColor: colors.border,
     },
     roleText: {
-        color: '#EA580C',
+        color: colors.primary,
         fontWeight: '900',
         fontSize: 10,
         textTransform: 'uppercase',
         letterSpacing: 2,
     },
+    memberIdBadge: {
+        backgroundColor: colors.primaryBackground,
+        paddingHorizontal: 16,
+        paddingVertical: 6,
+        borderRadius: 99,
+        marginTop: 6,
+        borderWidth: 1,
+        borderColor: colors.primaryBorder,
+    },
+    memberIdText: {
+        color: colors.primary,
+        fontWeight: '900',
+        fontSize: 12,
+        letterSpacing: 1.5,
+    },
     sectionTitle: {
-        color: '#94A3B8',
+        color: colors.textSecondary,
         fontSize: 10,
         fontWeight: '900',
         textTransform: 'uppercase',
@@ -244,14 +222,14 @@ const styles = StyleSheet.create({
         marginLeft: 4,
     },
     menuGroup: {
-        backgroundColor: 'white',
+        backgroundColor: colors.card,
         borderRadius: 32,
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: colors.border,
         padding: 16,
         marginBottom: 32,
         elevation: 2,
-        shadowColor: '#000',
+        shadowColor: colors.shadow,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
         shadowRadius: 10,
@@ -263,13 +241,13 @@ const styles = StyleSheet.create({
     },
     menuItemBorder: {
         borderBottomWidth: 1,
-        borderBottomColor: '#F8FAFC',
+        borderBottomColor: colors.border,
     },
     menuIconContainer: {
         width: 48,
         height: 48,
         borderRadius: 16,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.backgroundMuted,
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 16,
@@ -278,18 +256,18 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     menuTitle: {
-        color: '#0F172A',
+        color: colors.text,
         fontWeight: 'bold',
         fontSize: 16,
     },
     menuValue: {
-        color: '#94A3B8',
+        color: colors.textSecondary,
         fontSize: 12,
         marginTop: 2,
         fontWeight: '500',
     },
     menuChevron: {
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.backgroundMuted,
         padding: 8,
         borderRadius: 12,
     },
@@ -298,10 +276,11 @@ const styles = StyleSheet.create({
         paddingVertical: 16,
     },
     versionText: {
-        color: '#CBD5E1',
+        color: colors.textSecondary,
         fontSize: 10,
         fontWeight: 'bold',
         textTransform: 'uppercase',
         letterSpacing: 2,
+        opacity: 0.5,
     },
 });

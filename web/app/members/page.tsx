@@ -183,7 +183,7 @@ export default function MembersPage() {
                     <p style={{ color: 'var(--text-secondary)' }}>Manage access levels and account status</p>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <button
+                    {/* <button
                         onClick={handleGenerateIds}
                         style={{
                             padding: '0.875rem 1rem',
@@ -197,7 +197,7 @@ export default function MembersPage() {
                         }}
                     >
                         Generate IDs
-                    </button>
+                    </button> */}
                     <div style={{ position: 'relative', width: '320px' }}>
                         <input
                             type="text"
@@ -210,7 +210,8 @@ export default function MembersPage() {
                                 borderRadius: '0.75rem',
                                 border: '1px solid var(--border)',
                                 outline: 'none',
-                                backgroundColor: 'white',
+                                backgroundColor: 'var(--card-bg)',
+                                color: 'var(--text-primary)',
                                 fontSize: '0.875rem',
                                 boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
                             }}
@@ -222,7 +223,7 @@ export default function MembersPage() {
             <div className="card" style={{ overflow: 'hidden' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                     <thead>
-                        <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid var(--border)' }}>
+                        <tr style={{ backgroundColor: 'var(--background-muted)', borderBottom: '1px solid var(--border)' }}>
                             <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>ID</th>
                             <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Member</th>
                             <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Current Role</th>
@@ -241,9 +242,9 @@ export default function MembersPage() {
                                     style={{ borderBottom: '1px solid var(--border)', transition: 'background-color 0.2s', cursor: 'pointer' }}
                                     className="hover-row"
                                 >
-                                    <td style={{ padding: '1.25rem 1.5rem', fontWeight: 'bold', color: '#64748B', fontFamily: 'monospace' }}>
+                                    <td style={{ padding: '1.25rem 1.5rem', fontWeight: 'bold', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
                                         {member.memberId ? (
-                                            <span style={{ backgroundColor: '#DBEAFE', color: '#1E40AF', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem' }}>{member.memberId}</span>
+                                            <span style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3B82F6', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem' }}>{member.memberId}</span>
                                         ) : '-'}
                                     </td>
                                     <td style={{ padding: '1.25rem 1.5rem' }}>
@@ -252,12 +253,13 @@ export default function MembersPage() {
                                                 width: '44px',
                                                 height: '44px',
                                                 borderRadius: '12px',
-                                                backgroundColor: '#F1F5F9',
+                                                backgroundColor: 'var(--background-muted)',
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
                                                 color: 'var(--primary)',
-                                                fontWeight: '800'
+                                                fontWeight: '800',
+                                                border: '1px solid var(--border)'
                                             }}>
                                                 {member.displayName?.[0] || "U"}
                                             </div>
@@ -275,8 +277,8 @@ export default function MembersPage() {
                                             borderRadius: '99px',
                                             fontSize: '0.75rem',
                                             fontWeight: '800',
-                                            backgroundColor: member.role === 'Admin' ? '#F57C0015' : '#1E293B10',
-                                            color: member.role === 'Admin' ? '#F57C00' : '#1E293B'
+                                            backgroundColor: member.role === 'Admin' ? 'rgba(245, 124, 0, 0.1)' : 'rgba(148, 163, 184, 0.1)',
+                                            color: member.role === 'Admin' ? 'var(--primary)' : 'var(--text-secondary)'
                                         }}>
                                             {member.role === 'Admin' ? 'ADMIN' : 'MEMBER'}
                                         </span>
@@ -295,8 +297,8 @@ export default function MembersPage() {
                                                     style={{
                                                         padding: '0.625rem 1rem',
                                                         borderRadius: '0.75rem',
-                                                        color: '#059669',
-                                                        backgroundColor: '#DCFCE7',
+                                                        color: '#10B981',
+                                                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
                                                         fontSize: '0.75rem',
                                                         fontWeight: '800',
                                                         display: 'flex',
@@ -312,8 +314,8 @@ export default function MembersPage() {
                                                     style={{
                                                         padding: '0.625rem 1rem',
                                                         borderRadius: '0.75rem',
-                                                        color: '#DC2626',
-                                                        backgroundColor: '#FEE2E2',
+                                                        color: '#EF4444',
+                                                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
                                                         fontSize: '0.75rem',
                                                         fontWeight: '800',
                                                         display: 'flex',
@@ -326,7 +328,7 @@ export default function MembersPage() {
                                             )}
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); handleDeleteMember(member.uid, member.displayName); }}
-                                                style={{ padding: '8px', borderRadius: '10px', color: '#94A3B8', backgroundColor: 'transparent', border: '1px solid #E2E8F0' }}
+                                                style={{ padding: '8px', borderRadius: '10px', color: 'var(--text-secondary)', backgroundColor: 'transparent', border: '1px solid var(--border)' }}
                                             >
                                                 <Trash2 size={16} />
                                             </button>
@@ -345,35 +347,35 @@ export default function MembersPage() {
             {selectedMember && (
                 <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '1rem' }}>
                     <div className="card" style={{ width: '100%', maxWidth: '500px', padding: 0, overflow: 'hidden' }}>
-                        <div style={{ padding: '1.5rem', backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ padding: '1.5rem', backgroundColor: 'var(--background-muted)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                 <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900' }}>
                                     {selectedMember.displayName[0]}
                                 </div>
                                 <div>
-                                    <h3 style={{ fontWeight: '800', fontSize: '1.125rem' }}>{selectedMember.displayName}</h3>
-                                    <p style={{ fontSize: '0.75rem', color: '#64748B' }}>Member Profile</p>
+                                    <h3 style={{ fontWeight: '800', fontSize: '1.125rem', color: 'var(--text-primary)' }}>{selectedMember.displayName}</h3>
+                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Member Profile</p>
                                 </div>
                             </div>
-                            <button onClick={() => setSelectedMember(null)} style={{ color: '#94A3B8', background: 'none', border: 'none', cursor: 'pointer' }}><X /></button>
+                            <button onClick={() => setSelectedMember(null)} style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer' }}><X /></button>
                         </div>
 
                         <div style={{ padding: '2rem' }}>
                             {/* Key Stats */}
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                                <div style={{ padding: '1.25rem', backgroundColor: '#F0F9FF', borderRadius: '1rem', border: '1px solid #E0F2FE' }}>
+                                <div style={{ padding: '1.25rem', backgroundColor: 'rgba(3, 105, 161, 0.05)', borderRadius: '1rem', border: '1px solid rgba(3, 105, 161, 0.1)' }}>
                                     <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#0369A1', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                         <Wallet size={14} /> TOTAL SAVINGS
                                     </p>
-                                    <p style={{ fontSize: '1.25rem', fontWeight: '900', color: '#0C4A6E' }}>
+                                    <p style={{ fontSize: '1.25rem', fontWeight: '900', color: 'var(--text-primary)' }}>
                                         {loadingStats ? '...' : `${memberStats.totalContributions.toLocaleString()} TZS`}
                                     </p>
                                 </div>
-                                <div style={{ padding: '1.25rem', backgroundColor: '#FEF2F2', borderRadius: '1rem', border: '1px solid #FEE2E2' }}>
+                                <div style={{ padding: '1.25rem', backgroundColor: 'rgba(185, 28, 28, 0.05)', borderRadius: '1rem', border: '1px solid rgba(185, 28, 28, 0.1)' }}>
                                     <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#B91C1C', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                         <CreditCard size={14} /> TOTAL DEBT
                                     </p>
-                                    <p style={{ fontSize: '1.25rem', fontWeight: '900', color: '#7F1D1D' }}>
+                                    <p style={{ fontSize: '1.25rem', fontWeight: '900', color: 'var(--text-primary)' }}>
                                         {loadingStats ? '...' : `${memberStats.loanBalance.toLocaleString()} TZS`}
                                     </p>
                                 </div>
@@ -381,50 +383,50 @@ export default function MembersPage() {
 
                             {/* Detailed Breakdown */}
                             <div style={{ marginBottom: '1.5rem' }}>
-                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.025em', marginBottom: '0.75rem' }}>Contributions by Category</p>
+                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.025em', marginBottom: '0.75rem' }}>Contributions by Category</p>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                    <div style={{ padding: '0.75rem 1rem', backgroundColor: '#F8FAFC', borderRadius: '0.75rem', border: '1px solid #F1F5F9' }}>
-                                        <p style={{ fontSize: '0.65rem', fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase' }}>Hisa</p>
-                                        <p style={{ fontSize: '0.925rem', fontWeight: '800', color: '#1E293B' }}>{loadingStats ? '...' : memberStats.contributionsByCategory.Hisa.toLocaleString()} TZS</p>
+                                    <div style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--background-muted)', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
+                                        <p style={{ fontSize: '0.65rem', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Hisa</p>
+                                        <p style={{ fontSize: '0.925rem', fontWeight: '800', color: 'var(--text-primary)' }}>{loadingStats ? '...' : memberStats.contributionsByCategory.Hisa.toLocaleString()} TZS</p>
                                     </div>
-                                    <div style={{ padding: '0.75rem 1rem', backgroundColor: '#F8FAFC', borderRadius: '0.75rem', border: '1px solid #F1F5F9' }}>
-                                        <p style={{ fontSize: '0.65rem', fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase' }}>Jamii</p>
-                                        <p style={{ fontSize: '0.925rem', fontWeight: '800', color: '#1E293B' }}>{loadingStats ? '...' : memberStats.contributionsByCategory.Jamii.toLocaleString()} TZS</p>
+                                    <div style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--background-muted)', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
+                                        <p style={{ fontSize: '0.65rem', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Jamii</p>
+                                        <p style={{ fontSize: '0.925rem', fontWeight: '800', color: 'var(--text-primary)' }}>{loadingStats ? '...' : memberStats.contributionsByCategory.Jamii.toLocaleString()} TZS</p>
                                     </div>
                                 </div>
                             </div>
 
                             <div style={{ marginBottom: '2rem' }}>
-                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.025em', marginBottom: '0.75rem' }}>Loans by Category</p>
+                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.025em', marginBottom: '0.75rem' }}>Loans by Category</p>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                    <div style={{ padding: '0.75rem 1rem', backgroundColor: '#F8FAFC', borderRadius: '0.75rem', border: '1px solid #F1F5F9' }}>
-                                        <p style={{ fontSize: '0.65rem', fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase' }}>Standard</p>
-                                        <p style={{ fontSize: '0.925rem', fontWeight: '800', color: '#1E293B' }}>{loadingStats ? '...' : memberStats.loansByCategory.Standard.toLocaleString()} TZS</p>
+                                    <div style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--background-muted)', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
+                                        <p style={{ fontSize: '0.65rem', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Standard</p>
+                                        <p style={{ fontSize: '0.925rem', fontWeight: '800', color: 'var(--text-primary)' }}>{loadingStats ? '...' : memberStats.loansByCategory.Standard.toLocaleString()} TZS</p>
                                     </div>
-                                    <div style={{ padding: '0.75rem 1rem', backgroundColor: '#F8FAFC', borderRadius: '0.75rem', border: '1px solid #F1F5F9' }}>
-                                        <p style={{ fontSize: '0.65rem', fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase' }}>Dharura</p>
-                                        <p style={{ fontSize: '0.925rem', fontWeight: '800', color: '#1E293B' }}>{loadingStats ? '...' : memberStats.loansByCategory.Dharura.toLocaleString()} TZS</p>
+                                    <div style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--background-muted)', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
+                                        <p style={{ fontSize: '0.65rem', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Dharura</p>
+                                        <p style={{ fontSize: '0.925rem', fontWeight: '800', color: 'var(--text-primary)' }}>{loadingStats ? '...' : memberStats.loansByCategory.Dharura.toLocaleString()} TZS</p>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Info Rows */}
-                            <div style={{ border: '1px solid #F1F5F9', borderRadius: '1rem', overflow: 'hidden' }}>
-                                <div style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9' }}>
-                                    <span style={{ fontSize: '0.875rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '8px' }}><ShieldCheck size={16} /> Role</span>
-                                    <span style={{ fontSize: '0.875rem', fontWeight: '800', color: '#0F172A' }}>{selectedMember.role.toUpperCase()}</span>
+                            <div style={{ border: '1px solid var(--border)', borderRadius: '1rem', overflow: 'hidden' }}>
+                                <div style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)' }}>
+                                    <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px' }}><ShieldCheck size={16} /> Role</span>
+                                    <span style={{ fontSize: '0.875rem', fontWeight: '800', color: 'var(--text-primary)' }}>{selectedMember.role.toUpperCase()}</span>
                                 </div>
-                                <div style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9' }}>
-                                    <span style={{ fontSize: '0.875rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '8px' }}><Mail size={16} /> Email</span>
-                                    <span style={{ fontSize: '0.875rem', fontWeight: '700', color: '#0F172A' }}>{selectedMember.email}</span>
+                                <div style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)' }}>
+                                    <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px' }}><Mail size={16} /> Email</span>
+                                    <span style={{ fontSize: '0.875rem', fontWeight: '700', color: 'var(--text-primary)' }}>{selectedMember.email}</span>
                                 </div>
-                                <div style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9' }}>
-                                    <span style={{ fontSize: '0.875rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '8px' }}><Calendar size={16} /> Joined On</span>
-                                    <span style={{ fontSize: '0.875rem', fontWeight: '700', color: '#0F172A' }}>{new Date(selectedMember.createdAt).toLocaleDateString()}</span>
+                                <div style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)' }}>
+                                    <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px' }}><Calendar size={16} /> Joined On</span>
+                                    <span style={{ fontSize: '0.875rem', fontWeight: '700', color: 'var(--text-primary)' }}>{new Date(selectedMember.createdAt).toLocaleDateString()}</span>
                                 </div>
-                                <div style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', backgroundColor: '#F8FAFC' }}>
-                                    <span style={{ fontSize: '0.875rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '8px' }}><User size={16} /> Member ID</span>
-                                    <span style={{ fontSize: '0.875rem', fontWeight: '900', color: '#1E40AF', fontFamily: 'monospace' }}>{selectedMember.memberId || 'PENDING'}</span>
+                                <div style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', backgroundColor: 'var(--background-muted)' }}>
+                                    <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px' }}><User size={16} /> Member ID</span>
+                                    <span style={{ fontSize: '0.875rem', fontWeight: '900', color: 'var(--primary)', fontFamily: 'monospace' }}>{selectedMember.memberId || 'PENDING'}</span>
                                 </div>
                             </div>
 
@@ -435,8 +437,8 @@ export default function MembersPage() {
                                         flex: 1,
                                         padding: '1rem',
                                         borderRadius: '0.75rem',
-                                        backgroundColor: selectedMember.role === 'Admin' ? '#FEE2E2' : '#DCFCE7',
-                                        color: selectedMember.role === 'Admin' ? '#DC2626' : '#059669',
+                                        backgroundColor: selectedMember.role === 'Admin' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                                        color: selectedMember.role === 'Admin' ? '#EF4444' : '#10B981',
                                         fontWeight: '900',
                                         border: 'none',
                                         cursor: 'pointer'
@@ -449,8 +451,8 @@ export default function MembersPage() {
                                     style={{
                                         padding: '1rem',
                                         borderRadius: '0.75rem',
-                                        backgroundColor: '#0F172A',
-                                        color: 'white',
+                                        backgroundColor: 'var(--text-primary)',
+                                        color: 'var(--card-bg)',
                                         fontWeight: '900',
                                         border: 'none',
                                         cursor: 'pointer'

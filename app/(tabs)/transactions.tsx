@@ -2,13 +2,13 @@ import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Modal, Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as XLSX from 'xlsx';
 import { SkeletonLoader } from '../../components/SkeletonLoader';
-import { Colors } from '../../constants/Colors';
+import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../services/AuthContext';
 import { bulkUploadService } from '../../services/bulkUploadService';
 import { memberService, UserProfile } from '../../services/memberService';
@@ -17,6 +17,8 @@ import { BulkUploadValidationResult } from '../../types';
 
 export default function TransactionsScreen() {
     const { t } = useTranslation();
+    const { colors, theme } = useTheme();
+    const styles = createStyles(colors, theme);
     const { user: currentUser, role, userProfile } = useAuth();
     const isAdmin = role === 'Admin';
 
@@ -147,13 +149,7 @@ export default function TransactionsScreen() {
         }
     };
 
-    useEffect(() => {
-        if (isAdmin) {
-            fetchMembers();
-        }
-    }, [isAdmin]);
-
-    const fetchMembers = async () => {
+    const fetchMembers = useCallback(async () => {
         if (!currentUser) return;
         setMembersLoading(true);
         try {
@@ -164,7 +160,13 @@ export default function TransactionsScreen() {
         } finally {
             setMembersLoading(false);
         }
-    };
+    }, [currentUser]);
+
+    useEffect(() => {
+        if (isAdmin) {
+            fetchMembers();
+        }
+    }, [isAdmin, fetchMembers]);
 
     const handleSave = async () => {
         if (!amount || isNaN(Number(amount))) {
@@ -220,7 +222,7 @@ export default function TransactionsScreen() {
 
     return (
         <SafeAreaView style={styles.container as ViewStyle}>
-            <StatusBar barStyle="dark-content" />
+            <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} />
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.flex1 as ViewStyle}
@@ -245,7 +247,7 @@ export default function TransactionsScreen() {
                                 <TouchableOpacity
                                     style={[
                                         styles.bulkUploadBtn as ViewStyle,
-                                        { marginTop: 10, backgroundColor: '#E0F2FE', borderWidth: 1, borderColor: '#BAE6FD' }
+                                        { marginTop: 10, backgroundColor: theme === 'dark' ? 'rgba(2, 132, 199, 0.1)' : '#E0F2FE', borderWidth: 1, borderColor: theme === 'dark' ? 'rgba(2, 132, 199, 0.3)' : '#BAE6FD' }
                                     ]}
                                     onPress={handleDownloadTemplate}
                                 >
@@ -261,20 +263,13 @@ export default function TransactionsScreen() {
                                 {t('transactions.member')}
                             </Text>
                             <TouchableOpacity
-                                style={styles.selectMemberBtn as ViewStyle}
-                                onPress={() => isAdmin ? setShowMemberModal(true) : null}
-                                disabled={!isAdmin}
+                                onPress={() => setShowMemberModal(true)}
+                                style={[styles.inputWrapper, { flex: 1 }]}
                             >
-                                <View style={styles.iconContainer as ViewStyle}>
-                                    <Ionicons name="person-outline" size={20} color={Colors.primary} />
-                                </View>
-                                <Text style={styles.memberText as TextStyle}>
-                                    {isAdmin
-                                        ? (selectedMember?.displayName || t('transactions.selectMember'))
-                                        : (currentUser?.displayName || t('common.member'))
-                                    }
+                                <Ionicons name="person-outline" size={20} color={colors.primary} />
+                                <Text style={[styles.filterInput, !selectedMember ? { color: colors.textSecondary } : {}]}>
+                                    {selectedMember?.displayName || 'Select Member'}
                                 </Text>
-                                {isAdmin && <Ionicons name="chevron-down" size={20} color="#94A3B8" />}
                             </TouchableOpacity>
                         </View>
 
@@ -312,7 +307,7 @@ export default function TransactionsScreen() {
                                                 {isRepay ? t('transactions.repay') : (row === 'Contribution' ? t('transactions.contribution') : t('transactions.loan'))}
                                             </Text>
                                             {isDisabled && (
-                                                <Text style={{ fontSize: 8, color: '#94A3B8', marginTop: 2, textAlign: 'center' }}>{t('transactions.noLoan')}</Text>
+                                                <Text style={{ fontSize: 8, color: colors.textSecondary, marginTop: 2, textAlign: 'center' }}>{t('transactions.noLoan')}</Text>
                                             )}
                                         </TouchableOpacity>
                                     );
@@ -328,13 +323,13 @@ export default function TransactionsScreen() {
                                                 onPress={() => setCategory('Hisa')}
                                                 style={[styles.subTypeBtn, category === 'Hisa' ? styles.subTypeBtnActive : styles.subTypeBtnInactive]}
                                             >
-                                                <Text style={[styles.subTypeText, category === 'Hisa' ? { color: 'white' } : { color: '#64748B' }, { textAlign: 'center' }]}>{t('dashboard.hisa')}</Text>
+                                                <Text style={[styles.subTypeText, category === 'Hisa' ? { color: 'white' } : { color: colors.textSecondary }, { textAlign: 'center' }]}>{t('dashboard.hisa')}</Text>
                                             </TouchableOpacity>
                                             <TouchableOpacity
                                                 onPress={() => setCategory('Jamii')}
                                                 style={[styles.subTypeBtn, category === 'Jamii' ? styles.subTypeBtnActive : styles.subTypeBtnInactive]}
                                             >
-                                                <Text style={[styles.subTypeText, category === 'Jamii' ? { color: 'white' } : { color: '#64748B' }, { textAlign: 'center' }]}>{t('dashboard.jamii')}</Text>
+                                                <Text style={[styles.subTypeText, category === 'Jamii' ? { color: 'white' } : { color: colors.textSecondary }, { textAlign: 'center' }]}>{t('dashboard.jamii')}</Text>
                                             </TouchableOpacity>
                                         </>
                                     ) : (
@@ -343,13 +338,13 @@ export default function TransactionsScreen() {
                                                 onPress={() => setCategory('Standard')}
                                                 style={[styles.subTypeBtn, category === 'Standard' ? styles.subTypeBtnActiveRed : styles.subTypeBtnInactive]}
                                             >
-                                                <Text style={[styles.subTypeText, category === 'Standard' ? { color: 'white' } : { color: '#64748B' }, { textAlign: 'center' }]}>{t('dashboard.standard')}</Text>
+                                                <Text style={[styles.subTypeText, category === 'Standard' ? { color: 'white' } : { color: colors.textSecondary }, { textAlign: 'center' }]}>{t('dashboard.standard')}</Text>
                                             </TouchableOpacity>
                                             <TouchableOpacity
                                                 onPress={() => setCategory('Dharura')}
                                                 style={[styles.subTypeBtn, category === 'Dharura' ? styles.subTypeBtnActiveRed : styles.subTypeBtnInactive]}
                                             >
-                                                <Text style={[styles.subTypeText, category === 'Dharura' ? { color: 'white' } : { color: '#64748B' }, { textAlign: 'center' }]}>{t('dashboard.dharura')}</Text>
+                                                <Text style={[styles.subTypeText, category === 'Dharura' ? { color: 'white' } : { color: colors.textSecondary }, { textAlign: 'center' }]}>{t('dashboard.dharura')}</Text>
                                             </TouchableOpacity>
                                         </>
                                     )}
@@ -379,10 +374,10 @@ export default function TransactionsScreen() {
                                                     ]}
                                                 >
                                                     <View>
-                                                        <Text style={[styles.subTypeText, category === cat && hasBalance ? { color: 'white' } : { color: '#64748B' }, { textAlign: 'center' }]}>
+                                                        <Text style={[styles.subTypeText, category === cat && hasBalance ? { color: 'white' } : { color: colors.textSecondary }, { textAlign: 'center' }]}>
                                                             {cat === 'Standard' ? t('dashboard.standard') : t('dashboard.dharura')}
                                                         </Text>
-                                                        <Text style={{ fontSize: 12, color: hasBalance ? '#10B981' : '#EF4444', marginTop: 4, textAlign: 'center' }}>
+                                                        <Text style={{ fontSize: 12, color: hasBalance ? colors.success : colors.danger, marginTop: 4, textAlign: 'center' }}>
                                                             {t('transactions.balance')}: {loanBalanceByCategory[cat].toFixed(2)}
                                                         </Text>
                                                     </View>
@@ -406,7 +401,7 @@ export default function TransactionsScreen() {
                                 <TextInput
                                     style={styles.amountInput as TextStyle}
                                     placeholder="0.00"
-                                    placeholderTextColor="#CBD5E1"
+                                    placeholderTextColor={colors.textSecondary}
                                     keyboardType="numeric"
                                     value={amount}
                                     onChangeText={setAmount}
@@ -428,10 +423,10 @@ export default function TransactionsScreen() {
                                             {(Number(amount) * 0.1).toLocaleString()} TZS
                                         </Text>
                                     </View>
-                                    <View style={{ height: 1, backgroundColor: '#FFEDD5', marginVertical: 8 }} />
+                                    <View style={{ height: 1, backgroundColor: colors.warningBorder, marginVertical: 8 }} />
                                     <View style={styles.interestRow}>
-                                        <Text style={[styles.interestLabel, { fontWeight: '700', color: '#EA580C', fontSize: 14 }]}>Total:</Text>
-                                        <Text style={[styles.interestValue, { fontWeight: '700', color: '#EA580C', fontSize: 16 }]}>
+                                        <Text style={[styles.interestLabel, { fontWeight: '700', color: colors.primary, fontSize: 14 }]}>Total:</Text>
+                                        <Text style={[styles.interestValue, { fontWeight: '700', color: colors.primary, fontSize: 16 }]}>
                                             {(Number(amount) * 1.1).toLocaleString()} TZS
                                         </Text>
                                     </View>
@@ -459,19 +454,20 @@ export default function TransactionsScreen() {
 
             {/* Member Selection Modal */}
             <Modal visible={showMemberModal} animationType="slide">
-                <SafeAreaView style={{ flex: 1 }}>
+                <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
                     <View style={styles.modalHeader as ViewStyle}>
                         <TouchableOpacity onPress={() => setShowMemberModal(false)}>
-                            <Ionicons name="close" size={28} color="#0F172A" />
+                            <Ionicons name="close" size={28} color={colors.text} />
                         </TouchableOpacity>
                         <Text style={styles.modalTitle as TextStyle}>{t('transactions.selectRecipient')}</Text>
                         <View style={{ width: 28 }} />
                     </View>
 
                     <View style={styles.searchBar as ViewStyle}>
-                        <Ionicons name="search" size={20} color="#94A3B8" />
+                        <Ionicons name="search" size={20} color={colors.textSecondary} />
                         <TextInput
                             placeholder={t('transactions.searchNames')}
+                            placeholderTextColor={colors.textSecondary}
                             style={styles.modalSearchInput as TextStyle}
                             value={search}
                             onChangeText={setSearch}
@@ -525,7 +521,7 @@ export default function TransactionsScreen() {
                         <View style={styles.previewHeader as ViewStyle}>
                             <Text style={styles.previewTitle as TextStyle}>Bulk Import Preview</Text>
                             <TouchableOpacity onPress={() => setShowBulkPreview(false)}>
-                                <Ionicons name="close" size={24} color="#64748B" />
+                                <Ionicons name="close" size={24} color={colors.textSecondary} />
                             </TouchableOpacity>
                         </View>
 
@@ -535,19 +531,19 @@ export default function TransactionsScreen() {
                                 <Text style={styles.sectionTitle as TextStyle}>Summary</Text>
                                 <View style={styles.statRow as ViewStyle}>
                                     <Text style={styles.statLabel as TextStyle}>Valid Transactions:</Text>
-                                    <Text style={[styles.statValue as TextStyle, { color: '#10B981' }]}>{bulkValidation?.validRows.length || 0}</Text>
+                                    <Text style={[styles.statValue as TextStyle, { color: colors.success }]}>{bulkValidation?.validRows.length || 0}</Text>
                                 </View>
                                 <View style={styles.statRow as ViewStyle}>
                                     <Text style={styles.statLabel as TextStyle}>Users Affected:</Text>
-                                    <Text style={[styles.statValue as TextStyle, { color: '#0EA5E9' }]}>{bulkValidation?.totalAffectedUsers || 0}</Text>
+                                    <Text style={[styles.statValue as TextStyle, { color: colors.info }]}>{bulkValidation?.totalAffectedUsers || 0}</Text>
                                 </View>
                                 <View style={styles.statRow as ViewStyle}>
                                     <Text style={styles.statLabel as TextStyle}>Duplicates (Skipped):</Text>
-                                    <Text style={[styles.statValue as TextStyle, { color: '#F59E0B' }]}>{bulkValidation?.duplicateRows.length || 0}</Text>
+                                    <Text style={[styles.statValue as TextStyle, { color: colors.warning }]}>{bulkValidation?.duplicateRows.length || 0}</Text>
                                 </View>
                                 <View style={styles.statRow as ViewStyle}>
                                     <Text style={styles.statLabel as TextStyle}>Invalid Rows:</Text>
-                                    <Text style={[styles.statValue as TextStyle, { color: '#EF4444' }]}>{bulkValidation?.invalidRows.length || 0}</Text>
+                                    <Text style={[styles.statValue as TextStyle, { color: colors.danger }]}>{bulkValidation?.invalidRows.length || 0}</Text>
                                 </View>
                             </View>
 
@@ -557,49 +553,49 @@ export default function TransactionsScreen() {
                                     <Text style={styles.sectionTitle as TextStyle}>Transaction Breakdown</Text>
                                     <View style={styles.totalsGrid as ViewStyle}>
                                         {(bulkValidation?.totals.hisaAmount || 0) > 0 && (
-                                            <View style={[styles.totalBox as ViewStyle, { backgroundColor: '#F0FDF4', borderLeftColor: '#10B981' }]}>
+                                            <View style={[styles.totalBox as ViewStyle, { backgroundColor: colors.successBackground, borderLeftColor: colors.success }]}>
                                                 <Text style={styles.totalLabel as TextStyle}>Hisa (Shares)</Text>
-                                                <Text style={[styles.totalAmount as TextStyle, { color: '#10B981' }]}>
+                                                <Text style={[styles.totalAmount as TextStyle, { color: colors.success }]}>
                                                     TSH {(bulkValidation?.totals.hisaAmount || 0).toLocaleString()}
                                                 </Text>
                                             </View>
                                         )}
                                         {(bulkValidation?.totals.jamiiAmount || 0) > 0 && (
-                                            <View style={[styles.totalBox as ViewStyle, { backgroundColor: '#F0FDF4', borderLeftColor: '#10B981' }]}>
+                                            <View style={[styles.totalBox as ViewStyle, { backgroundColor: colors.successBackground, borderLeftColor: colors.success }]}>
                                                 <Text style={styles.totalLabel as TextStyle}>Jamii</Text>
-                                                <Text style={[styles.totalAmount as TextStyle, { color: '#10B981' }]}>
+                                                <Text style={[styles.totalAmount as TextStyle, { color: colors.success }]}>
                                                     TSH {(bulkValidation?.totals.jamiiAmount || 0).toLocaleString()}
                                                 </Text>
                                             </View>
                                         )}
                                         {(bulkValidation?.totals.standardLoanAmount || 0) > 0 && (
-                                            <View style={[styles.totalBox as ViewStyle, { backgroundColor: '#FEF2F2', borderLeftColor: '#EF4444' }]}>
+                                            <View style={[styles.totalBox as ViewStyle, { backgroundColor: colors.dangerBackground, borderLeftColor: colors.danger }]}>
                                                 <Text style={styles.totalLabel as TextStyle}>Standard Loan</Text>
-                                                <Text style={[styles.totalAmount as TextStyle, { color: '#EF4444' }]}>
+                                                <Text style={[styles.totalAmount as TextStyle, { color: colors.danger }]}>
                                                     TSH {(bulkValidation?.totals.standardLoanAmount || 0).toLocaleString()}
                                                 </Text>
                                             </View>
                                         )}
                                         {(bulkValidation?.totals.dharuraLoanAmount || 0) > 0 && (
-                                            <View style={[styles.totalBox as ViewStyle, { backgroundColor: '#FEF2F2', borderLeftColor: '#EF4444' }]}>
+                                            <View style={[styles.totalBox as ViewStyle, { backgroundColor: colors.dangerBackground, borderLeftColor: colors.danger }]}>
                                                 <Text style={styles.totalLabel as TextStyle}>Dharura Loan</Text>
-                                                <Text style={[styles.totalAmount as TextStyle, { color: '#EF4444' }]}>
+                                                <Text style={[styles.totalAmount as TextStyle, { color: colors.danger }]}>
                                                     TSH {(bulkValidation?.totals.dharuraLoanAmount || 0).toLocaleString()}
                                                 </Text>
                                             </View>
                                         )}
                                         {(bulkValidation?.totals.standardRepayAmount || 0) > 0 && (
-                                            <View style={[styles.totalBox as ViewStyle, { backgroundColor: '#FEF3C7', borderLeftColor: '#F59E0B' }]}>
+                                            <View style={[styles.totalBox as ViewStyle, { backgroundColor: colors.warningBackground, borderLeftColor: colors.warning }]}>
                                                 <Text style={styles.totalLabel as TextStyle}>Standard Repay</Text>
-                                                <Text style={[styles.totalAmount as TextStyle, { color: '#F59E0B' }]}>
+                                                <Text style={[styles.totalAmount as TextStyle, { color: colors.warning }]}>
                                                     TSH {(bulkValidation?.totals.standardRepayAmount || 0).toLocaleString()}
                                                 </Text>
                                             </View>
                                         )}
                                         {(bulkValidation?.totals.dharuraRepayAmount || 0) > 0 && (
-                                            <View style={[styles.totalBox as ViewStyle, { backgroundColor: '#FEF3C7', borderLeftColor: '#F59E0B' }]}>
+                                            <View style={[styles.totalBox as ViewStyle, { backgroundColor: colors.warningBackground, borderLeftColor: colors.warning }]}>
                                                 <Text style={styles.totalLabel as TextStyle}>Dharura Repay</Text>
-                                                <Text style={[styles.totalAmount as TextStyle, { color: '#F59E0B' }]}>
+                                                <Text style={[styles.totalAmount as TextStyle, { color: colors.warning }]}>
                                                     TSH {(bulkValidation?.totals.dharuraRepayAmount || 0).toLocaleString()}
                                                 </Text>
                                             </View>
@@ -618,10 +614,10 @@ export default function TransactionsScreen() {
                             )}
 
                             {bulkValidation?.warnings && bulkValidation.warnings.length > 0 && (
-                                <View style={[styles.warningBox as ViewStyle, { backgroundColor: '#FFFBEB' }]}>
-                                    <Text style={[styles.warningText as TextStyle, { fontWeight: 'bold', color: '#B45309' }]}>Warnings:</Text>
+                                <View style={[styles.warningBox as ViewStyle, { backgroundColor: colors.warningBackground }]}>
+                                    <Text style={[styles.warningText as TextStyle, { fontWeight: 'bold', color: colors.warning }]}>Warnings:</Text>
                                     {bulkValidation.warnings.map((warn: string, i: number) => (
-                                        <Text key={i} style={[styles.warningText as TextStyle, { color: '#B45309' }]}>• {warn}</Text>
+                                        <Text key={i} style={[styles.warningText as TextStyle, { color: colors.warning }]}>• {warn}</Text>
                                     ))}
                                 </View>
                             )}
@@ -645,10 +641,10 @@ export default function TransactionsScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any, theme: string) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: 'white',
+        backgroundColor: colors.background,
     },
     flex1: {
         flex: 1,
@@ -659,7 +655,7 @@ const styles = StyleSheet.create({
         paddingBottom: 40,
     },
     title: {
-        color: '#0F172A',
+        color: colors.text,
         fontSize: 30,
         fontWeight: '900',
         letterSpacing: -0.5,
@@ -672,7 +668,7 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     label: {
-        color: '#64748B',
+        color: colors.textSecondary,
         fontSize: 12,
         fontWeight: 'bold',
         textTransform: 'uppercase',
@@ -680,37 +676,21 @@ const styles = StyleSheet.create({
         marginBottom: 12,
         marginLeft: 4,
     },
-    selectMemberBtn: {
+    inputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.backgroundMuted,
         borderRadius: 20,
         paddingHorizontal: 20,
         paddingVertical: 20,
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: colors.border,
     },
-    iconContainer: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
-        backgroundColor: 'white',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: 16,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        borderWidth: 1,
-        borderColor: '#F8FAFC',
-    },
-    memberText: {
+    filterInput: {
         flex: 1,
-        color: '#0F172A',
         fontSize: 16,
-        fontWeight: '600',
+        color: colors.text,
+        marginLeft: 12,
     },
     typeGrid: {
         flexDirection: 'row',
@@ -725,17 +705,17 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     typeCardActive: {
-        backgroundColor: '#EA580C',
-        borderColor: '#EA580C',
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
         elevation: 8,
-        shadowColor: '#EA580C',
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
     },
     typeCardInactive: {
-        backgroundColor: 'white',
-        borderColor: '#E2E8F0',
+        backgroundColor: colors.card,
+        borderColor: colors.border,
     },
     typeText: {
         fontWeight: '900',
@@ -748,23 +728,23 @@ const styles = StyleSheet.create({
         color: 'white',
     },
     typeTextInactive: {
-        color: '#94A3B8',
+        color: colors.textSecondary,
     },
     amountInputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.backgroundMuted,
         borderRadius: 20,
         paddingHorizontal: 20,
         paddingVertical: 20,
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: colors.border,
     },
     amountIconContainer: {
         width: 40,
         height: 40,
         borderRadius: 12,
-        backgroundColor: '#EA580C',
+        backgroundColor: colors.primary,
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 16,
@@ -773,10 +753,10 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 24,
         fontWeight: '900',
-        color: '#0F172A',
+        color: colors.text,
     },
     saveBtn: {
-        backgroundColor: '#EA580C',
+        backgroundColor: colors.primary,
         borderRadius: 24,
         paddingVertical: 24,
         marginTop: 24,
@@ -785,7 +765,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         gap: 12,
         elevation: 12,
-        shadowColor: '#EA580C',
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.4,
         shadowRadius: 16,
@@ -803,25 +783,26 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 24,
         borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
+        borderBottomColor: colors.border,
     },
     modalTitle: {
         fontSize: 18,
         fontWeight: '900',
-        color: '#0F172A',
+        color: colors.text,
     },
     searchBar: {
         flexDirection: 'row',
         alignItems: 'center',
         margin: 24,
         padding: 16,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.backgroundMuted,
         borderRadius: 16,
         gap: 12,
     },
     modalSearchInput: {
         flex: 1,
         fontSize: 16,
+        color: colors.text,
     },
     memberListItem: {
         flexDirection: 'row',
@@ -832,27 +813,27 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: '#FFE7D9',
+        backgroundColor: colors.primaryBackground,
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 16,
     },
     avatarTextMini: {
-        color: '#EA580C',
+        color: colors.primary,
         fontWeight: 'bold',
     },
     memberNameMain: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#0F172A',
+        color: colors.text,
     },
     memberRole: {
         fontSize: 12,
-        color: '#94A3B8',
+        color: colors.textSecondary,
     },
     separator: {
         height: 1,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.border,
     },
     subTypeBtn: {
         flex: 1,
@@ -863,20 +844,20 @@ const styles = StyleSheet.create({
         borderWidth: 1,
     },
     subTypeBtnActive: {
-        backgroundColor: '#10B981',
-        borderColor: '#10B981',
+        backgroundColor: colors.success,
+        borderColor: colors.success,
     },
     subTypeBtnActiveRed: {
-        backgroundColor: '#EF4444',
-        borderColor: '#EF4444',
+        backgroundColor: colors.danger,
+        borderColor: colors.danger,
     },
     subTypeBtnInactive: {
-        backgroundColor: 'white',
-        borderColor: '#E2E8F0',
+        backgroundColor: colors.card,
+        borderColor: colors.border,
     },
     subTypeBtnDisabled: {
-        backgroundColor: '#F1F5F9',
-        borderColor: '#F1F5F9',
+        backgroundColor: colors.backgroundMuted,
+        borderColor: colors.backgroundMuted,
     },
     subTypeText: {
         fontWeight: 'bold',
@@ -885,10 +866,10 @@ const styles = StyleSheet.create({
     interestPreview: {
         marginTop: 16,
         padding: 16,
-        backgroundColor: '#FFF7ED',
+        backgroundColor: colors.warningBackground,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: '#FFEDD5',
+        borderColor: colors.warningBorder,
     },
     interestRow: {
         flexDirection: 'row',
@@ -897,36 +878,26 @@ const styles = StyleSheet.create({
     },
     interestLabel: {
         fontSize: 12,
-        color: '#78716C',
+        color: colors.textSecondary,
         fontWeight: '500',
     },
     interestValue: {
         fontSize: 12,
-        color: '#57534E',
+        color: colors.text,
         fontWeight: '600',
-    },
-    interestLabelBold: {
-        fontSize: 14,
-        color: '#1C1917',
-        fontWeight: 'bold',
-    },
-    interestValueBold: {
-        fontSize: 16,
-        color: '#EA580C',
-        fontWeight: '900',
     },
     bulkUploadBtn: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#10B981',
+        backgroundColor: colors.success,
         paddingVertical: 12,
         paddingHorizontal: 16,
         borderRadius: 12,
         gap: 8,
-        marginBottom: 24,
+        marginBottom: 8,
         elevation: 2,
-        shadowColor: '#10B981',
+        shadowColor: colors.success,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 4,
@@ -945,7 +916,7 @@ const styles = StyleSheet.create({
         padding: 24,
     },
     previewModalContent: {
-        backgroundColor: 'white',
+        backgroundColor: colors.card,
         borderRadius: 24,
         maxHeight: '80%',
         padding: 24,
@@ -956,13 +927,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
+        borderBottomColor: colors.border,
         paddingBottom: 16,
     },
     previewTitle: {
         fontSize: 20,
         fontWeight: '900',
-        color: '#0F172A',
+        color: colors.text,
     },
     statRow: {
         flexDirection: 'row',
@@ -971,23 +942,23 @@ const styles = StyleSheet.create({
     },
     statLabel: {
         fontSize: 14,
-        color: '#64748B',
+        color: colors.textSecondary,
     },
     statValue: {
         fontSize: 14,
         fontWeight: 'bold',
-        color: '#0F172A',
+        color: colors.text,
     },
     previewSection: {
         marginBottom: 20,
         paddingBottom: 20,
         borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
+        borderBottomColor: colors.border,
     },
     sectionTitle: {
         fontSize: 14,
         fontWeight: '700',
-        color: '#1E293B',
+        color: colors.text,
         marginBottom: 12,
         textTransform: 'uppercase',
         letterSpacing: 0.5,
@@ -1006,7 +977,7 @@ const styles = StyleSheet.create({
     },
     totalLabel: {
         fontSize: 12,
-        color: '#64748B',
+        color: colors.textSecondary,
         marginBottom: 6,
     },
     totalAmount: {
@@ -1014,18 +985,18 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     warningBox: {
-        backgroundColor: '#FEF2F2',
+        backgroundColor: colors.dangerBackground,
         padding: 12,
         borderRadius: 8,
         marginBottom: 16,
         marginTop: 8
     },
     warningText: {
-        color: '#DC2626',
+        color: colors.danger,
         fontSize: 12,
     },
     processBtn: {
-        backgroundColor: '#10B981',
+        backgroundColor: colors.success,
         paddingVertical: 16,
         borderRadius: 16,
         alignItems: 'center',
