@@ -27,6 +27,15 @@ interface UserProfile {
     phone?: string;
 }
 
+interface Transaction {
+    id: string;
+    date: string;
+    type: string;
+    amount: number;
+    category?: string;
+    status?: string;
+}
+
 export default function MembersPage() {
     const [members, setMembers] = useState<UserProfile[]>([]);
     const [loading, setLoading] = useState(true);
@@ -41,6 +50,8 @@ export default function MembersPage() {
         contributionsByCategory: { Hisa: 0, Jamii: 0, Standard: 0, Dharura: 0 },
         loansByCategory: { Hisa: 0, Jamii: 0, Standard: 0, Dharura: 0 }
     });
+
+    const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
     const [loadingStats, setLoadingStats] = useState(false);
 
     useEffect(() => {
@@ -71,9 +82,11 @@ export default function MembersPage() {
             let contributions = 0;
             let contribsByCategory = { Hisa: 0, Jamii: 0, Standard: 0, Dharura: 0 };
             let loansByCat = { Hisa: 0, Jamii: 0, Standard: 0, Dharura: 0 };
+            const allTransactions: Transaction[] = [];
 
             snapshot.forEach(doc => {
                 const data = doc.data();
+                allTransactions.push({ id: doc.id, ...data } as Transaction);
                 const cat = data.category as keyof typeof contribsByCategory;
 
                 if (data.type === 'Contribution') {
@@ -94,6 +107,10 @@ export default function MembersPage() {
                     }
                 }
             });
+
+            // Sort by date desc
+            allTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            setRecentTransactions(allTransactions.slice(0, 5));
 
             setMemberStats({
                 balance,
@@ -138,6 +155,17 @@ export default function MembersPage() {
             if (selectedMember?.uid === uid) setSelectedMember(null);
         } catch (error) {
             alert("Failed to delete user");
+        }
+    };
+
+    const handleDeleteTransaction = async (txId: string) => {
+        if (!confirm("Are you sure you want to delete this transaction? This will affect the member's balance.")) return;
+        try {
+            await deleteDoc(doc(db, "transactions", txId));
+            if (selectedMember) fetchMemberStats(selectedMember.uid);
+        } catch (e) {
+            console.error(e);
+            alert("Failed to delete transaction");
         }
     };
 
@@ -346,7 +374,7 @@ export default function MembersPage() {
             {/* Member Detail Modal */}
             {selectedMember && (
                 <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '1rem' }}>
-                    <div className="card" style={{ width: '100%', maxWidth: '500px', padding: 0, overflow: 'hidden' }}>
+                    <div className="card" style={{ width: '100%', maxWidth: '800px', maxHeight: '90vh', padding: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
                         <div style={{ padding: '1.5rem', backgroundColor: 'var(--background-muted)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                 <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900' }}>
@@ -362,7 +390,7 @@ export default function MembersPage() {
 
                         <div style={{ padding: '2rem' }}>
                             {/* Key Stats */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
                                 <div style={{ padding: '1.25rem', backgroundColor: 'rgba(3, 105, 161, 0.05)', borderRadius: '1rem', border: '1px solid rgba(3, 105, 161, 0.1)' }}>
                                     <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#0369A1', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                         <Wallet size={14} /> TOTAL SAVINGS
@@ -379,10 +407,19 @@ export default function MembersPage() {
                                         {loadingStats ? '...' : `${memberStats.loanBalance.toLocaleString()} TZS`}
                                     </p>
                                 </div>
+                                <div style={{ padding: '1.25rem', backgroundColor: 'var(--background-muted)', borderRadius: '1rem', border: '1px solid var(--border)' }}>
+                                    <p style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>HISA BALANCE</p>
+                                    <p style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--text-primary)' }}>{loadingStats ? '...' : memberStats.contributionsByCategory.Hisa.toLocaleString()} TZS</p>
+                                </div>
+                                <div style={{ padding: '1.25rem', backgroundColor: 'var(--background-muted)', borderRadius: '1rem', border: '1px solid var(--border)' }}>
+                                    <p style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>JAMII BALANCE</p>
+                                    <p style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--text-primary)' }}>{loadingStats ? '...' : memberStats.contributionsByCategory.Jamii.toLocaleString()} TZS</p>
+                                </div>
                             </div>
 
                             {/* Detailed Breakdown */}
-                            <div style={{ marginBottom: '1.5rem' }}>
+                            {/* The previous Detailed Breakdown section is now integrated into the Key Stats and new layout */}
+                            {/* <div style={{ marginBottom: '1.5rem' }}>
                                 <p style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.025em', marginBottom: '0.75rem' }}>Contributions by Category</p>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                     <div style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--background-muted)', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
@@ -394,9 +431,10 @@ export default function MembersPage() {
                                         <p style={{ fontSize: '0.925rem', fontWeight: '800', color: 'var(--text-primary)' }}>{loadingStats ? '...' : memberStats.contributionsByCategory.Jamii.toLocaleString()} TZS</p>
                                     </div>
                                 </div>
-                            </div>
+                            </div> */}
 
-                            <div style={{ marginBottom: '2rem' }}>
+                            {/* The previous Loans by Category section is now integrated into the new layout */}
+                            {/* <div style={{ marginBottom: '2rem' }}>
                                 <p style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.025em', marginBottom: '0.75rem' }}>Loans by Category</p>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                     <div style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--background-muted)', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
@@ -408,25 +446,84 @@ export default function MembersPage() {
                                         <p style={{ fontSize: '0.925rem', fontWeight: '800', color: 'var(--text-primary)' }}>{loadingStats ? '...' : memberStats.loansByCategory.Dharura.toLocaleString()} TZS</p>
                                     </div>
                                 </div>
-                            </div>
+                            </div> */}
 
-                            {/* Info Rows */}
-                            <div style={{ border: '1px solid var(--border)', borderRadius: '1rem', overflow: 'hidden' }}>
-                                <div style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)' }}>
-                                    <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px' }}><ShieldCheck size={16} /> Role</span>
-                                    <span style={{ fontSize: '0.875rem', fontWeight: '800', color: 'var(--text-primary)' }}>{selectedMember.role.toUpperCase()}</span>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                                <div>
+                                    {/* Recent Transactions */}
+                                    <div style={{ marginBottom: '2rem' }}>
+                                        <p style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.025em', marginBottom: '0.75rem' }}>Last 5 Transactions</p>
+                                        {loadingStats ? (
+                                            <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Loading transactions...</p>
+                                        ) : recentTransactions.length > 0 ? (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                {recentTransactions.map(tx => (
+                                                    <div key={tx.id} style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--background-muted)', borderRadius: '0.75rem', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div>
+                                                            <p style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-primary)' }}>
+                                                                {tx.type} {tx.category ? `• ${tx.category}` : ''}
+                                                            </p>
+                                                            <p style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
+                                                                {new Date(tx.date).toLocaleDateString()}
+                                                            </p>
+                                                        </div>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                            <p style={{ fontSize: '0.875rem', fontWeight: '800', color: tx.type === 'Loan' ? '#EF4444' : '#10B981' }}>
+                                                                {tx.type === 'Loan' ? '-' : '+'}{tx.amount.toLocaleString()} TZS
+                                                            </p>
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); handleDeleteTransaction(tx.id); }}
+                                                                style={{ padding: '6px', borderRadius: '6px', color: 'var(--text-secondary)', background: 'transparent', border: 'none', cursor: 'pointer', transition: 'background-color 0.2s' }}
+                                                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.05)'}
+                                                                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                                title="Delete Transaction"
+                                                            >
+                                                                <Trash2 size={14} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>No recent transactions found.</p>
+                                        )}
+                                    </div>
                                 </div>
-                                <div style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)' }}>
-                                    <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px' }}><Mail size={16} /> Email</span>
-                                    <span style={{ fontSize: '0.875rem', fontWeight: '700', color: 'var(--text-primary)' }}>{selectedMember.email}</span>
-                                </div>
-                                <div style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)' }}>
-                                    <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px' }}><Calendar size={16} /> Joined On</span>
-                                    <span style={{ fontSize: '0.875rem', fontWeight: '700', color: 'var(--text-primary)' }}>{new Date(selectedMember.createdAt).toLocaleDateString()}</span>
-                                </div>
-                                <div style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', backgroundColor: 'var(--background-muted)' }}>
-                                    <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px' }}><User size={16} /> Member ID</span>
-                                    <span style={{ fontSize: '0.875rem', fontWeight: '900', color: 'var(--primary)', fontFamily: 'monospace' }}>{selectedMember.memberId || 'PENDING'}</span>
+
+                                <div>
+                                    <div style={{ marginBottom: '2rem' }}>
+                                        <p style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.025em', marginBottom: '0.75rem' }}>Active Loans</p>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
+                                            <div style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--background-muted)', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
+                                                <p style={{ fontSize: '0.65rem', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Standard Loan</p>
+                                                <p style={{ fontSize: '0.925rem', fontWeight: '800', color: 'var(--text-primary)' }}>{loadingStats ? '...' : memberStats.loansByCategory.Standard.toLocaleString()} TZS</p>
+                                            </div>
+                                            <div style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--background-muted)', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
+                                                <p style={{ fontSize: '0.65rem', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Dharura Loan</p>
+                                                <p style={{ fontSize: '0.925rem', fontWeight: '800', color: 'var(--text-primary)' }}>{loadingStats ? '...' : memberStats.loansByCategory.Dharura.toLocaleString()} TZS</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Info Rows */}
+                                    <div style={{ border: '1px solid var(--border)', borderRadius: '1rem', overflow: 'hidden' }}>
+                                        <div style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)' }}>
+                                            <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px' }}><ShieldCheck size={16} /> Role</span>
+                                            <span style={{ fontSize: '0.875rem', fontWeight: '800', color: 'var(--text-primary)' }}>{selectedMember.role.toUpperCase()}</span>
+                                        </div>
+                                        <div style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)' }}>
+                                            <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px' }}><Mail size={16} /> Email</span>
+                                            <span style={{ fontSize: '0.875rem', fontWeight: '700', color: 'var(--text-primary)' }}>{selectedMember.email}</span>
+                                        </div>
+                                        <div style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)' }}>
+                                            <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px' }}><Calendar size={16} /> Joined On</span>
+                                            <span style={{ fontSize: '0.875rem', fontWeight: '700', color: 'var(--text-primary)' }}>{new Date(selectedMember.createdAt).toLocaleDateString()}</span>
+                                        </div>
+                                        <div style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', backgroundColor: 'var(--background-muted)' }}>
+                                            <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px' }}><User size={16} /> Member ID</span>
+                                            <span style={{ fontSize: '0.875rem', fontWeight: '900', color: 'var(--primary)', fontFamily: 'monospace' }}>{selectedMember.memberId || 'PENDING'}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 

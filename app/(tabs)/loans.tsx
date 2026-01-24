@@ -388,6 +388,40 @@ export default function LoansScreen() {
                 contentContainerStyle={styles.scrollContent}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             >
+                {/* Header Stats */}
+                {!loading && (
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.statsScroll}
+                        style={{ marginBottom: 10 }}
+                    >
+                        <View style={styles.statCard}>
+                            <View style={[styles.statIconContainer, { backgroundColor: '#F59E0B15' }]}>
+                                <Ionicons name="time" size={24} color="#F59E0B" />
+                            </View>
+                            <Text style={styles.statTitle}>Pending</Text>
+                            <Text style={styles.statValue}>{requests.filter(r => r.status === 'Pending').length}</Text>
+                        </View>
+
+                        <View style={styles.statCard}>
+                            <View style={[styles.statIconContainer, { backgroundColor: '#10B98115' }]}>
+                                <Ionicons name="checkmark-circle" size={24} color="#10B981" />
+                            </View>
+                            <Text style={styles.statTitle}>Approved</Text>
+                            <Text style={styles.statValue}>{requests.filter(r => r.status === 'Approved').length}</Text>
+                        </View>
+
+                        <View style={styles.statCard}>
+                            <View style={[styles.statIconContainer, { backgroundColor: '#EF444415' }]}>
+                                <Ionicons name="close-circle" size={24} color="#EF4444" />
+                            </View>
+                            <Text style={styles.statTitle}>Rejected</Text>
+                            <Text style={styles.statValue}>{requests.filter(r => r.status === 'Rejected').length}</Text>
+                        </View>
+                    </ScrollView>
+                )}
+
                 {!user ? (
                     <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 50 }} />
                 ) : loading && !refreshing ? (
@@ -997,5 +1031,49 @@ const createStyles = (colors: any, theme: string) => StyleSheet.create({
         fontSize: 16,
         color: colors.text,
         fontWeight: '500',
+    },
+    statsScroll: {
+        paddingVertical: 10,
+        paddingHorizontal: 5,
+    },
+    statCard: {
+        backgroundColor: colors.card,
+        borderRadius: 24,
+        padding: 20,
+        marginRight: 16,
+        width: 170,
+        borderWidth: 1,
+        borderColor: colors.border,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+    },
+    statIconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 16,
+    },
+    statTitle: {
+        color: colors.textSecondary,
+        fontSize: 12,
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginBottom: 4,
+    },
+    statValue: {
+        color: colors.text,
+        fontSize: 20,
+        fontWeight: 'bold',
+    },
+    statSubtitle: {
+        color: colors.textSecondary,
+        fontSize: 10,
+        marginTop: 4,
     },
 });

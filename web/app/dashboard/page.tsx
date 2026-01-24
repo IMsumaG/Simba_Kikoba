@@ -19,12 +19,15 @@ import {
     YAxis
 } from "recharts";
 import AppLayout from "../../components/AppLayout";
+import { useAuth } from "../../context/AuthContext";
 import { auth, db } from "../../lib/firebase";
 import { penaltyService } from "../../lib/penaltyService";
 
 export default function DashboardPage() {
+    const { user: authUser, timeRemaining } = useAuth();
     const [user, setUser] = useState<any>(null);
     const [stats, setStats] = useState({
+
         vaultBalance: 0,
         loanPool: 0,
         activeLoans: 0,
@@ -33,12 +36,28 @@ export default function DashboardPage() {
     const [chartData, setChartData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const formatTime = (seconds?: number) => {
+        if (seconds === undefined) return "--:--";
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m}:${s < 10 ? '0' : ''}${s}`;
+    };
+
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (u) => {
             setUser(u);
         });
         return () => unsubscribe();
     }, []);
+
+
+
+
+    useEffect(() => {
+        if (user) {
+            fetchData();
+        }
+    }, [user]);
 
     useEffect(() => {
         if (user) {

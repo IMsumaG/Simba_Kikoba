@@ -7,10 +7,17 @@ import { useAuth } from "../context/AuthContext";
 import Sidebar from "./Sidebar";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-    const { user, role, loading } = useAuth();
+    const { user, role, loading, timeRemaining } = useAuth();
     const router = useRouter();
     const [isMinimized, setIsMinimized] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+
+    const formatTime = (seconds?: number) => {
+        if (seconds === undefined) return "--:--";
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m}:${s < 10 ? '0' : ''}${s}`;
+    };
 
     useEffect(() => {
         const handleResize = () => {
@@ -85,6 +92,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <img src="/sbk-logo.png" alt="SBK" style={{ height: '30px' }} />
                         <span style={{ fontWeight: 'bold', fontSize: '14px', color: 'var(--text-primary)' }}>SBK ENDELEVU</span>
+                        {timeRemaining !== undefined && (
+                            <div style={{
+                                marginLeft: '10px',
+                                backgroundColor: timeRemaining < 60 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                fontWeight: 'bold',
+                                color: timeRemaining < 60 ? '#EF4444' : '#10B981'
+                            }}>
+                                {formatTime(timeRemaining)}
+                            </div>
+                        )}
                     </div>
                     <button
                         onClick={() => setIsMinimized(false)}
@@ -113,6 +133,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 position: 'relative',
                 paddingTop: isMobile ? '60px' : '0'
             }}>
+                {/* Desktop Session Timer */}
+                {!isMobile && timeRemaining !== undefined && (
+                    <div style={{
+                        position: 'absolute',
+                        top: '1rem',
+                        right: '2rem',
+                        backgroundColor: timeRemaining < 60 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        color: timeRemaining < 60 ? '#EF4444' : '#10B981',
+                        border: `1px solid ${timeRemaining < 60 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)'}`,
+                        zIndex: 10
+                    }}>
+                        Session: {formatTime(timeRemaining)}
+                    </div>
+                )}
                 <div style={{
                     padding: isMobile ? '1.5rem' : '2.5rem',
                     maxWidth: '1200px',

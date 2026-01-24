@@ -448,6 +448,34 @@ export const transactionService = {
         };
     },
 
+    // Generate statement for a member (Custom Date Range)
+    async getMemberStatement(memberId: string, startMonth: number, startYear: number, endMonth: number, endYear: number) {
+        // Generate array of months in the range
+        const monthlyReports = [];
+
+        let currentMonth = startMonth;
+        let currentYear = startYear;
+
+        while (currentYear < endYear || (currentYear === endYear && currentMonth <= endMonth)) {
+            const report = await this.getMemberMonthlyReport(memberId, currentMonth, currentYear);
+            monthlyReports.push({
+                ...report,
+                month: currentMonth,
+                year: currentYear
+            });
+
+            // Move to next month
+            currentMonth++;
+            if (currentMonth > 12) {
+                currentMonth = 1;
+                currentYear++;
+            }
+        }
+
+        return monthlyReports;
+    },
+
+
     // Delete a transaction
     async deleteTransaction(transactionId: string) {
         const { deleteDoc, doc } = await import('firebase/firestore');

@@ -96,10 +96,14 @@ export const penaltyService = {
                             userRole: profile.role || 'Member',
                             entityType: 'loan',
                             entityId: candidate.ref.id,
+                            entityName: profile.displayName || 'Unknown',
+                            affectedMemberId: profile.memberId || '',
                             description: `Penalty of 60,000 TZS applied to overdue Dharura loan from ${new Date(candidate.data.date).toLocaleDateString()}`,
                             metadata: {
                                 loanId: candidate.ref.id,
                                 penaltyAmount: 60000,
+                                originalAmount: candidate.data.amount,
+                                newAmount: candidate.data.amount + 60000,
                                 loanType: 'Dharura',
                                 platform: 'Web'
                             },

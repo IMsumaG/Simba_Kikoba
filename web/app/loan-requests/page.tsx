@@ -383,6 +383,19 @@ export default function LoanRequestsPage() {
                             </div>
                         </div>
                     </div>
+                    <div className="card" style={{ padding: '1.5rem', borderLeft: '4px solid #EF4444' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <div style={{ padding: '0.75rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#EF4444', borderRadius: '0.75rem' }}>
+                                <XCircle size={24} />
+                            </div>
+                            <div>
+                                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Total Rejected</p>
+                                <h3 style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--text-primary)' }}>
+                                    {requests.filter(r => r.status === 'Rejected').length}
+                                </h3>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Requests List */}

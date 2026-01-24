@@ -23,9 +23,16 @@ export default function ReportsScreen() {
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const [activeTab, setActiveTab] = useState<'personal' | 'group'>('personal');
+    const [reportType, setReportType] = useState<'monthly' | 'statement'>('monthly');
+    const [startMonth, setStartMonth] = useState(new Date().getMonth() + 1);
+    const [startYear, setStartYear] = useState(new Date().getFullYear());
+    const [endMonth, setEndMonth] = useState(new Date().getMonth() + 1);
+    const [endYear, setEndYear] = useState(new Date().getFullYear());
     const [expandedMember, setExpandedMember] = useState<string | null>(null);
     const [selectedMemberData, setSelectedMemberData] = useState<any>(null);
     const [showMemberModal, setShowMemberModal] = useState(false);
+    const [showMonthPicker, setShowMonthPicker] = useState(false);
+    const [pickerTarget, setPickerTarget] = useState<'selected' | 'start' | 'end'>('selected');
 
     const months = [
         { num: 1, name: 'January', sw: 'Januari' },
@@ -56,7 +63,13 @@ export default function ReportsScreen() {
 
         try {
             setGenerating(true);
-            const data = await transactionService.getMemberMonthlyReport(user.uid, selectedMonth, selectedYear);
+            let data;
+            if (reportType === 'monthly') {
+                data = await transactionService.getMemberMonthlyReport(user.uid, selectedMonth, selectedYear);
+            } else {
+                // For statements, getMemberStatement returns an array of monthly reports
+                data = await transactionService.getMemberStatement(user.uid, startMonth, startYear, endMonth, endYear);
+            }
             setReportData(data);
             Alert.alert(t('common.success'), t('reports.memberReportSuccess'));
         } catch (error) {
@@ -85,6 +98,12 @@ export default function ReportsScreen() {
         ? (months.find(m => m.num === selectedMonth)?.sw || '')
         : (months.find(m => m.num === selectedMonth)?.name || '');
 
+    const getMonthName = (monthNum: number) => {
+        return i18n.language === 'sw'
+            ? (months.find(m => m.num === monthNum)?.sw || '')
+            : (months.find(m => m.num === monthNum)?.name || '');
+    };
+
     const handleViewMemberDetails = (memberData: any) => {
         setSelectedMemberData(memberData);
         setShowMemberModal(true);
@@ -106,32 +125,14 @@ export default function ReportsScreen() {
         try {
             setGenerating(true);
 
-            const htmlContent = `
-                <!DOCTYPE html>
-                <html>
-                    <head>
-                        <meta charset="UTF-8">
-                        <style>
-                            * { margin: 0; padding: 0; box-sizing: border-box; }
-                            body { font-family: Arial, sans-serif; margin: 20px; background: white; color: #333; }
-                            .header { text-align: center; margin-bottom: 30px; }
-                            .logo { font-size: 28px; font-weight: bold; color: #F57C00; margin-bottom: 10px; }
-                            .title { font-size: 14px; font-weight: bold; margin: 5px 0; }
-                            .subtitle { font-size: 11px; color: #666; margin-bottom: 20px; }
-                            .section { margin-bottom: 20px; page-break-inside: avoid; }
-                            .section-title { font-size: 12px; font-weight: bold; border-bottom: 2px solid #F57C00; padding-bottom: 6px; margin-bottom: 10px; color: #F57C00; }
-                            .row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #E0E0E0; font-size: 11px; }
-                            .label { font-weight: 500; }
-                            .value { font-weight: 600; text-align: right; }
-                            .highlight { background-color: #F8FAFC; padding: 6px; border-radius: 3px; }
-                            .footer { text-align: center; font-size: 9px; color: #999; margin-top: 30px; padding-top: 15px; border-top: 1px solid #E0E0E0; }
-                        </style>
-                    </head>
-                    <body>
+            const renderMonthHTML = (data: any, title?: string) => {
+                const reportMonthName = getMonthName(data.month);
+                return `
+                    <div class="month-page">
                         <div class="header">
                             <div class="logo">Simba Bingwa Kikoba Endelevu</div>
-                            <div class="title">${t('reports.monthlyReport')}</div>
-                            <div class="subtitle">${t('reports.month')} ${monthName} ${selectedYear}</div>
+                            <div class="title">${title || t('reports.monthlyReport')}</div>
+                            <div class="subtitle">${reportMonthName} ${data.year}</div>
                         </div>
 
                         <div class="section">
@@ -145,16 +146,24 @@ export default function ReportsScreen() {
                         <div class="section">
                             <div class="section-title">${t('dashboard.hisa')}</div>
                             <div class="row">
+                                <span class="label">${t('reports.totalHisa')} (${t('reports.prev')})</span>
+                                <span class="value">TSh ${data.hisa.previousBalance.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
+                            </div>
+                            <div class="row">
+                                <span class="label">${t('reports.hisaMonth')} ${data.month}</span>
+                                <span class="value">TSh ${data.hisa.currentMonthContribution.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
+                            </div>
+                            <div class="row highlight">
                                 <span class="label">${t('reports.totalHisa')}</span>
-                                <span class="value">TSh ${reportData.hisa.totalHisa.toLocaleString('en-US')}</span>
+                                <span class="value">TSh ${data.hisa.totalHisa.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
                             </div>
                         </div>
 
                         <div class="section">
                             <div class="section-title">${t('dashboard.jamii')}</div>
-                            <div class="row">
+                            <div class="row highlight">
                                 <span class="label">${t('reports.totalJamii')}</span>
-                                <span class="value">TSh ${reportData.jamii.toLocaleString('en-US')}</span>
+                                <span class="value">TSh ${data.jamii.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
                             </div>
                         </div>
 
@@ -162,19 +171,23 @@ export default function ReportsScreen() {
                             <div class="section-title">${t('dashboard.standard')}</div>
                             <div class="row">
                                 <span class="label">${t('reports.loanAmount')}</span>
-                                <span class="value">TSh ${reportData.standardLoan.totalLoaned.toLocaleString('en-US')}</span>
+                                <span class="value">TSh ${data.standardLoan.totalLoaned.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
                             </div>
                             <div class="row">
                                 <span class="label">+ ${t('reports.interest')} (10%)</span>
-                                <span class="value">TSh ${reportData.standardLoan.totalWithInterest.toLocaleString('en-US')}</span>
+                                <span class="value">TSh ${data.standardLoan.totalWithInterest.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
                             </div>
                             <div class="row">
-                                <span class="label">${t('reports.repayment')}</span>
-                                <span class="value">TSh ${reportData.standardLoan.totalRepayments.toLocaleString('en-US')}</span>
+                                <span class="label">${t('reports.repayment')} (Jumla)</span>
+                                <span class="value">TSh ${data.standardLoan.totalRepayments.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
+                            </div>
+                            <div class="row">
+                                <span class="label">${t('reports.repayment')} ${t('reports.month')} ${data.month}</span>
+                                <span class="value">TSh ${data.standardLoan.currentMonthRepayment.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
                             </div>
                             <div class="row highlight">
                                 <span class="label">${t('reports.remainingBalance')}</span>
-                                <span class="value">TSh ${reportData.standardLoan.remainingBalance.toLocaleString('en-US')}</span>
+                                <span class="value">TSh ${data.standardLoan.remainingBalance.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
                             </div>
                         </div>
 
@@ -182,20 +195,68 @@ export default function ReportsScreen() {
                             <div class="section-title">${t('dashboard.dharura')}</div>
                             <div class="row">
                                 <span class="label">${t('reports.loanAmount')}</span>
-                                <span class="value">TSh ${reportData.dharuraLoan.totalLoaned.toLocaleString('en-US')}</span>
+                                <span class="value">TSh ${data.dharuraLoan.totalLoaned.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
                             </div>
                             <div class="row">
-                                <span class="label">${t('reports.repayment')}</span>
-                                <span class="value">TSh ${reportData.dharuraLoan.totalRepayments.toLocaleString('en-US')}</span>
+                                <span class="label">${t('reports.repayment')} (Jumla)</span>
+                                <span class="value">TSh ${data.dharuraLoan.totalRepayments.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
+                            </div>
+                            <div class="row">
+                                <span class="label">${t('reports.repayment')} ${t('reports.month')} ${data.month}</span>
+                                <span class="value">TSh ${data.dharuraLoan.currentMonthRepayment.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
                             </div>
                             <div class="row highlight">
                                 <span class="label">${t('reports.remainingBalance')}</span>
-                                <span class="value">TSh ${reportData.dharuraLoan.remainingBalance.toLocaleString('en-US')}</span>
+                                <span class="value">TSh ${data.dharuraLoan.remainingBalance.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
                             </div>
                         </div>
+                    </div>
+                `;
+            };
 
+            let monthsHTML = '';
+            if (Array.isArray(reportData)) {
+                monthsHTML = reportData.map(d => renderMonthHTML(d, t('reports.statement'))).join('<div style="page-break-after: always;"></div>');
+            } else {
+                monthsHTML = renderMonthHTML(reportData);
+            }
+
+            const htmlContent = `
+                <!DOCTYPE html>
+                <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <style>
+                            * { margin: 0; padding: 0; box-sizing: border-box; }
+                            body { font-family: 'Helvetica', Arial, sans-serif; background: white; color: #1F2937; }
+                            .month-page { padding: 40px; }
+                            .header { text-align: center; margin-bottom: 40px; }
+                            .logo { font-size: 32px; font-weight: 900; color: #F57C00; margin-bottom: 15px; letter-spacing: -1px; }
+                            .title { font-size: 18px; font-weight: 700; margin: 8px 0; color: #374151; text-transform: uppercase; }
+                            .subtitle { font-size: 14px; color: #6B7280; font-weight: 500; }
+                            .section { margin-bottom: 30px; }
+                            .section-title { 
+                                font-size: 14px; 
+                                font-weight: 800; 
+                                color: white; 
+                                background-color: #F57C00; 
+                                padding: 10px 15px; 
+                                border-radius: 6px;
+                                margin-bottom: 15px;
+                                text-transform: uppercase;
+                                letter-spacing: 0.5px;
+                            }
+                            .row { display: flex; justify-content: space-between; padding: 12px 15px; border-bottom: 1px solid #F3F4F6; font-size: 12px; }
+                            .label { color: #4B5563; font-weight: 500; }
+                            .value { color: #111827; font-weight: 700; text-align: right; }
+                            .highlight { background-color: rgba(245, 124, 0, 0.05); border-bottom: 2px solid #F57C00; }
+                            .footer { text-align: center; font-size: 10px; color: #9CA3AF; margin-top: 50px; padding-top: 20px; border-top: 1px solid #E5E7EB; }
+                        </style>
+                    </head>
+                    <body>
+                        ${monthsHTML}
                         <div class="footer">
-                            ${t('common.success')}: ${new Date().toLocaleDateString()} | KIKOBA Reports
+                            ${t('common.success')}: ${new Date().toLocaleDateString()} | © Simba Bingwa Kikoba Endelevu
                         </div>
                     </body>
                 </html>
@@ -204,7 +265,7 @@ export default function ReportsScreen() {
             const { uri } = await Print.printToFileAsync({ html: htmlContent, base64: false });
 
             if (await Sharing.isAvailableAsync()) {
-                await Sharing.shareAsync(uri, { mimeType: 'application/pdf' });
+                await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' });
             } else {
                 Alert.alert(t('common.success'), `${t('common.success')}: ${uri}`);
             }
@@ -227,14 +288,13 @@ export default function ReportsScreen() {
 
             const tableRows = groupReportData.members.map((member: any) => `
                 <tr>
-                    <td>${member.memberName}</td>
-                    <td>${member.memberEmail || '-'}</td>
-                    <td>TSh ${(member.hisa.totalHisa / 1000).toFixed(0)}k</td>
-                    <td>TSh ${(member.jamii / 1000).toFixed(0)}k</td>
-                    <td>TSh ${(member.standardLoan.totalLoaned / 1000).toFixed(0)}k</td>
-                    <td>TSh ${(member.standardLoan.remainingBalance / 1000).toFixed(0)}k</td>
-                    <td>TSh ${(member.dharuraLoan.totalLoaned / 1000).toFixed(0)}k</td>
-                    <td>TSh ${(member.dharuraLoan.remainingBalance / 1000).toFixed(0)}k</td>
+                    <td style="font-weight: 700;">${member.memberName}</td>
+                    <td>TSh ${Math.round(member.hisa.totalHisa).toLocaleString()}</td>
+                    <td>TSh ${Math.round(member.jamii).toLocaleString()}</td>
+                    <td>TSh ${Math.round(member.standardLoan.totalLoaned).toLocaleString()}</td>
+                    <td style="color: ${member.standardLoan.remainingBalance > 0 ? '#EF4444' : '#10B981'}; font-weight: 700;">TSh ${Math.round(member.standardLoan.remainingBalance).toLocaleString()}</td>
+                    <td>TSh ${Math.round(member.dharuraLoan.totalLoaned).toLocaleString()}</td>
+                    <td style="color: ${member.dharuraLoan.remainingBalance > 0 ? '#EF4444' : '#10B981'}; font-weight: 700;">TSh ${Math.round(member.dharuraLoan.remainingBalance).toLocaleString()}</td>
                 </tr>
             `).join('');
 
@@ -245,28 +305,28 @@ export default function ReportsScreen() {
                         <meta charset="UTF-8">
                         <style>
                             * { margin: 0; padding: 0; box-sizing: border-box; }
-                            body { font-family: Arial, sans-serif; margin: 12px; background: white; color: #333; }
-                            .header { text-align: center; margin-bottom: 20px; }
-                            .logo { font-size: 24px; font-weight: bold; color: #F57C00; margin-bottom: 6px; }
-                            .title { font-size: 13px; font-weight: bold; margin: 3px 0; }
-                            .subtitle { font-size: 10px; color: #666; margin: 2px 0; }
-                            table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+                            body { font-family: 'Helvetica', Arial, sans-serif; background: white; color: #1F2937; padding: 30px; }
+                            .header { text-align: center; margin-bottom: 30px; }
+                            .logo { font-size: 28px; font-weight: 900; color: #F57C00; margin-bottom: 10px; }
+                            .title { font-size: 16px; font-weight: 700; color: #374151; text-transform: uppercase; margin-bottom: 5px; }
+                            .subtitle { font-size: 12px; color: #6B7280; margin-bottom: 2px; }
+                            table { width: 100%; border-collapse: collapse; margin-top: 25px; font-size: 10px; }
                             th { 
                                 background-color: #F57C00; 
                                 color: white; 
-                                padding: 7px 4px; 
+                                padding: 12px 8px; 
                                 text-align: left; 
-                                font-size: 9px; 
-                                font-weight: bold;
                                 border: 1px solid #D85D01;
+                                text-transform: uppercase;
+                                letter-spacing: 0.5px;
                             }
                             td { 
-                                padding: 5px 4px; 
-                                border: 1px solid #E0E0E0; 
-                                font-size: 9px;
+                                padding: 10px 8px; 
+                                border: 1px solid #E5E7EB; 
+                                color: #374151;
                             }
-                            tr:nth-child(even) { background-color: #F8FAFC; }
-                            .footer { text-align: center; font-size: 8px; color: #999; margin-top: 15px; padding-top: 8px; border-top: 1px solid #E0E0E0; }
+                            tr:nth-child(even) { background-color: #F9FAFB; }
+                            .footer { text-align: center; font-size: 9px; color: #9CA3AF; margin-top: 40px; padding-top: 15px; border-top: 1px solid #E5E7EB; }
                         </style>
                     </head>
                     <body>
@@ -281,7 +341,6 @@ export default function ReportsScreen() {
                             <thead>
                                 <tr>
                                     <th>${t('common.fullName')}</th>
-                                    <th>${t('common.email')}</th>
                                     <th>${t('dashboard.hisa')}</th>
                                     <th>${t('dashboard.jamii')}</th>
                                     <th>${t('reports.stdLoan')}</th>
@@ -296,7 +355,7 @@ export default function ReportsScreen() {
                         </table>
 
                         <div class="footer">
-                            ${t('common.success')}: ${new Date().toLocaleDateString()} | KIKOBA Reports
+                            ${t('common.success')}: ${new Date().toLocaleDateString()} | © Simba Bingwa Kikoba Endelevu
                         </div>
                     </body>
                 </html>
@@ -317,35 +376,42 @@ export default function ReportsScreen() {
         }
     };
 
+    const CustomDropdown = ({ label, value, onPress }: { label: string, value: string, onPress: () => void }) => (
+        <View style={styles.selectorGroup as ViewStyle}>
+            <Text style={styles.label as TextStyle}>{label}</Text>
+            <TouchableOpacity
+                onPress={onPress}
+                style={{
+                    backgroundColor: colors.background,
+                    paddingHorizontal: 16,
+                    paddingVertical: 12,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                }}
+            >
+                <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text }}>{value}</Text>
+                <Ionicons name="chevron-down" size={20} color={colors.primary} />
+            </TouchableOpacity>
+        </View>
+    );
+
     const MonthYearSelector = () => (
         <View style={styles.card as ViewStyle}>
             <Text style={styles.cardTitle as TextStyle}>{t('reports.selectMonthYear')}</Text>
 
             <View style={styles.selectorContainer as ViewStyle}>
-                <View style={styles.selectorGroup as ViewStyle}>
-                    <Text style={styles.label as TextStyle}>{t('reports.month')}</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthScroll as ViewStyle}>
-                        {months.map(month => (
-                            <TouchableOpacity
-                                key={month.num}
-                                onPress={() => setSelectedMonth(month.num)}
-                                style={[
-                                    styles.monthBtn as ViewStyle,
-                                    selectedMonth === month.num && (styles.monthBtnActive as ViewStyle)
-                                ]}
-                            >
-                                <Text
-                                    style={[
-                                        styles.monthBtnText as TextStyle,
-                                        selectedMonth === month.num && (styles.monthBtnTextActive as TextStyle)
-                                    ]}
-                                >
-                                    {i18n.language === 'sw' ? month.sw : month.name}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
-                </View>
+                <CustomDropdown
+                    label={t('reports.month')}
+                    value={getMonthName(selectedMonth)}
+                    onPress={() => {
+                        setPickerTarget('selected');
+                        setShowMonthPicker(true);
+                    }}
+                />
 
                 <View style={styles.selectorGroup as ViewStyle}>
                     <Text style={styles.label as TextStyle}>{t('reports.year')}</Text>
@@ -380,9 +446,87 @@ export default function ReportsScreen() {
         </View>
     );
 
+    const DateRangeSelector = () => (
+        <View style={styles.card as ViewStyle}>
+            <Text style={styles.cardTitle as TextStyle}>{t('reports.selectDateRange')}</Text>
+
+            <View style={styles.selectorContainer as ViewStyle}>
+                <View style={{ gap: 16 }}>
+                    <View style={{ flexDirection: 'row', gap: 12 }}>
+                        <View style={{ flex: 2 }}>
+                            <CustomDropdown
+                                label={t('reports.startDate')}
+                                value={getMonthName(startMonth)}
+                                onPress={() => {
+                                    setPickerTarget('start');
+                                    setShowMonthPicker(true);
+                                }}
+                            />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.label as TextStyle}>{t('reports.year')}</Text>
+                            <TextInput
+                                value={startYear.toString()}
+                                onChangeText={(text) => {
+                                    const year = parseInt(text) || new Date().getFullYear();
+                                    if (year >= 1900 && year <= 2100) setStartYear(year);
+                                }}
+                                keyboardType="number-pad"
+                                maxLength={4}
+                                style={[styles.yearInput as TextStyle, { backgroundColor: colors.background, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: colors.border, marginTop: 0 }]}
+                            />
+                        </View>
+                    </View>
+
+                    <View style={{ flexDirection: 'row', gap: 12 }}>
+                        <View style={{ flex: 2 }}>
+                            <CustomDropdown
+                                label={t('reports.endDate')}
+                                value={getMonthName(endMonth)}
+                                onPress={() => {
+                                    setPickerTarget('end');
+                                    setShowMonthPicker(true);
+                                }}
+                            />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.label as TextStyle}>{t('reports.year')}</Text>
+                            <TextInput
+                                value={endYear.toString()}
+                                onChangeText={(text) => {
+                                    const year = parseInt(text) || new Date().getFullYear();
+                                    if (year >= 1900 && year <= 2100) setEndYear(year);
+                                }}
+                                keyboardType="number-pad"
+                                maxLength={4}
+                                style={[styles.yearInput as TextStyle, { backgroundColor: colors.background, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: colors.border, marginTop: 0 }]}
+                            />
+                        </View>
+                    </View>
+                </View>
+            </View>
+        </View>
+    );
+
     const PersonalReportContent = () => (
         <>
-            <MonthYearSelector />
+            <View style={styles.tabContainer as ViewStyle}>
+                <TouchableOpacity
+                    style={[styles.tab as ViewStyle, reportType === 'monthly' && (styles.tabActive as ViewStyle)]}
+                    onPress={() => setReportType('monthly')}
+                >
+                    <Text style={[styles.tabText as TextStyle, reportType === 'monthly' && (styles.tabTextActive as TextStyle)]}>{t('reports.monthlyReport')}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={[styles.tab as ViewStyle, reportType === 'statement' && (styles.tabActive as ViewStyle)]}
+                    onPress={() => setReportType('statement')}
+                >
+                    <Text style={[styles.tabText as TextStyle, reportType === 'statement' && (styles.tabTextActive as TextStyle)]}>{t('reports.statement')}</Text>
+                </TouchableOpacity>
+            </View>
+
+            {reportType === 'monthly' ? <MonthYearSelector /> : <DateRangeSelector />}
 
             <TouchableOpacity
                 style={styles.generateBtn as ViewStyle}
@@ -399,7 +543,42 @@ export default function ReportsScreen() {
                 )}
             </TouchableOpacity>
 
-            {reportData && <PersonalReportDisplay data={reportData} monthName={monthName} memberName={memberName} onExportPDF={handleExportPersonalReportPDF} styles={styles} colors={colors} />}
+
+            {reportData && (
+                reportType === 'statement' && Array.isArray(reportData) ? (
+                    // Display multiple monthly reports for statement
+                    <>
+                        {reportData.map((monthReport: any, index: number) => {
+                            const reportMonthName = getMonthName(monthReport.month);
+                            return (
+                                <View key={`${monthReport.year}-${monthReport.month}`} style={{ marginBottom: index < reportData.length - 1 ? 24 : 0 }}>
+                                    <PersonalReportDisplay
+                                        data={monthReport}
+                                        monthName={reportMonthName}
+                                        memberName={memberName}
+                                        onExportPDF={handleExportPersonalReportPDF}
+                                        styles={styles}
+                                        colors={colors}
+                                        title={`${reportMonthName} ${monthReport.year}`}
+                                        hideExportButton={index < reportData.length - 1}
+                                    />
+                                </View>
+                            );
+                        })}
+                    </>
+                ) : (
+                    // Display single monthly report  
+                    <PersonalReportDisplay
+                        data={reportData}
+                        monthName={reportType === 'monthly' ? monthName : `${getMonthName(startMonth)} ${startYear} - ${getMonthName(endMonth)} ${endYear}`}
+                        memberName={memberName}
+                        onExportPDF={handleExportPersonalReportPDF}
+                        styles={styles}
+                        colors={colors}
+                        title={reportType === 'statement' ? "Member Statement" : undefined}
+                    />
+                )
+            )}
         </>
     );
 
@@ -489,6 +668,52 @@ export default function ReportsScreen() {
                         {selectedMemberData && <PersonalReportDisplay data={selectedMemberData} monthName={monthName} memberName={selectedMemberData?.memberName} onExportPDF={handleExportPersonalReportPDF} styles={styles} colors={colors} />}
                     </ScrollView>
                 </SafeAreaView>
+            </Modal>
+
+            {/* Month Picker Modal */}
+            <Modal visible={showMonthPicker} animationType="fade" transparent={true}>
+                <TouchableOpacity
+                    style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}
+                    onPress={() => setShowMonthPicker(false)}
+                    activeOpacity={1}
+                >
+                    <View style={{ backgroundColor: colors.card, width: '80%', borderRadius: 16, padding: 20, maxHeight: '70%', borderWidth: 1, borderColor: colors.border }}>
+                        <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text, marginBottom: 15, textAlign: 'center' }}>{t('reports.month')}</Text>
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            {months.map(month => (
+                                <TouchableOpacity
+                                    key={month.num}
+                                    onPress={() => {
+                                        if (pickerTarget === 'selected') setSelectedMonth(month.num);
+                                        else if (pickerTarget === 'start') setStartMonth(month.num);
+                                        else if (pickerTarget === 'end') setEndMonth(month.num);
+                                        setShowMonthPicker(false);
+                                    }}
+                                    style={{
+                                        paddingVertical: 12,
+                                        borderBottomWidth: 1,
+                                        borderBottomColor: colors.border,
+                                        alignItems: 'center'
+                                    }}
+                                >
+                                    <Text style={{
+                                        fontSize: 16,
+                                        fontWeight: '600',
+                                        color: (pickerTarget === 'selected' ? selectedMonth : pickerTarget === 'start' ? startMonth : endMonth) === month.num ? colors.primary : colors.text
+                                    }}>
+                                        {i18n.language === 'sw' ? month.sw : month.name}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                        <TouchableOpacity
+                            onPress={() => setShowMonthPicker(false)}
+                            style={{ marginTop: 15, padding: 12, backgroundColor: colors.background, borderRadius: 12, alignItems: 'center' }}
+                        >
+                            <Text style={{ color: colors.primary, fontWeight: '700' }}>{t('common.cancel')}</Text>
+                        </TouchableOpacity>
+                    </View>
+                </TouchableOpacity>
             </Modal>
         </SafeAreaView>
     );
@@ -830,13 +1055,13 @@ const createStyles = (colors: any, theme: string) => StyleSheet.create({
 });
 
 // Personal Report Display Component
-const PersonalReportDisplay = ({ data, monthName, memberName, onExportPDF, styles, colors }: any) => {
+const PersonalReportDisplay = ({ data, monthName, memberName, onExportPDF, styles, colors, title, hideExportButton }: any) => {
     const { t } = useTranslation();
     return (
         <View style={styles.reportContainer as ViewStyle}>
-            <Text style={styles.reportLogo as TextStyle}>KIKOBA</Text>
-            <Text style={styles.reportTitle as TextStyle}>{t('reports.monthlyReport')}</Text>
-            <Text style={styles.reportSubtitle as TextStyle}>{t('reports.month')} {monthName} {data.year}</Text>
+            <Text style={styles.reportLogo as TextStyle}>Simba Bingwa Kikoba Endelevu</Text>
+            <Text style={styles.reportTitle as TextStyle}>{title || t('reports.monthlyReport')}</Text>
+            <Text style={styles.reportSubtitle as TextStyle}>{title ? '' : t('reports.month')} {monthName} {data.year || ''}</Text>
 
             {/* Member Info */}
             <View style={styles.reportSection as ViewStyle}>
@@ -929,13 +1154,15 @@ const PersonalReportDisplay = ({ data, monthName, memberName, onExportPDF, style
                 </View>
             </View>
             {/* Export Button */}
-            <TouchableOpacity
-                style={styles.exportButton as ViewStyle}
-                onPress={onExportPDF}
-            >
-                <Ionicons name="download" size={20} color="white" />
-                <Text style={styles.exportButtonText as TextStyle}>{t('reports.downloadPDF')}</Text>
-            </TouchableOpacity>
+            {!hideExportButton && (
+                <TouchableOpacity
+                    style={styles.exportButton as ViewStyle}
+                    onPress={onExportPDF}
+                >
+                    <Ionicons name="download" size={20} color="white" />
+                    <Text style={styles.exportButtonText as TextStyle}>{t('reports.downloadPDF')}</Text>
+                </TouchableOpacity>
+            )}
         </View>
     );
 };

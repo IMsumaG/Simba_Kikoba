@@ -4,13 +4,15 @@
 import { onAuthStateChanged } from 'firebase/auth';
 import {
     collection,
+    deleteDoc,
     doc,
     getDoc,
     getDocs,
     limit,
     orderBy,
     query,
-    Timestamp
+    Timestamp,
+    where
 } from 'firebase/firestore';
 import {
     Calendar,
@@ -20,6 +22,7 @@ import {
     History,
     Search,
     Shield,
+    Trash2,
     User
 } from "lucide-react";
 import React, { useEffect, useState } from 'react';
@@ -100,9 +103,22 @@ export default function AuditLogsPage() {
                 // Fetch in batch/parallel
                 const promises = Array.from(memberIds).map(async (memberId) => {
                     try {
-                        const userDoc = await getDoc(doc(db, 'users', memberId));
-                        if (userDoc.exists() && userDoc.data().memberId) {
+                        // First try direct document lookup (most efficient)
+                        const userDocRef = doc(db, 'users', memberId);
+                        const userDoc = await getDoc(userDocRef);
+
+                        if (userDoc.exists() && userDoc.data()?.memberId) {
                             return { id: memberId, memberId: userDoc.data().memberId };
+                        }
+
+                        // Fallback: Query by 'uid' field if document lookup fails
+                        const q = query(collection(db, 'users'), where('uid', '==', memberId), limit(1));
+                        const snapshot = await getDocs(q);
+                        if (!snapshot.empty) {
+                            const data = snapshot.docs[0].data();
+                            if (data.memberId) {
+                                return { id: memberId, memberId: data.memberId };
+                            }
                         }
                     } catch (e) {
                         return null;
@@ -126,6 +142,31 @@ export default function AuditLogsPage() {
 
         fetchLogs();
     }, [user, role]);
+
+    const handleDeleteLog = async (logId: string) => {
+        if (!confirm('Are you sure you want to delete this activity log? This cannot be undone.')) return;
+        try {
+            await deleteDoc(doc(db, 'activityLogs', logId));
+            setLogs(prev => prev.filter(log => log.id !== logId));
+            if (expandedLogId === logId) setExpandedLogId(null);
+        } catch (error) {
+            console.error("Error deleting log:", error);
+            alert("Failed to delete activity log.");
+        }
+    };
+
+    const handleDeleteAssociatedTransaction = async (txId: string, logId: string) => {
+        if (!confirm('Are you sure you want to delete the underlying transaction? This will affect the member balance and cannot be undone.')) return;
+        try {
+            await deleteDoc(doc(db, 'transactions', txId));
+            alert("Transaction deleted successfully.");
+            // Optionally delete the log too? Let's just keep the log but maybe mark it.
+            // For now, just deleting the transaction as requested.
+        } catch (error) {
+            console.error("Error deleting transaction:", error);
+            alert("Failed to delete associated transaction. It might have already been deleted.");
+        }
+    };
 
     // Helper functions must be defined before use
     const formatActivityType = (type?: string) => {
@@ -487,14 +528,25 @@ export default function AuditLogsPage() {
                                                                                 <>
                                                                                     <div>
                                                                                         <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Affected Member:</span>
-                                                                                        <div style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '0.9375rem' }}>{log.entityName || 'N/A'}</div>
+                                                                                        <div style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '0.9375rem' }}>
+                                                                                            {log.entityName || (log.activityType === 'loan_penalty_applied' ? log.userName : 'N/A')}
+                                                                                        </div>
                                                                                     </div>
                                                                                     <div>
                                                                                         <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Affected Member ID:</span>
                                                                                         {(() => {
                                                                                             const getMapped = (id?: string) => id ? (memberIdMap[id] || id) : null;
-                                                                                            const mapped = getMapped(log.affectedMemberId) || getMapped(log.entityId) || getMapped(log.userId);
-                                                                                            const display = mapped ? (mapped.toString().length > 12 ? mapped.toString().substring(0, 12) + '...' : mapped) : 'N/A';
+                                                                                            // Try affectedMemberId first, then entityId
+                                                                                            let mapped = getMapped(log.affectedMemberId) || (log.entityType !== 'loan' ? getMapped(log.entityId) : null);
+
+                                                                                            // For penalty logs where entityId is a loan ID, fallback to userId which is the member UID
+                                                                                            if (!mapped || log.activityType === 'loan_penalty_applied') {
+                                                                                                const userMapped = getMapped(log.userId);
+                                                                                                if (userMapped && userMapped.length < 20) mapped = userMapped;
+                                                                                                else if (!mapped) mapped = userMapped;
+                                                                                            }
+
+                                                                                            const display = mapped ? (mapped.toString().length > 15 ? mapped.toString().substring(0, 15) + '...' : mapped) : 'N/A';
                                                                                             return <div style={{ fontFamily: 'monospace', fontWeight: '600', color: 'var(--text-primary)', fontSize: '0.9375rem' }}>{display}</div>;
                                                                                         })()}
                                                                                     </div>
@@ -516,7 +568,25 @@ export default function AuditLogsPage() {
                                                                                             <div style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '0.9375rem' }}>{log.metadata?.loanType}</div>
                                                                                         </div>
                                                                                     )}
-                                                                                    {log.metadata?.transactionAmount && (
+                                                                                    {log.metadata?.originalAmount && (
+                                                                                        <div>
+                                                                                            <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Origin Loan Amount:</span>
+                                                                                            <div style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '0.9375rem' }}>TSH {Number(log.metadata.originalAmount).toLocaleString()}</div>
+                                                                                        </div>
+                                                                                    )}
+                                                                                    {log.metadata?.penaltyAmount && (
+                                                                                        <div>
+                                                                                            <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Penalty Applied:</span>
+                                                                                            <div style={{ fontWeight: '600', color: '#EF4444', fontSize: '0.9375rem' }}>TSH {Number(log.metadata.penaltyAmount).toLocaleString()}</div>
+                                                                                        </div>
+                                                                                    )}
+                                                                                    {log.metadata?.newAmount && (
+                                                                                        <div>
+                                                                                            <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Amount + Penalty:</span>
+                                                                                            <div style={{ fontWeight: '800', color: 'var(--text-primary)', fontSize: '1rem' }}>TSH {Number(log.metadata.newAmount).toLocaleString()}</div>
+                                                                                        </div>
+                                                                                    )}
+                                                                                    {log.metadata?.transactionAmount && !log.metadata?.newAmount && (
                                                                                         <div>
                                                                                             <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Amount:</span>
                                                                                             <div style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '0.9375rem' }}>TSH {Number(log.metadata.transactionAmount || 0).toLocaleString()}</div>
@@ -573,6 +643,48 @@ export default function AuditLogsPage() {
                                                                             </div>
                                                                         </div>
                                                                     </div>
+                                                                </div>
+
+                                                                {/* Admin Actions */}
+                                                                <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                                                                    {(log.activityType === 'transaction_created' && log.entityId) && !log.metadata?.bulkUpload && (
+                                                                        <button
+                                                                            onClick={() => handleDeleteAssociatedTransaction(log.entityId, log.id)}
+                                                                            style={{
+                                                                                display: 'flex',
+                                                                                alignItems: 'center',
+                                                                                gap: '0.5rem',
+                                                                                padding: '0.6rem 1rem',
+                                                                                borderRadius: '0.5rem',
+                                                                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                                                                color: '#EF4444',
+                                                                                border: '1px solid rgba(239, 68, 68, 0.2)',
+                                                                                fontSize: '0.8rem',
+                                                                                fontWeight: '700',
+                                                                                cursor: 'pointer'
+                                                                            }}
+                                                                        >
+                                                                            <Trash2 size={14} /> Delete Transaction
+                                                                        </button>
+                                                                    )}
+                                                                    <button
+                                                                        onClick={() => handleDeleteLog(log.id)}
+                                                                        style={{
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            gap: '0.5rem',
+                                                                            padding: '0.6rem 1rem',
+                                                                            borderRadius: '0.5rem',
+                                                                            backgroundColor: 'var(--background-muted)',
+                                                                            color: 'var(--text-secondary)',
+                                                                            border: 'none',
+                                                                            fontSize: '0.8rem',
+                                                                            fontWeight: '600',
+                                                                            cursor: 'pointer'
+                                                                        }}
+                                                                    >
+                                                                        <Trash2 size={14} /> Delete Log Entry
+                                                                    </button>
                                                                 </div>
                                                             </div>
                                                         </td>

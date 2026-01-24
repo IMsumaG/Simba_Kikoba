@@ -130,6 +130,10 @@ export const en = {
         hisaMonth: "Hisa for",
         interest: "Interest",
         prev: "Previous",
+        statement: "Statement",
+        selectDateRange: "Select Date Range",
+        startDate: "Start Month/Year",
+        endDate: "End Month/Year",
     },
     profile: {
         title: "Profile",
@@ -166,5 +170,9 @@ export const en = {
         notifications: "Push Notifications",
         privacy: "Privacy & Security",
         version: "Version",
+    },
+    auditLogs: {
+        title: "Audit Logs",
+        searchPlaceholder: "Search users, actions, or IDs...",
     }
 };

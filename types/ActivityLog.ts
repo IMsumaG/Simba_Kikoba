@@ -61,6 +61,8 @@ export interface ActivityLog {
     bulkDharuraLoanAmount?: number;
     detailTransactionType?: string; // e.g., 'Bulk Upload Transaction'
     penaltyAmount?: number;
+    originalAmount?: number;
+    newAmount?: number;
     platform?: string;
     loanId?: string;
   };

@@ -131,6 +131,10 @@ export const sw = {
         hisaMonth: "Hisa ya",
         interest: "Riba",
         prev: "Zilizotangulia",
+        statement: "Taarifa ya Mkopo",
+        selectDateRange: "Chagua Kipindi",
+        startDate: "Mwezi/Mwaka wa Kuanza",
+        endDate: "Mwezi/Mwaka wa Kuishia",
     },
     profile: {
         title: "Wasifu",
@@ -167,5 +171,9 @@ export const sw = {
         notifications: "Ruhusu Taarifa",
         privacy: "Faragha na Usalama",
         version: "Toleo",
+    },
+    auditLogs: {
+        title: "Kumbukumbu za Ukaguzi",
+        searchPlaceholder: "Tafuta watumiaji, vitendo, au vitambulisho...",
     }
 };

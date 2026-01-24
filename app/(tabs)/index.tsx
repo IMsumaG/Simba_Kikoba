@@ -20,6 +20,8 @@ export default function DashboardScreen() {
   const styles = createStyles(colors, theme);
   const isAdmin = role === 'Admin';
 
+
+
   const [stats, setStats] = useState({
     vaultBalance: 0,
     loanPool: 0,
@@ -28,6 +30,9 @@ export default function DashboardScreen() {
     personalContribution: 0,
     personalLoan: 0
   });
+  // ... (keeping existing state) ...
+
+
   const [personalContributionsByCategory, setPersonalContributionsByCategory] = useState<{ [key in 'Hisa' | 'Jamii' | 'Standard' | 'Dharura']: number }>({
     Hisa: 0,
     Jamii: 0,
@@ -204,7 +209,7 @@ export default function DashboardScreen() {
               {user?.displayName?.split(' ')[0] || t('common.member')}
             </Text>
           </View>
-          <View style={{ flexDirection: 'row', gap: 12 }}>
+          <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
             <TouchableOpacity
               style={styles.headerIconBtn as ViewStyle}
               onPress={toggleTheme}

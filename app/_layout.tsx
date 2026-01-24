@@ -2,8 +2,9 @@ import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
+import { Text, View } from 'react-native';
 import 'react-native-reanimated';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import '../global.css';
 import '../i18n';
@@ -14,6 +15,42 @@ import { ThemeProvider as CustomThemeProvider, useTheme } from '../context/Theme
 
 export const unstable_settings = {
   anchor: '(tabs)',
+};
+
+const SessionTimer = () => {
+  const { timeRemaining, user } = useAuth();
+  const segments = useSegments();
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+
+  const isAuthPage = segments[0] === '(auth)';
+  if (!user || timeRemaining === undefined || isAuthPage) return null;
+
+  const formatTime = (seconds?: number) => {
+    if (seconds === undefined) return "--:--";
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  const isWarning = timeRemaining < 60;
+
+  return (
+    <View style={{
+      position: 'absolute',
+      top: insets.top + 10,
+      right: 16,
+      zIndex: 9999,
+    }}>
+      <Text style={{
+        color: isWarning ? '#EF4444' : colors.primary,
+        fontSize: 14,
+        fontWeight: '900'
+      }}>
+        {formatTime(timeRemaining)}
+      </Text>
+    </View>
+  );
 };
 
 function RootLayoutNav() {
@@ -37,9 +74,12 @@ function RootLayoutNav() {
   }, [user, loading, segments]);
 
   return (
-    <CustomThemeProvider>
-      <InnerRootLayoutNav />
-    </CustomThemeProvider>
+    <View style={{ flex: 1 }}>
+      <SessionTimer />
+      <CustomThemeProvider>
+        <InnerRootLayoutNav />
+      </CustomThemeProvider>
+    </View>
   );
 }
 
