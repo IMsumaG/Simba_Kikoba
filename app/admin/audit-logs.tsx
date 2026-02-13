@@ -185,20 +185,20 @@ export default function AuditLogScreen() {
             <View style={styles.header as ViewStyle}>
                 <View style={styles.headerTop as ViewStyle}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.backButton as ViewStyle}>
-                        <Ionicons name="arrow-back" size={24} color={colors.text} />
+                        <Ionicons name="arrow-back" size={22} color={colors.text} />
                     </TouchableOpacity>
                     <Text style={styles.title as TextStyle}>{t('auditLogs.title') || 'Audit Logs'}</Text>
                     <TouchableOpacity
                         style={[styles.filterToggle, showFilters && styles.filterToggleActive]}
                         onPress={() => setShowFilters(!showFilters)}
                     >
-                        <Ionicons name={showFilters ? "funnel" : "funnel-outline"} size={20} color={showFilters ? 'white' : colors.text} />
+                        <Ionicons name={showFilters ? "funnel" : "funnel-outline"} size={19} color={showFilters ? 'white' : colors.text} />
                     </TouchableOpacity>
                 </View>
 
                 {/* Search Bar */}
                 <View style={styles.searchBarContainer as ViewStyle}>
-                    <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
+                    <Ionicons name="search" size={19} color={colors.textSecondary} style={styles.searchIcon} />
                     <TextInput
                         style={styles.searchInput as TextStyle}
                         placeholder={t('auditLogs.searchPlaceholder') || 'Search users, actions, or IDs...'}
@@ -211,7 +211,7 @@ export default function AuditLogScreen() {
                     />
                     {search.length > 0 && (
                         <TouchableOpacity onPress={() => setSearch('')}>
-                            <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
+                            <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
                         </TouchableOpacity>
                     )}
                 </View>
@@ -470,11 +470,11 @@ const createStyles = (colors: any, theme: string) => StyleSheet.create({
     header: {
         backgroundColor: colors.card,
         paddingHorizontal: 20,
-        paddingTop: 16,
-        paddingBottom: 20,
+        paddingTop: 50,
+        paddingBottom: 16,
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
-        gap: 16,
+        gap: 12,
     },
     headerTop: {
         flexDirection: 'row',
@@ -482,9 +482,9 @@ const createStyles = (colors: any, theme: string) => StyleSheet.create({
         justifyContent: 'space-between',
     },
     backButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         backgroundColor: colors.backgroundMuted,
         alignItems: 'center',
         justifyContent: 'center',
@@ -492,15 +492,15 @@ const createStyles = (colors: any, theme: string) => StyleSheet.create({
         borderColor: colors.border,
     },
     title: {
-        fontSize: 20,
+        fontSize: 19,
         fontWeight: '900',
         color: colors.text,
         letterSpacing: -0.5,
     },
     filterToggle: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
+        width: 36,
+        height: 36,
+        borderRadius: 10,
         backgroundColor: colors.backgroundMuted,
         alignItems: 'center',
         justifyContent: 'center',
@@ -517,7 +517,7 @@ const createStyles = (colors: any, theme: string) => StyleSheet.create({
         backgroundColor: colors.backgroundMuted,
         borderRadius: 12,
         paddingHorizontal: 12,
-        height: 48,
+        height: 44,
         borderWidth: 1,
         borderColor: colors.border,
     },

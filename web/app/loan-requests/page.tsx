@@ -72,7 +72,7 @@ export default function LoanRequestsPage() {
                     setRole(userDoc.data().role || 'Member');
                 }
             } else {
-                window.location.href = '/login';
+                window.location.href = '/';
             }
         });
 

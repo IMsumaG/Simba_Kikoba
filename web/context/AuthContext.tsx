@@ -54,11 +54,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setLoading(true); // Ensure loading is true while we fetch the role
                 setUser(currentUser);
                 try {
-                    const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-                    if (userDoc.exists()) {
-                        const data = userDoc.data();
-                        setRole(data.role || "Member");
-                        setGroupCode(data.groupCode || "DEFAULT");
+                    if (currentUser.emailVerified) {
+                        const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+                        if (userDoc.exists()) {
+                            const data = userDoc.data();
+                            setRole(data.role || "Member");
+                            setGroupCode(data.groupCode || "DEFAULT");
+                        }
+                    } else {
+                        // Optional: clear role if unverified, though it's null by default
+                        setRole(null);
                     }
                 } catch (error) {
                     console.error("Error fetching user role:", error);

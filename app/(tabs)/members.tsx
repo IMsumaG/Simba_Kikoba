@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { SkeletonLoader } from '../../components/SkeletonLoader';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../services/AuthContext';
+import { errorHandler } from '../../services/errorHandler';
 import { memberService, UserProfile } from '../../services/memberService';
 
 export default function MembersScreen() {
@@ -30,7 +31,8 @@ export default function MembersScreen() {
             setMembers(data);
         } catch (error) {
             console.error('Error fetching members:', error);
-            Alert.alert('Error', 'Failed to load members');
+            const { userMessage } = errorHandler.handle(error);
+            Alert.alert(t('common.error'), t(userMessage));
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -57,7 +59,8 @@ export default function MembersScreen() {
                             Alert.alert(t('common.success'), t('members.deleteSuccess'));
                         } catch (error) {
                             console.error(error);
-                            Alert.alert(t('common.error'), t('common.error'));
+                            const { userMessage } = errorHandler.handle(error);
+                            Alert.alert(t('common.error'), t(userMessage));
                         }
                     }
                 }
@@ -76,7 +79,8 @@ export default function MembersScreen() {
             Alert.alert(t('common.success'), t('members.statusUpdated'));
         } catch (error) {
             console.error(error);
-            Alert.alert(t('common.error'), t('common.error'));
+            const { userMessage } = errorHandler.handle(error);
+            Alert.alert(t('common.error'), t(userMessage));
         }
     };
 

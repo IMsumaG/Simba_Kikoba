@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import AppLayout from "../../components/AppLayout";
 import { useAuth } from "../../context/AuthContext";
 import { activityLogger } from "../../lib/activityLogger";
+import { errorHandler } from "../../lib/errorHandler";
 import { db } from "../../lib/firebase";
 
 interface Member {
@@ -44,7 +45,9 @@ export default function TransactionsPage() {
             const data = snapshot.docs.map(doc => doc.data() as Member);
             setMembers(data);
         } catch (error) {
+            const { userMessage } = errorHandler.handle(error);
             console.error("Error fetching members:", error);
+            alert(userMessage);
         } finally {
             setLoading(false);
         }
@@ -78,6 +81,8 @@ export default function TransactionsPage() {
             setDhauraLoanBalance(Math.max(0, dharuraBalance));
         } catch (err) {
             console.error(err);
+            const { userMessage } = errorHandler.handle(err);
+            alert(userMessage);
         }
     }
 
@@ -178,7 +183,8 @@ export default function TransactionsPage() {
             setBulkValidation(validation);
         } catch (error) {
             console.error(error);
-            alert("Error parsing file. Ensure it is a valid Excel file.");
+            const { userMessage } = errorHandler.handle(error);
+            alert(userMessage);
         } finally {
             setLoading(false);
         }
@@ -208,7 +214,8 @@ export default function TransactionsPage() {
             XLSX.writeFile(wb, "SBK_Batch_Template.xlsx");
         } catch (error: any) {
             console.error(error);
-            alert("Failed to download template: " + error.message);
+            const { userMessage } = errorHandler.handle(error);
+            alert(userMessage);
         }
     };
 
@@ -251,7 +258,8 @@ export default function TransactionsPage() {
             if (selectedMember) fetchMemberLoanBalance(selectedMember.uid);
         } catch (error) {
             console.error(error);
-            alert("Error processing transactions");
+            const { userMessage } = errorHandler.handle(error);
+            alert(userMessage);
         } finally {
             setBulkProcessing(false);
         }

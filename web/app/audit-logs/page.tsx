@@ -66,7 +66,7 @@ export default function AuditLogsPage() {
                     console.error("Error fetching user role", error);
                 }
             } else {
-                window.location.href = '/login';
+                window.location.href = '/';
             }
             setAuthLoading(false);
         });

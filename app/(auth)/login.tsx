@@ -1,11 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { sendEmailVerification, signInWithEmailAndPassword, User } from 'firebase/auth';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
+import type { TextStyle, ViewStyle } from 'react-native';
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
+import { errorHandler } from '../../services/errorHandler';
 import { auth } from '../../services/firebase';
 import { validateEmail, validatePassword } from '../../services/validationService';
 
@@ -19,6 +21,11 @@ export default function LoginScreen() {
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+
+    // Verification state
+    const [verificationNeeded, setVerificationNeeded] = useState(false);
+    const [userToVerify, setUserToVerify] = useState<User | null>(null);
+    const [verificationSent, setVerificationSent] = useState(false);
 
     const handleLogin = async () => {
         // Validate inputs
@@ -36,28 +43,102 @@ export default function LoginScreen() {
 
         setLoading(true);
         setError('');
+        setVerificationNeeded(false);
+
         try {
-            await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
-            router.replace('/(tabs)');
-        } catch (error) {
-            const err = error as any;
-            // Provide user-friendly error messages
-            if (err.code === 'auth/user-not-found') {
-                setError(t('auth.invalidEmail'));
-            } else if (err.code === 'auth/wrong-password') {
-                setError(t('common.password') + ' ' + t('common.error'));
-            } else if (err.code === 'auth/too-many-requests') {
-                setError(t('common.error'));
-            } else if (err.code === 'auth/invalid-email') {
-                setError(t('auth.invalidEmail'));
-            } else {
-                setError(err.message || t('common.error'));
+            const userCredential = await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
+
+            if (!userCredential.user.emailVerified) {
+                // Do not sign out immediately. Keep user for sending verification email.
+                setUserToVerify(userCredential.user);
+                setVerificationNeeded(true);
+                setLoading(false);
+                return;
             }
-            console.error(err);
+
+            router.replace('/(tabs)');
+        } catch (error: any) {
+            console.error(error);
+            const { userMessage } = errorHandler.handle(error);
+            setError(t(userMessage));
+            setLoading(false);
+        }
+    };
+
+    const handleResendVerification = async () => {
+        if (!userToVerify) return;
+        setLoading(true);
+        try {
+            await sendEmailVerification(userToVerify);
+            setVerificationSent(true);
+            Alert.alert(t('common.success'), t('auth.verificationSentMessage'));
+            setError('');
+        } catch (e) {
+            console.error(e);
+            Alert.alert(t('common.error'), t('auth.verificationError'));
         } finally {
             setLoading(false);
         }
     };
+
+    const handleBackToLogin = async () => {
+        await auth.signOut();
+        setVerificationNeeded(false);
+        setUserToVerify(null);
+        setVerificationSent(false);
+        setError('');
+    };
+
+    if (verificationNeeded) {
+        return (
+            <SafeAreaView style={[styles.container as ViewStyle, { justifyContent: 'center', padding: 24 }]}>
+                <View style={[styles.content as ViewStyle, { alignItems: 'center' }]}>
+                    <View style={[styles.logo, { backgroundColor: colors.card, marginBottom: 32 }]}>
+                        <Image
+                            source={require('../../assets/images/sbk-logo.png')}
+                            style={{ width: '100%', height: '100%' }}
+                            resizeMode="contain"
+                        />
+                    </View>
+
+                    <Text style={[styles.title as TextStyle, { marginBottom: 16 }]}>
+                        {t('auth.verificationRequired')}
+                    </Text>
+
+                    <Text style={[styles.subtitle as TextStyle, { marginBottom: 32, textAlign: 'center' }]}>
+                        {verificationSent
+                            ? t('auth.verificationSentMessage')
+                            : t('auth.verifyEmailMessage')}
+                    </Text>
+
+                    {!verificationSent && (
+                        <TouchableOpacity
+                            style={[styles.button, loading && styles.buttonDisabled, { width: '100%', marginBottom: 16 }]}
+                            onPress={handleResendVerification}
+                            disabled={loading}
+                        >
+                            {loading ? (
+                                <ActivityIndicator color="white" />
+                            ) : (
+                                <Text style={styles.buttonText as TextStyle}>
+                                    {t('auth.resendVerification')}
+                                </Text>
+                            )}
+                        </TouchableOpacity>
+                    )}
+
+                    <TouchableOpacity
+                        style={[styles.button, { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border, width: '100%' }]}
+                        onPress={handleBackToLogin}
+                    >
+                        <Text style={[styles.buttonText as TextStyle, { color: colors.text }]}>
+                            {t('auth.backToLogin')}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
+        );
+    }
 
     return (
         <KeyboardAvoidingView
@@ -170,34 +251,42 @@ const createStyles = (colors: any, theme: string) => StyleSheet.create({
     },
     content: {
         flex: 1,
-        paddingHorizontal: 30,
-        paddingTop: 50,
-        paddingBottom: 30,
+        paddingHorizontal: 24,
+        paddingTop: 40,
+        paddingBottom: 40,
+        justifyContent: 'center',
     },
     header: {
+        marginBottom: 32,
         alignItems: 'center',
-        marginBottom: 40,
     },
     logo: {
         width: 120,
         height: 120,
-        borderRadius: 30,
         marginBottom: 24,
+        borderRadius: 24,
+        backgroundColor: colors.card,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: colors.border,
+        overflow: 'hidden',
     },
     title: {
         fontSize: 24,
         fontWeight: '900',
         color: colors.text,
-        textAlign: 'center',
         marginBottom: 8,
+        textAlign: 'center',
     },
     subtitle: {
         fontSize: 16,
         color: colors.textSecondary,
-        fontWeight: '500',
+        textAlign: 'center',
     },
     form: {
         gap: 20,
+        width: '100%',
     },
     inputGroup: {
         gap: 8,
@@ -226,11 +315,13 @@ const createStyles = (colors: any, theme: string) => StyleSheet.create({
     },
     forgotPassword: {
         alignSelf: 'flex-end',
+        marginTop: -8,
+        marginBottom: 8,
     },
     forgotPasswordText: {
         color: colors.primary,
         fontSize: 14,
-        fontWeight: '700',
+        fontWeight: '600',
     },
     errorContainer: {
         flexDirection: 'row',
@@ -254,6 +345,7 @@ const createStyles = (colors: any, theme: string) => StyleSheet.create({
         height: 56,
         justifyContent: 'center',
         alignItems: 'center',
+        marginTop: 10,
         elevation: 4,
         shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 4 },
@@ -286,3 +378,5 @@ const createStyles = (colors: any, theme: string) => StyleSheet.create({
         fontWeight: '900',
     },
 });
+
+

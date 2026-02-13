@@ -57,11 +57,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(authenticatedUser);
             if (authenticatedUser) {
                 try {
-                    const userDoc = await getDoc(doc(db, 'users', authenticatedUser.uid));
-                    if (userDoc.exists()) {
-                        const profile = { uid: authenticatedUser.uid, ...userDoc.data() } as UserProfile;
-                        setUserProfile(profile);
-                        setRole(profile.role);
+                    if (authenticatedUser.emailVerified) {
+                        const userDoc = await getDoc(doc(db, 'users', authenticatedUser.uid));
+                        if (userDoc.exists()) {
+                            const profile = { uid: authenticatedUser.uid, ...userDoc.data() } as UserProfile;
+                            setUserProfile(profile);
+                            setRole(profile.role);
+                        }
+                    } else {
+                        setUserProfile(null);
+                        setRole(null);
                     }
                 } catch (error) {
                     console.error("Error fetching user profile:", error);

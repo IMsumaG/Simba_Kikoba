@@ -1,6 +1,6 @@
 /**
- * Error Handler Service
- * Provides consistent error handling and logging across the app
+ * Error Handler Service (Web)
+ * Provides consistent error handling and logging across the web app
  */
 
 /**
@@ -31,6 +31,7 @@ export enum ErrorCode {
     AUTH_INVALID_EMAIL = 'AUTH_INVALID_EMAIL',
     AUTH_NETWORK_ERROR = 'AUTH_NETWORK_ERROR',
     AUTH_TOO_MANY_REQUESTS = 'AUTH_TOO_MANY_REQUESTS',
+    AUTH_UNVERIFIED_EMAIL = 'AUTH_UNVERIFIED_EMAIL',
 
     // Validation Errors
     VALIDATION_ERROR = 'VALIDATION_ERROR',
@@ -57,7 +58,24 @@ export const errorHandler = {
      * Handle any error and return user-friendly message
      */
     handle(error: unknown): { code: string; message: string; userMessage: string } {
-        console.error('Error caught:', error);
+        // Only log errors if they are not expected auth errors
+        if (error instanceof Error && 'code' in error) {
+            const err = error as any;
+            const expectedAuthErrors = [
+                'auth/wrong-password',
+                'auth/user-not-found',
+                'auth/invalid-credential',
+                'auth/invalid-login-credentials',
+                'auth/email-already-in-use',
+                'auth/invalid-email'
+            ];
+            
+            if (!expectedAuthErrors.includes(err.code)) {
+                console.error('Error caught:', error);
+            }
+        } else if (!(error instanceof AppError)) {
+             console.error('Error caught:', error);
+        }
 
         // Handle AppError
         if (error instanceof AppError) {
@@ -77,7 +95,7 @@ export const errorHandler = {
                     return {
                         code: ErrorCode.AUTH_USER_NOT_FOUND,
                         message: 'User not found',
-                        userMessage: 'errors.AUTH_USER_NOT_FOUND',
+                        userMessage: 'No account found with this email.',
                     };
 
                 case 'auth/wrong-password':
@@ -86,63 +104,63 @@ export const errorHandler = {
                     return {
                         code: ErrorCode.AUTH_WRONG_PASSWORD,
                         message: 'Wrong password or invalid credentials',
-                        userMessage: 'errors.AUTH_WRONG_PASSWORD',
+                        userMessage: 'Incorrect password. Please try again.',
                     };
 
                 case 'auth/email-already-in-use':
                     return {
                         code: ErrorCode.AUTH_EMAIL_IN_USE,
                         message: 'Email already in use',
-                        userMessage: 'errors.AUTH_EMAIL_IN_USE',
+                        userMessage: 'This email is already registered.',
                     };
 
                 case 'auth/weak-password':
                     return {
                         code: ErrorCode.AUTH_WEAK_PASSWORD,
                         message: 'Password too weak',
-                        userMessage: 'errors.AUTH_WEAK_PASSWORD',
+                        userMessage: 'Password should be at least 6 characters.',
                     };
 
                 case 'auth/invalid-email':
                     return {
                         code: ErrorCode.AUTH_INVALID_EMAIL,
                         message: 'Invalid email',
-                        userMessage: 'errors.AUTH_INVALID_EMAIL',
+                        userMessage: 'Please enter a valid email address.',
                     };
 
                 case 'auth/too-many-requests':
                     return {
                         code: ErrorCode.AUTH_TOO_MANY_REQUESTS,
                         message: 'Too many login attempts',
-                        userMessage: 'errors.AUTH_TOO_MANY_REQUESTS',
+                        userMessage: 'Too many failed attempts. Please try again later.',
                     };
 
                 case 'auth/network-request-failed':
                     return {
                         code: ErrorCode.AUTH_NETWORK_ERROR,
                         message: 'Network error',
-                        userMessage: 'errors.AUTH_NETWORK_ERROR',
+                        userMessage: 'Network error. Please check your connection.',
                     };
 
                 case 'permission-denied':
                     return {
                         code: ErrorCode.DB_PERMISSION_DENIED,
                         message: 'Permission denied',
-                        userMessage: 'errors.DB_PERMISSION_DENIED',
+                        userMessage: 'You do not have permission to perform this action.',
                     };
 
                 case 'not-found':
                     return {
                         code: ErrorCode.DB_NOT_FOUND,
                         message: 'Not found',
-                        userMessage: 'errors.DB_NOT_FOUND',
+                        userMessage: 'The requested resource was not found.',
                     };
 
                 default:
                     return {
                         code: ErrorCode.UNKNOWN_ERROR,
                         message: err.message || 'An error occurred',
-                        userMessage: 'errors.UNKNOWN_ERROR',
+                        userMessage: 'An unexpected error occurred. Please try again.',
                     };
             }
         }
@@ -152,7 +170,7 @@ export const errorHandler = {
             return {
                 code: ErrorCode.NETWORK_ERROR,
                 message: 'Network error',
-                userMessage: 'errors.NETWORK_ERROR',
+                userMessage: 'Network connection error. Please check your internet.',
             };
         }
 
@@ -161,7 +179,7 @@ export const errorHandler = {
             return {
                 code: ErrorCode.TIMEOUT_ERROR,
                 message: 'Request timeout',
-                userMessage: 'errors.TIMEOUT_ERROR',
+                userMessage: 'The request timed out. Please try again.',
             };
         }
 
@@ -170,7 +188,7 @@ export const errorHandler = {
             return {
                 code: ErrorCode.UNKNOWN_ERROR,
                 message: error.message,
-                userMessage: 'errors.UNKNOWN_ERROR',
+                userMessage: 'An unexpected error occurred.',
             };
         }
 
@@ -178,7 +196,7 @@ export const errorHandler = {
         return {
             code: ErrorCode.UNKNOWN_ERROR,
             message: 'An unknown error occurred',
-            userMessage: 'errors.UNKNOWN_ERROR',
+            userMessage: 'An unknown error occurred.',
         };
     },
 
@@ -198,9 +216,6 @@ export const errorHandler = {
         } else {
             console.error(`[${timestamp}]${contextStr} Error:`, error);
         }
-
-        // In production, you might send this to a logging service
-        // Example: Sentry, LogRocket, etc.
     },
 
     /**

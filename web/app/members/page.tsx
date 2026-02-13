@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import AppLayout from "../../components/AppLayout";
+import { errorHandler } from "../../lib/errorHandler";
 import { db } from "../../lib/firebase";
 
 interface UserProfile {
@@ -65,7 +66,9 @@ export default function MembersPage() {
             const data = snapshot.docs.map(doc => doc.data() as UserProfile);
             setMembers(data);
         } catch (error) {
+            const { userMessage } = errorHandler.handle(error);
             console.error("Error fetching members:", error);
+            alert(userMessage);
         } finally {
             setLoading(false);
         }
@@ -120,6 +123,7 @@ export default function MembersPage() {
                 loansByCategory: loansByCat
             });
         } catch (e) {
+            errorHandler.handle(e);
             console.error(e);
         } finally {
             setLoadingStats(false);
@@ -142,7 +146,8 @@ export default function MembersPage() {
                 setSelectedMember(prev => prev ? { ...prev, role: newRole } : null);
             }
         } catch (error) {
-            alert("Failed to update role");
+            const { userMessage } = errorHandler.handle(error);
+            alert(userMessage);
         }
     };
 
@@ -154,7 +159,8 @@ export default function MembersPage() {
             setMembers(prev => prev.filter(m => m.uid !== uid));
             if (selectedMember?.uid === uid) setSelectedMember(null);
         } catch (error) {
-            alert("Failed to delete user");
+            const { userMessage } = errorHandler.handle(error);
+            alert(userMessage);
         }
     };
 
@@ -165,7 +171,8 @@ export default function MembersPage() {
             if (selectedMember) fetchMemberStats(selectedMember.uid);
         } catch (e) {
             console.error(e);
-            alert("Failed to delete transaction");
+            const { userMessage } = errorHandler.handle(e);
+            alert(userMessage);
         }
     };
 
@@ -191,7 +198,8 @@ export default function MembersPage() {
             }
         } catch (error) {
             console.error(error);
-            alert("An error occurred while generating IDs.");
+            const { userMessage } = errorHandler.handle(error);
+            alert(userMessage);
         } finally {
             setLoading(false);
         }

@@ -1,6 +1,7 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     ActivityIndicator,
     Alert,
@@ -17,10 +18,12 @@ import {
 } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../services/AuthContext';
+import { errorHandler } from '../../services/errorHandler';
 import { loanRequestService } from '../../services/loanRequestService';
 import { LoanRequest } from '../../types';
 
 export default function LoansScreen() {
+    const { t } = useTranslation();
     const { user, role } = useAuth();
     const { colors, theme } = useTheme();
     const isAdmin = role === 'Admin';
@@ -67,7 +70,11 @@ export default function LoansScreen() {
                 : await loanRequestService.getMyRequests(user.uid);
             setRequests(data);
         } catch (error: any) {
-            Alert.alert("Error", error.message);
+            const { userMessage } = errorHandler.handle(error);
+            Alert.alert(t('common.error'), t(userMessage));
+            // Actually, userMessage is now a key like 'errors.AUTH_USER_NOT_FOUND', so we need to translate it.
+            // But this file doesn't seem to use `t` from useTranslation in the snippet I saw.
+            // Let me check if useTranslation is used.
         } finally {
             setLoading(false);
         }
@@ -96,11 +103,11 @@ export default function LoansScreen() {
     const handleSubmitRequest = async () => {
         if (!user) return;
         if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
-            Alert.alert("Error", "Please enter a valid amount");
+            Alert.alert(t('common.error'), t('loans.validAmountError'));
             return;
         }
         if (!description || description.trim().length < 5) {
-            Alert.alert("Error", "Please provide a more detailed purpose for this loan (at least 5 characters)");
+            Alert.alert(t('common.error'), t('loans.descriptionError'));
             return;
         }
 
@@ -113,12 +120,13 @@ export default function LoansScreen() {
                 loanType,
                 description
             );
-            Alert.alert("Success", "Loan request submitted and pending admin approval.");
+            Alert.alert(t('common.success'), t('loans.submitSuccess'));
             setModalVisible(false);
             setAmount('');
             setDescription('');
         } catch (error: any) {
-            Alert.alert("Error", error.message);
+            const { userMessage } = errorHandler.handle(error);
+            Alert.alert("Error", t(userMessage));
         } finally {
             setSubmitting(false);
         }
@@ -129,12 +137,13 @@ export default function LoansScreen() {
         try {
             setLoading(true);
             const status = await loanRequestService.castVote(requestId, user.uid, decision, reason);
-            Alert.alert("Vote Recorded", `Request is now ${status.toLowerCase()}`);
+            Alert.alert(t('loans.voteSuccess'), t('loans.voteMessage', { status: status.toLowerCase() }));
             setVoteModalVisible(false);
             setSelectedRequest(null);
             setReason('');
         } catch (error: any) {
-            Alert.alert("Error", error.message);
+            const { userMessage } = errorHandler.handle(error);
+            Alert.alert(t('common.error'), t(userMessage));
         } finally {
             setLoading(false);
         }
@@ -193,7 +202,7 @@ export default function LoansScreen() {
 
         return (
             <View style={[styles.badge, { backgroundColor: bgColor }]}>
-                <Text style={[styles.badgeText, { color }]}>{status.toUpperCase()}</Text>
+                <Text style={[styles.badgeText, { color }]}>{status.toUpperCase() === 'APPROVED' ? t('loans.approved').toUpperCase() : status.toUpperCase() === 'REJECTED' ? t('loans.rejected').toUpperCase() : t('loans.pending').toUpperCase()}</Text>
             </View>
         );
     };
@@ -231,7 +240,7 @@ export default function LoansScreen() {
                 {!isExpanded && (
                     <View style={styles.collapsedCardBody}>
                         <View style={styles.compactRow}>
-                            <Text style={styles.compactLabel}>{request.type} Loan</Text>
+                            <Text style={styles.compactLabel}>{request.type === 'Standard' ? t('loans.standard') : t('loans.dharura')} {t('loans.type')}</Text>
                             <Text style={styles.amountText}>{request.amount.toLocaleString()} TZS</Text>
                         </View>
                     </View>
@@ -241,28 +250,28 @@ export default function LoansScreen() {
                 {isExpanded && (
                     <View style={styles.cardBody}>
                         <View style={styles.row}>
-                            <Text style={styles.label}>Type:</Text>
-                            <Text style={styles.value}>{request.type} Loan</Text>
+                            <Text style={styles.label}>{t('loans.type')}:</Text>
+                            <Text style={styles.value}>{request.type === 'Standard' ? t('loans.standard') : t('loans.dharura')} {t('loans.type')}</Text>
                         </View>
                         <View style={styles.row}>
-                            <Text style={styles.label}>Amount:</Text>
+                            <Text style={styles.label}>{t('loans.amount')}:</Text>
                             <Text style={styles.amountText}>{request.amount.toLocaleString()} TZS</Text>
                         </View>
                         {request.description ? (
                             <View style={styles.descriptionBox}>
-                                <Text style={styles.descriptionLabel}>Purpose:</Text>
+                                <Text style={styles.descriptionLabel}>{t('loans.purpose')}:</Text>
                                 <Text style={styles.descriptionText}>{request.description}</Text>
                             </View>
                         ) : null}
 
                         {request.status === 'Rejected' && request.rejectionReason && (
                             <View style={styles.rejectionBox}>
-                                <Text style={styles.rejectionText}>Reason: {request.rejectionReason}</Text>
+                                <Text style={styles.rejectionText}>{t('loans.reason')}: {request.rejectionReason}</Text>
                             </View>
                         )}
 
                         <View style={styles.approvalTracker}>
-                            <Text style={styles.trackerTitle}>Admin Approvals ({approvedCount}/{totalAdmins})</Text>
+                            <Text style={styles.trackerTitle}>{t('loans.adminApprovals')} ({approvedCount}/{totalAdmins})</Text>
                             <View style={styles.adminList}>
                                 {Object.keys(request.approvals).map(adminId => (
                                     <View key={adminId} style={styles.adminStatusRow}>
@@ -286,7 +295,7 @@ export default function LoansScreen() {
                                     onPress={() => handleVote(request.id!, 'approved')}
                                 >
                                     <Ionicons name="checkmark" size={18} color="white" />
-                                    <Text style={styles.actionBtnText}>Approve</Text>
+                                    <Text style={styles.actionBtnText}>{t('loans.approve')}</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={[styles.actionBtn, styles.rejectBtn]}
@@ -296,14 +305,14 @@ export default function LoansScreen() {
                                     }}
                                 >
                                     <Ionicons name="close" size={18} color="white" />
-                                    <Text style={styles.actionBtnText}>Reject</Text>
+                                    <Text style={styles.actionBtnText}>{t('loans.reject')}</Text>
                                 </TouchableOpacity>
                             </View>
                         )}
 
                         {isAdmin && myDecision !== 'pending' && request.status === 'Pending' && (
                             <View style={styles.votedNotice}>
-                                <Text style={styles.votedText}>You have {myDecision} this request. Waiting for other admins.</Text>
+                                <Text style={styles.votedText}>{t('loans.votedNotice', { decision: myDecision })}</Text>
                             </View>
                         )}
                     </View>
@@ -315,19 +324,19 @@ export default function LoansScreen() {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>Loan Requests</Text>
+                <Text style={styles.title}>{t('loans.title')}</Text>
                 <View style={{ flexDirection: 'row', gap: 12 }}>
                     <TouchableOpacity
                         style={[styles.addBtn, { backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0' }]}
                         onPress={() => setShowFilters(!showFilters)}
                     >
-                        <Ionicons name="filter" size={20} color="#64748B" />
+                        <Ionicons name="filter" size={18} color="#64748B" />
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.addBtn}
                         onPress={() => setModalVisible(true)}
                     >
-                        <Ionicons name="add" size={24} color="white" />
+                        <Ionicons name="add" size={20} color="white" />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -339,7 +348,7 @@ export default function LoansScreen() {
                             <Ionicons name="search" size={16} color="#94A3B8" style={styles.inputIcon} />
                             <TextInput
                                 style={styles.filterInput}
-                                placeholder="Search Name/ID"
+                                placeholder={t('loans.searchPlaceholder')}
                                 value={searchTerm}
                                 onChangeText={setSearchTerm}
                             />
@@ -347,17 +356,17 @@ export default function LoansScreen() {
                         <TouchableOpacity
                             style={[styles.inputWrapper, { width: 120 }]}
                             onPress={() => {
-                                openPicker("Select Status", [
-                                    { label: "All", value: "All" },
-                                    { label: "Pending", value: "Pending" },
-                                    { label: "Approved", value: "Approved" },
-                                    { label: "Rejected", value: "Rejected" },
+                                openPicker(t('loans.status'), [
+                                    { label: t('loans.all'), value: "All" },
+                                    { label: t('loans.pending'), value: "Pending" },
+                                    { label: t('loans.approved'), value: "Approved" },
+                                    { label: t('loans.rejected'), value: "Rejected" },
                                 ], (val) => setStatusFilter(val));
                             }}
                         >
                             <Ionicons name="options" size={16} color="#94A3B8" style={styles.inputIcon} />
                             <Text style={[styles.filterInput, !statusFilter || statusFilter === 'All' ? { color: '#94A3B8' } : {}]}>
-                                {statusFilter === 'All' ? 'Status' : statusFilter}
+                                {statusFilter === 'All' ? t('loans.status') : statusFilter === 'Pending' ? t('loans.pending') : statusFilter === 'Approved' ? t('loans.approved') : statusFilter === 'Rejected' ? t('loans.rejected') : statusFilter}
                             </Text>
                         </TouchableOpacity>
                     </View>
@@ -366,7 +375,7 @@ export default function LoansScreen() {
                             <Ionicons name="calendar-outline" size={16} color="#94A3B8" style={styles.inputIcon} />
                             <TextInput
                                 style={styles.filterInput}
-                                placeholder="From: YYYY-MM-DD"
+                                placeholder={t('loans.startDate')}
                                 value={startDate}
                                 onChangeText={setStartDate}
                             />
@@ -375,7 +384,7 @@ export default function LoansScreen() {
                             <Ionicons name="calendar-outline" size={16} color="#94A3B8" style={styles.inputIcon} />
                             <TextInput
                                 style={styles.filterInput}
-                                placeholder="To: YYYY-MM-DD"
+                                placeholder={t('loans.endDate')}
                                 value={endDate}
                                 onChangeText={setEndDate}
                             />
@@ -400,7 +409,7 @@ export default function LoansScreen() {
                             <View style={[styles.statIconContainer, { backgroundColor: '#F59E0B15' }]}>
                                 <Ionicons name="time" size={24} color="#F59E0B" />
                             </View>
-                            <Text style={styles.statTitle}>Pending</Text>
+                            <Text style={styles.statTitle}>{t('loans.pending')}</Text>
                             <Text style={styles.statValue}>{requests.filter(r => r.status === 'Pending').length}</Text>
                         </View>
 
@@ -408,7 +417,7 @@ export default function LoansScreen() {
                             <View style={[styles.statIconContainer, { backgroundColor: '#10B98115' }]}>
                                 <Ionicons name="checkmark-circle" size={24} color="#10B981" />
                             </View>
-                            <Text style={styles.statTitle}>Approved</Text>
+                            <Text style={styles.statTitle}>{t('loans.approved')}</Text>
                             <Text style={styles.statValue}>{requests.filter(r => r.status === 'Approved').length}</Text>
                         </View>
 
@@ -416,7 +425,7 @@ export default function LoansScreen() {
                             <View style={[styles.statIconContainer, { backgroundColor: '#EF444415' }]}>
                                 <Ionicons name="close-circle" size={24} color="#EF4444" />
                             </View>
-                            <Text style={styles.statTitle}>Rejected</Text>
+                            <Text style={styles.statTitle}>{t('loans.rejected')}</Text>
                             <Text style={styles.statValue}>{requests.filter(r => r.status === 'Rejected').length}</Text>
                         </View>
                     </ScrollView>
@@ -429,7 +438,7 @@ export default function LoansScreen() {
                 ) : filteredRequests.length === 0 ? (
                     <View style={styles.emptyContainer}>
                         <Ionicons name="search-outline" size={64} color="#CBD5E1" />
-                        <Text style={styles.emptyText}>No requests match your filters</Text>
+                        <Text style={styles.emptyText}>{t('loans.noRequests')}</Text>
                     </View>
                 ) : (
                     <>
@@ -439,19 +448,19 @@ export default function LoansScreen() {
                         <View style={styles.paginationContainer}>
                             <View style={styles.pageInfo}>
                                 <Text style={styles.pageInfoText}>
-                                    Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredRequests.length)} of {filteredRequests.length}
+                                    {t('loans.showing', { start: ((currentPage - 1) * itemsPerPage) + 1, end: Math.min(currentPage * itemsPerPage, filteredRequests.length), total: filteredRequests.length })}
                                 </Text>
                                 <TouchableOpacity
                                     style={styles.limitPicker}
                                     onPress={() => {
-                                        openPicker("Items Per Page", [
-                                            { label: "10 per page", value: 10 },
-                                            { label: "50 per page", value: 50 },
-                                            { label: "100 per page", value: 100 },
+                                        openPicker(t('loans.itemsPerPage'), [
+                                            { label: t('loans.perPage', { count: 10 }), value: 10 },
+                                            { label: t('loans.perPage', { count: 50 }), value: 50 },
+                                            { label: t('loans.perPage', { count: 100 }), value: 100 },
                                         ], (val) => setItemsPerPage(val));
                                     }}
                                 >
-                                    <Text style={styles.limitText}>{itemsPerPage} / page</Text>
+                                    <Text style={styles.limitText}>{t('loans.perPage', { count: itemsPerPage })}</Text>
                                     <Ionicons name="chevron-down" size={12} color="#64748B" />
                                 </TouchableOpacity>
                             </View>
@@ -466,7 +475,7 @@ export default function LoansScreen() {
                                 </TouchableOpacity>
 
                                 <View style={styles.pageNum}>
-                                    <Text style={styles.pageNumText}>Page {currentPage} of {totalPages}</Text>
+                                    <Text style={styles.pageNumText}>{t('loans.page', { current: currentPage, total: totalPages })}</Text>
                                 </View>
 
                                 <TouchableOpacity
@@ -487,7 +496,7 @@ export default function LoansScreen() {
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Request Loan</Text>
+                            <Text style={styles.modalTitle}>{t('loans.requestLoan')}</Text>
                             <TouchableOpacity onPress={() => setModalVisible(false)}>
                                 <Ionicons name="close" size={24} color="#64748B" />
                             </TouchableOpacity>
@@ -498,37 +507,37 @@ export default function LoansScreen() {
                             style={{ flex: 1 }}
                         >
                             <ScrollView style={styles.modalBody}>
-                                <Text style={styles.inputLabel}>Loan Type</Text>
+                                <Text style={styles.inputLabel}>{t('loans.loanType')}</Text>
                                 <View style={styles.typeSelector}>
                                     <TouchableOpacity
                                         style={[styles.typeBtn, loanType === 'Standard' && styles.typeBtnActive]}
                                         onPress={() => setLoanType('Standard')}
                                     >
-                                        <Text style={[styles.typeBtnText, loanType === 'Standard' && styles.typeBtnTextActive]}>Standard</Text>
-                                        {loanType === 'Standard' && <Text style={styles.interestNote}>10% Interest</Text>}
+                                        <Text style={[styles.typeBtnText, loanType === 'Standard' && styles.typeBtnTextActive]}>{t('loans.standard')}</Text>
+                                        {loanType === 'Standard' && <Text style={styles.interestNote}>{t('loans.standardInterest')}</Text>}
                                     </TouchableOpacity>
                                     <TouchableOpacity
                                         style={[styles.typeBtn, loanType === 'Dharura' && styles.typeBtnActive]}
                                         onPress={() => setLoanType('Dharura')}
                                     >
-                                        <Text style={[styles.typeBtnText, loanType === 'Dharura' && styles.typeBtnTextActive]}>Dharura</Text>
-                                        {loanType === 'Dharura' && <Text style={styles.interestNote}>No Interest</Text>}
+                                        <Text style={[styles.typeBtnText, loanType === 'Dharura' && styles.typeBtnTextActive]}>{t('loans.dharura')}</Text>
+                                        {loanType === 'Dharura' && <Text style={styles.interestNote}>{t('loans.dharuraInterest')}</Text>}
                                     </TouchableOpacity>
                                 </View>
 
-                                <Text style={styles.inputLabel}>Amount (TZS)</Text>
+                                <Text style={styles.inputLabel}>{t('loans.amount')}</Text>
                                 <TextInput
                                     style={styles.input}
-                                    placeholder="Enter amount"
+                                    placeholder={t('loans.enterAmount')}
                                     keyboardType="numeric"
                                     value={amount}
                                     onChangeText={setAmount}
                                 />
 
-                                <Text style={styles.inputLabel}>Purpose/Description <Text style={{ color: '#EF4444' }}>*</Text></Text>
+                                <Text style={styles.inputLabel}>{t('loans.purpose')} <Text style={{ color: '#EF4444' }}>*</Text></Text>
                                 <TextInput
                                     style={[styles.input, styles.textArea]}
-                                    placeholder="Why do you need this loan? (Required)"
+                                    placeholder={t('loans.purposePlaceholder')}
                                     multiline
                                     numberOfLines={3}
                                     value={description}
@@ -543,7 +552,7 @@ export default function LoansScreen() {
                                     {submitting ? (
                                         <ActivityIndicator color="white" />
                                     ) : (
-                                        <Text style={styles.submitBtnText}>Submit Request</Text>
+                                        <Text style={styles.submitBtnText}>{t('loans.submitRequest')}</Text>
                                     )}
                                 </TouchableOpacity>
                             </ScrollView>
@@ -557,7 +566,7 @@ export default function LoansScreen() {
                 <View style={styles.modalOverlay}>
                     <View style={[styles.modalContent, { height: 'auto' }]}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Reject Request</Text>
+                            <Text style={styles.modalTitle}>{t('loans.rejectRequest')}</Text>
                             <TouchableOpacity onPress={() => setVoteModalVisible(false)}>
                                 <Ionicons name="close" size={24} color="#64748B" />
                             </TouchableOpacity>
@@ -566,10 +575,10 @@ export default function LoansScreen() {
                             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                         >
                             <View style={styles.modalBody}>
-                                <Text style={styles.inputLabel}>Reason for Rejection</Text>
+                                <Text style={styles.inputLabel}>{t('loans.rejectionReason')}</Text>
                                 <TextInput
                                     style={[styles.input, styles.textArea]}
-                                    placeholder="Enter reason..."
+                                    placeholder={t('loans.enterReason')}
                                     multiline
                                     value={reason}
                                     onChangeText={setReason}
@@ -578,7 +587,7 @@ export default function LoansScreen() {
                                     style={[styles.submitBtn, { backgroundColor: '#EF4444' }]}
                                     onPress={() => selectedRequest && handleVote(selectedRequest.id!, 'rejected')}
                                 >
-                                    <Text style={styles.submitBtnText}>Confirm Rejection</Text>
+                                    <Text style={styles.submitBtnText}>{t('loans.confirmRejection')}</Text>
                                 </TouchableOpacity>
                             </View>
                         </KeyboardAvoidingView>
@@ -614,7 +623,7 @@ export default function LoansScreen() {
                     </View>
                 </View>
             </Modal>
-        </View>
+        </View >
     );
 }
 
@@ -624,7 +633,7 @@ const createStyles = (colors: any, theme: string) => StyleSheet.create({
         backgroundColor: colors.background,
     },
     header: {
-        paddingTop: 60,
+        paddingTop: 80,
         paddingBottom: 20,
         paddingHorizontal: 24,
         backgroundColor: colors.card,
@@ -640,9 +649,9 @@ const createStyles = (colors: any, theme: string) => StyleSheet.create({
         color: colors.text,
     },
     addBtn: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         backgroundColor: colors.primary,
         justifyContent: 'center',
         alignItems: 'center',

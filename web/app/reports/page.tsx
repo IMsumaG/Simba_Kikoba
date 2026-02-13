@@ -6,6 +6,7 @@ import { BarChart3, Download, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import * as XLSX from "xlsx";
 import AppLayout from "../../components/AppLayout";
+import { errorHandler } from "../../lib/errorHandler";
 import { db } from "../../lib/firebase";
 
 
@@ -91,7 +92,9 @@ export default function ReportsPage() {
                 setSelectedMemberId(data[0].uid);
             }
         } catch (error) {
+            const { userMessage } = errorHandler.handle(error);
             console.error("Error fetching members:", error);
+            alert(userMessage);
         }
     };
 
@@ -234,7 +237,8 @@ export default function ReportsPage() {
             setReportData(data);
         } catch (error) {
             console.error("Error generating report:", error);
-            alert("Failed to generate report");
+            const { userMessage } = errorHandler.handle(error);
+            alert(userMessage);
         } finally {
             setLoading(false);
         }
@@ -247,7 +251,8 @@ export default function ReportsPage() {
             setGroupReportData(data);
         } catch (error) {
             console.error("Error generating group report:", error);
-            alert("Failed to generate group report");
+            const { userMessage } = errorHandler.handle(error);
+            alert(userMessage);
         } finally {
             setLoading(false);
         }

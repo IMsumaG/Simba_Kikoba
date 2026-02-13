@@ -11,6 +11,7 @@ import { SkeletonLoader } from '../../components/SkeletonLoader';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../services/AuthContext';
 import { bulkUploadService } from '../../services/bulkUploadService';
+import { errorHandler } from '../../services/errorHandler';
 import { memberService, UserProfile } from '../../services/memberService';
 import { transactionService } from '../../services/transactionService';
 import { BulkUploadValidationResult } from '../../types';
@@ -64,7 +65,8 @@ export default function TransactionsScreen() {
 
         } catch (err: any) {
             console.error(err);
-            Alert.alert("Error", "Failed to process file: " + err.message);
+            const { userMessage } = errorHandler.handle(err);
+            Alert.alert(t('common.error'), t(userMessage));
         } finally {
             setLoading(false);
         }
@@ -109,7 +111,8 @@ export default function TransactionsScreen() {
 
         } catch (error: any) {
             console.error(error);
-            Alert.alert("Error", error.message);
+            const { userMessage } = errorHandler.handle(error);
+            Alert.alert(t('common.error'), t(userMessage));
         } finally {
             setLoading(false);
         }
@@ -136,14 +139,17 @@ export default function TransactionsScreen() {
 
             setShowBulkPreview(false);
 
+            const successMsg = t('transactions.successProcessed').replace('{{count}}', result.successCount.toString());
+            const failedMsg = result.failedCount > 0 ? `\n${t('transactions.failedProcessed').replace('{{count}}', result.failedCount.toString())}` : "";
+            const skippedMsg = result.skippedCount > 0 ? `\n${t('transactions.skippedProcessed').replace('{{count}}', result.skippedCount.toString())}` : "";
+
             Alert.alert(
-                "Success",
-                `Processed ${result.successCount} transactions successfully.` +
-                (result.failedCount > 0 ? `\nFailed: ${result.failedCount}` : "") +
-                (result.skippedCount > 0 ? `\nSkipped: ${result.skippedCount}` : "")
+                t('common.success'),
+                successMsg + failedMsg + skippedMsg
             );
         } catch (err: any) {
-            Alert.alert("Date Processing Error", err.message);
+            const { userMessage } = errorHandler.handle(err);
+            Alert.alert(t('common.error'), t(userMessage));
         } finally {
             setBulkProcessing(false);
         }
@@ -210,7 +216,8 @@ export default function TransactionsScreen() {
             setSelectedMember(null);
         } catch (error) {
             console.error(error);
-            Alert.alert(t('common.error'), t('transactions.error'));
+            const { userMessage } = errorHandler.handle(error);
+            Alert.alert(t('common.error'), t(userMessage));
         } finally {
             setLoading(false);
         }
@@ -242,7 +249,7 @@ export default function TransactionsScreen() {
                             <View style={{ marginBottom: 20 }}>
                                 <TouchableOpacity style={styles.bulkUploadBtn as ViewStyle} onPress={handleBulkUpload}>
                                     <Ionicons name="document-text-outline" size={20} color="white" />
-                                    <Text style={styles.bulkUploadText as TextStyle}>Bulk Upload (Excel)</Text>
+                                    <Text style={styles.bulkUploadText as TextStyle}>{t('transactions.bulkUpload')}</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={[
@@ -252,7 +259,7 @@ export default function TransactionsScreen() {
                                     onPress={handleDownloadTemplate}
                                 >
                                     <Ionicons name="download-outline" size={20} color="#0284C7" />
-                                    <Text style={[styles.bulkUploadText as TextStyle, { color: '#0284C7' }]}>Download Template</Text>
+                                    <Text style={[styles.bulkUploadText as TextStyle, { color: '#0284C7' }]}>{t('transactions.downloadTemplate')}</Text>
                                 </TouchableOpacity>
                             </View>
                         )}
@@ -268,7 +275,7 @@ export default function TransactionsScreen() {
                             >
                                 <Ionicons name="person-outline" size={20} color={colors.primary} />
                                 <Text style={[styles.filterInput, !selectedMember ? { color: colors.textSecondary } : {}]}>
-                                    {selectedMember?.displayName || 'Select Member'}
+                                    {selectedMember?.displayName || t('transactions.selectMember')}
                                 </Text>
                             </TouchableOpacity>
                         </View>
@@ -412,20 +419,20 @@ export default function TransactionsScreen() {
                             {type === 'Loan' && category === 'Standard' && amount && !isNaN(Number(amount)) && Number(amount) > 0 && (
                                 <View style={styles.interestPreview as ViewStyle}>
                                     <View style={styles.interestRow}>
-                                        <Text style={styles.interestLabel}>Principal:</Text>
+                                        <Text style={styles.interestLabel}>{t('common.principal')}:</Text>
                                         <Text style={styles.interestValue}>
                                             {Number(amount).toLocaleString()} TZS
                                         </Text>
                                     </View>
                                     <View style={styles.interestRow}>
-                                        <Text style={styles.interestLabel}>Interest (10%):</Text>
+                                        <Text style={styles.interestLabel}>{t('common.interest')} (10%):</Text>
                                         <Text style={styles.interestValue}>
                                             {(Number(amount) * 0.1).toLocaleString()} TZS
                                         </Text>
                                     </View>
                                     <View style={{ height: 1, backgroundColor: colors.warningBorder, marginVertical: 8 }} />
                                     <View style={styles.interestRow}>
-                                        <Text style={[styles.interestLabel, { fontWeight: '700', color: colors.primary, fontSize: 14 }]}>Total:</Text>
+                                        <Text style={[styles.interestLabel, { fontWeight: '700', color: colors.primary, fontSize: 14 }]}>{t('common.total')}:</Text>
                                         <Text style={[styles.interestValue, { fontWeight: '700', color: colors.primary, fontSize: 16 }]}>
                                             {(Number(amount) * 1.1).toLocaleString()} TZS
                                         </Text>
@@ -519,7 +526,7 @@ export default function TransactionsScreen() {
                 <View style={styles.previewModalContainer as ViewStyle}>
                     <View style={styles.previewModalContent as ViewStyle}>
                         <View style={styles.previewHeader as ViewStyle}>
-                            <Text style={styles.previewTitle as TextStyle}>Bulk Import Preview</Text>
+                            <Text style={styles.previewTitle as TextStyle}>{t('transactions.bulkPreview')}</Text>
                             <TouchableOpacity onPress={() => setShowBulkPreview(false)}>
                                 <Ionicons name="close" size={24} color={colors.textSecondary} />
                             </TouchableOpacity>
@@ -528,21 +535,21 @@ export default function TransactionsScreen() {
                         <ScrollView>
                             {/* Summary Stats */}
                             <View style={styles.previewSection as ViewStyle}>
-                                <Text style={styles.sectionTitle as TextStyle}>Summary</Text>
+                                <Text style={styles.sectionTitle as TextStyle}>{t('transactions.summary')}</Text>
                                 <View style={styles.statRow as ViewStyle}>
-                                    <Text style={styles.statLabel as TextStyle}>Valid Transactions:</Text>
+                                    <Text style={styles.statLabel as TextStyle}>{t('transactions.validTransactions')}</Text>
                                     <Text style={[styles.statValue as TextStyle, { color: colors.success }]}>{bulkValidation?.validRows.length || 0}</Text>
                                 </View>
                                 <View style={styles.statRow as ViewStyle}>
-                                    <Text style={styles.statLabel as TextStyle}>Users Affected:</Text>
+                                    <Text style={styles.statLabel as TextStyle}>{t('transactions.usersAffected')}</Text>
                                     <Text style={[styles.statValue as TextStyle, { color: colors.info }]}>{bulkValidation?.totalAffectedUsers || 0}</Text>
                                 </View>
                                 <View style={styles.statRow as ViewStyle}>
-                                    <Text style={styles.statLabel as TextStyle}>Duplicates (Skipped):</Text>
+                                    <Text style={styles.statLabel as TextStyle}>{t('transactions.duplicates')}</Text>
                                     <Text style={[styles.statValue as TextStyle, { color: colors.warning }]}>{bulkValidation?.duplicateRows.length || 0}</Text>
                                 </View>
                                 <View style={styles.statRow as ViewStyle}>
-                                    <Text style={styles.statLabel as TextStyle}>Invalid Rows:</Text>
+                                    <Text style={styles.statLabel as TextStyle}>{t('transactions.invalidRows')}</Text>
                                     <Text style={[styles.statValue as TextStyle, { color: colors.danger }]}>{bulkValidation?.invalidRows.length || 0}</Text>
                                 </View>
                             </View>
@@ -550,7 +557,7 @@ export default function TransactionsScreen() {
                             {/* Transaction Totals */}
                             {bulkValidation?.validRows.length ? (
                                 <View style={styles.previewSection as ViewStyle}>
-                                    <Text style={styles.sectionTitle as TextStyle}>Transaction Breakdown</Text>
+                                    <Text style={styles.sectionTitle as TextStyle}>{t('transactions.breakdown')}</Text>
                                     <View style={styles.totalsGrid as ViewStyle}>
                                         {(bulkValidation?.totals.hisaAmount || 0) > 0 && (
                                             <View style={[styles.totalBox as ViewStyle, { backgroundColor: colors.successBackground, borderLeftColor: colors.success }]}>
@@ -606,7 +613,7 @@ export default function TransactionsScreen() {
 
                             {bulkValidation?.errors && bulkValidation.errors.length > 0 && (
                                 <View style={styles.warningBox as ViewStyle}>
-                                    <Text style={[styles.warningText as TextStyle, { fontWeight: 'bold' }]}>File Errors:</Text>
+                                    <Text style={[styles.warningText as TextStyle, { fontWeight: 'bold' }]}>{t('transactions.fileErrors')}</Text>
                                     {bulkValidation.errors.map((err: string, i: number) => (
                                         <Text key={i} style={styles.warningText as TextStyle}>• {err}</Text>
                                     ))}
@@ -615,7 +622,7 @@ export default function TransactionsScreen() {
 
                             {bulkValidation?.warnings && bulkValidation.warnings.length > 0 && (
                                 <View style={[styles.warningBox as ViewStyle, { backgroundColor: colors.warningBackground }]}>
-                                    <Text style={[styles.warningText as TextStyle, { fontWeight: 'bold', color: colors.warning }]}>Warnings:</Text>
+                                    <Text style={[styles.warningText as TextStyle, { fontWeight: 'bold', color: colors.warning }]}>{t('transactions.warnings')}</Text>
                                     {bulkValidation.warnings.map((warn: string, i: number) => (
                                         <Text key={i} style={[styles.warningText as TextStyle, { color: colors.warning }]}>• {warn}</Text>
                                     ))}
@@ -630,7 +637,7 @@ export default function TransactionsScreen() {
                                 {bulkProcessing ? (
                                     <ActivityIndicator color="white" />
                                 ) : (
-                                    <Text style={styles.processBtnText as TextStyle}>Process Transactions</Text>
+                                    <Text style={styles.processBtnText as TextStyle}>{t('transactions.process')}</Text>
                                 )}
                             </TouchableOpacity>
                         </ScrollView>

@@ -27,7 +27,7 @@ export default function SettingsPage() {
                     console.error('Error fetching user profile:', error);
                 }
             } else {
-                window.location.href = '/login';
+                window.location.href = '/';
             }
             setLoading(false);
         });
@@ -39,7 +39,7 @@ export default function SettingsPage() {
         try {
             setLoggingOut(true);
             await signOut(auth);
-            window.location.href = '/login';
+            window.location.href = '/';
         } catch (error) {
             console.error('Error logging out:', error);
             setLoggingOut(false);

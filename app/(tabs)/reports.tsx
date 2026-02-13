@@ -7,6 +7,7 @@ import { ActivityIndicator, Alert, Modal, ScrollView, StatusBar, StyleSheet, Tex
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../services/AuthContext';
+import { errorHandler } from '../../services/errorHandler';
 import { transactionService } from '../../services/transactionService';
 
 export default function ReportsScreen() {
@@ -74,7 +75,8 @@ export default function ReportsScreen() {
             Alert.alert(t('common.success'), t('reports.memberReportSuccess'));
         } catch (error) {
             console.error('Error generating report:', error);
-            Alert.alert(t('common.error'), t('common.error'));
+            const { userMessage } = errorHandler.handle(error);
+            Alert.alert(t('common.error'), t(userMessage));
         } finally {
             setGenerating(false);
         }
@@ -88,7 +90,8 @@ export default function ReportsScreen() {
             Alert.alert(t('common.success'), t('reports.groupReportSuccess'));
         } catch (error) {
             console.error('Error generating group report:', error);
-            Alert.alert(t('common.error'), t('common.error'));
+            const { userMessage } = errorHandler.handle(error);
+            Alert.alert(t('common.error'), t(userMessage));
         } finally {
             setGenerating(false);
         }
@@ -271,7 +274,8 @@ export default function ReportsScreen() {
             }
         } catch (error) {
             console.error('Error exporting PDF:', error);
-            Alert.alert(t('common.error'), t('common.error'));
+            const { userMessage } = errorHandler.handle(error);
+            Alert.alert(t('common.error'), t(userMessage));
         } finally {
             setGenerating(false);
         }
@@ -370,7 +374,8 @@ export default function ReportsScreen() {
             }
         } catch (error) {
             console.error('Error exporting PDF:', error);
-            Alert.alert(t('common.error'), t('common.error'));
+            const { userMessage } = errorHandler.handle(error);
+            Alert.alert(t('common.error'), t(userMessage));
         } finally {
             setGenerating(false);
         }

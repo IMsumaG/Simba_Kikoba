@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     ActivityIndicator,
+    Alert,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -19,6 +20,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
+import { errorHandler } from '../../services/errorHandler';
 import { auth, db } from '../../services/firebase';
 import { groupCodeService } from '../../services/groupCodeService';
 import { validateEmail, validateGroupCodeFormat, validateName, validatePassword, validatePasswordMatch, validatePhoneNumber } from '../../services/validationService';
@@ -43,7 +45,7 @@ export default function SignUpScreen() {
         // Validate name
         const nameValidation = validateName(name);
         if (!nameValidation.isValid) {
-            setError(nameValidation.error || 'Invalid name');
+            setError(nameValidation.error || t('auth.invalidName'));
             return;
         }
 
@@ -64,21 +66,21 @@ export default function SignUpScreen() {
         // Validate password
         const passwordValidation = validatePassword(password);
         if (!passwordValidation.isValid) {
-            setError(passwordValidation.error || 'Invalid password');
+            setError(passwordValidation.error || t('auth.invalidPassword'));
             return;
         }
 
         // Validate password match
         const passwordMatchValidation = validatePasswordMatch(password, confirmPassword);
         if (!passwordMatchValidation.isValid) {
-            setError(passwordMatchValidation.error || 'Passwords do not match');
+            setError(passwordMatchValidation.error || t('auth.passwordsDontMatch'));
             return;
         }
 
         // Validate group code format
         const groupCodeValidation = validateGroupCodeFormat(groupCode);
         if (!groupCodeValidation.isValid) {
-            setError(groupCodeValidation.error || 'Invalid group code');
+            setError(groupCodeValidation.error || t('auth.invalidGroupCode'));
             return;
         }
 
@@ -88,7 +90,7 @@ export default function SignUpScreen() {
             // 1. Validate group code against Firebase
             const codeValidation = await groupCodeService.validateGroupCode(groupCode);
             if (!codeValidation.isValid) {
-                setError(codeValidation.error || 'Invalid group code');
+                setError(codeValidation.error || t('auth.invalidGroupCode'));
                 setLoading(false);
                 return;
             }
@@ -123,19 +125,38 @@ export default function SignUpScreen() {
                 createdAt: new Date().toISOString()
             });
 
-            router.replace('/(tabs)');
-        } catch (error) {
-            const err = error as any;
-            if (err.code === 'auth/email-already-in-use') {
-                setError(t('auth.emailExists'));
-            } else if (err.code === 'auth/invalid-email') {
-                setError(t('auth.invalidEmail'));
-            } else if (err.code === 'auth/weak-password') {
-                setError(t('auth.weakPassword'));
+            // 6. Send Email Verification
+            await sendEmailVerification(user);
+
+            // 7. Alert and Redirect
+            const successMessage = t('auth.accountCreated') || 'Account created successfully! Please check your email.';
+            const successTitle = t('common.success') || 'Success';
+
+            const handleSuccess = async () => {
+                try {
+                    await auth.signOut();
+                    router.replace('/(auth)/login');
+                } catch (e) {
+                    console.error("Sign out error:", e);
+                    // Force redirect even if signOut fails
+                    router.replace('/(auth)/login');
+                }
+            };
+
+            if (Platform.OS === 'web') {
+                window.alert(successMessage);
+                await handleSuccess();
             } else {
-                setError(err.message || t('common.error'));
+                Alert.alert(
+                    successTitle,
+                    successMessage,
+                    [{ text: t('common.ok') || 'OK', onPress: handleSuccess }]
+                );
             }
-            console.error(err);
+        } catch (error: any) {
+            console.error(error);
+            const { userMessage } = errorHandler.handle(error);
+            setError(t(userMessage));
         } finally {
             setLoading(false);
         }

@@ -38,7 +38,7 @@ const SessionTimer = () => {
   return (
     <View style={{
       position: 'absolute',
-      top: insets.top + 10,
+      top: insets.top,
       right: 16,
       zIndex: 9999,
     }}>
@@ -68,8 +68,11 @@ function RootLayoutNav() {
       // Redirect to the login page if the user is not authenticated
       router.replace('/(auth)/login');
     } else if (user && inAuthGroup) {
-      // Redirect to the home page if the user is authenticated
-      router.replace('/(tabs)');
+      // Only redirect if email is verified
+      if (user.emailVerified) {
+        // Redirect to the home page if the user is authenticated
+        router.replace('/(tabs)');
+      }
     }
   }, [user, loading, segments]);
 
