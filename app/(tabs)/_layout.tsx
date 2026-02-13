@@ -37,7 +37,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: t('dashboard.title'),
-          tabBarIcon: ({ color, focused }) => (
+          tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
             <Ionicons name={focused ? "grid" : "grid-outline"} size={24} color={color} />
           ),
         }}
@@ -48,7 +48,7 @@ export default function TabLayout() {
         options={{
           title: t('members.list'),
           href: isAdmin ? '/members' : null,
-          tabBarIcon: ({ color, focused }) => (
+          tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
             <Ionicons name={focused ? "people" : "people-outline"} size={24} color={color} />
           ),
         }}
@@ -59,7 +59,7 @@ export default function TabLayout() {
         options={{
           title: t('common.submit'),
           href: isAdmin ? '/transactions' : null,
-          tabBarIcon: ({ color, focused }) => (
+          tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
             <Ionicons name={focused ? "add-circle" : "add-circle-outline"} size={24} color={color} />
           ),
         }}
@@ -69,7 +69,7 @@ export default function TabLayout() {
         name="reports"
         options={{
           title: t('reports.title'),
-          tabBarIcon: ({ color, focused }) => (
+          tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
             <Ionicons name={focused ? "document-text" : "document-text-outline"} size={24} color={color} />
           ),
         }}
@@ -79,7 +79,7 @@ export default function TabLayout() {
         name="loans"
         options={{
           title: t('loans.tabTitle'),
-          tabBarIcon: ({ color, focused }) => (
+          tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
             <Ionicons name={focused ? "wallet" : "wallet-outline"} size={24} color={color} />
           ),
         }}
@@ -89,7 +89,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: t('profile.title'),
-          tabBarIcon: ({ color, focused }) => (
+          tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
             <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} />
           ),
         }}
