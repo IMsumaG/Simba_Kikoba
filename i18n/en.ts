@@ -26,6 +26,11 @@ export const en = {
         send: "Send",
         phone: "Phone Number",
         ok: "OK",
+        name: "Full Name",
+        emailPlaceholder: "name@example.com",
+        phonePlaceholder: "07XX XXX XXX",
+        passwordPlaceholder: "••••••••",
+        appName: "Simba Bingwa Kikoba Endelevu",
     },
     auth: {
         forgotPassword: "Forgot Password?",
@@ -55,6 +60,7 @@ export const en = {
         invalidName: "Invalid name",
         invalidGroupCode: "Invalid group code",
         accountCreated: "Account created successfully! Please check your email to verify your account before logging in.",
+        confirmPassword: "Confirm Password",
     },
     dashboard: {
         title: "Dashboard",

@@ -201,7 +201,7 @@ export default function SignUpScreen() {
                                     <Ionicons name="mail-outline" size={20} color={colors.textSecondary} />
                                     <TextInput
                                         style={styles.input as TextStyle}
-                                        placeholder="name@example.com"
+                                        placeholder={t('common.emailPlaceholder')}
                                         placeholderTextColor={colors.textSecondary}
                                         value={email}
                                         onChangeText={setEmail}
@@ -217,7 +217,7 @@ export default function SignUpScreen() {
                                     <Ionicons name="call-outline" size={20} color={colors.textSecondary} />
                                     <TextInput
                                         style={styles.input as TextStyle}
-                                        placeholder="07XX XXX XXX"
+                                        placeholder={t('common.phonePlaceholder')}
                                         placeholderTextColor={colors.textSecondary}
                                         value={phoneNumber}
                                         onChangeText={setPhoneNumber}
@@ -248,7 +248,7 @@ export default function SignUpScreen() {
                                     <Ionicons name="lock-closed-outline" size={20} color={colors.textSecondary} />
                                     <TextInput
                                         style={styles.input as TextStyle}
-                                        placeholder="••••••••"
+                                        placeholder={t('common.passwordPlaceholder')}
                                         placeholderTextColor={colors.textSecondary}
                                         value={password}
                                         onChangeText={setPassword}
@@ -270,7 +270,7 @@ export default function SignUpScreen() {
                                     <Ionicons name="lock-closed-outline" size={20} color={colors.textSecondary} />
                                     <TextInput
                                         style={styles.input as TextStyle}
-                                        placeholder="••••••••"
+                                        placeholder={t('common.passwordPlaceholder')}
                                         placeholderTextColor={colors.textSecondary}
                                         value={confirmPassword}
                                         onChangeText={setConfirmPassword}

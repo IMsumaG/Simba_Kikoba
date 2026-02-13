@@ -26,6 +26,11 @@ export const sw = {
         send: "Tuma",
         phone: "Namba ya Simu",
         ok: "Sawa",
+        name: "Majina Kamili",
+        emailPlaceholder: "jina@mfano.com",
+        phonePlaceholder: "07XX XXX XXX",
+        passwordPlaceholder: "••••••••",
+        appName: "Simba Bingwa Kikoba Endelevu",
     },
     auth: {
         forgotPassword: "Umesahau Nywila?",
@@ -55,6 +60,7 @@ export const sw = {
         invalidName: "Jina sio sahihi",
         invalidGroupCode: "Namba ya kikundi sio sahihi",
         accountCreated: "Akaunti imetengenezwa kikamilifu! Tafadhali angalia barua pepe yako ili kuhakiki akaunti yako kabla ya kuingia.",
+        confirmPassword: "Thibitisha Nywila",
     },
     dashboard: {
         title: "Dashibodi",

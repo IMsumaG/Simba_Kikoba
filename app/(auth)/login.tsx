@@ -157,7 +157,7 @@ export default function LoginScreen() {
                                     resizeMode="contain"
                                 />
                             </View>
-                            <Text style={styles.title as TextStyle}>Simba Bingwa Kikoba Endelevu</Text>
+                            <Text style={styles.title as TextStyle}>{t('common.appName')}</Text>
                             <Text style={styles.subtitle as TextStyle}>{t('common.login')}</Text>
                         </View>
 
@@ -169,7 +169,7 @@ export default function LoginScreen() {
                                     <Ionicons name="mail-outline" size={20} color={colors.textSecondary} />
                                     <TextInput
                                         style={styles.input as TextStyle}
-                                        placeholder="name@example.com"
+                                        placeholder={t('common.emailPlaceholder')}
                                         placeholderTextColor={colors.textSecondary}
                                         value={email}
                                         onChangeText={setEmail}
@@ -185,7 +185,7 @@ export default function LoginScreen() {
                                     <Ionicons name="lock-closed-outline" size={20} color={colors.textSecondary} />
                                     <TextInput
                                         style={styles.input as TextStyle}
-                                        placeholder="••••••••"
+                                        placeholder={t('common.passwordPlaceholder')}
                                         placeholderTextColor={colors.textSecondary}
                                         value={password}
                                         onChangeText={setPassword}
