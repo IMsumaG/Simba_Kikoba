@@ -100,7 +100,8 @@ export const transactionService = {
     async getDashboardTotals() {
         const transactions = await this.getAllTransactions();
         let totalContributions = 0;
-        let totalLoans = 0;
+        let totalLoansIssued = 0;
+        let totalRepayments = 0;
 
         // Track loans by member and category to determine active loans
         const loansByMemberCategory: { [key: string]: number } = {};
@@ -109,35 +110,30 @@ export const transactionService = {
             if (t.type === 'Contribution') {
                 totalContributions += t.amount;
             } else if (t.type === 'Loan') {
-                totalLoans += t.amount;
-                // Track loan balance by member+category
+                totalLoansIssued += t.amount;
+                // Track net balance per loan category
                 const key = `${t.memberId}_${t.category || 'Unknown'}`;
-                if (!loansByMemberCategory[key]) {
-                    loansByMemberCategory[key] = 0;
-                }
-                loansByMemberCategory[key] += t.amount;
+                loansByMemberCategory[key] = (loansByMemberCategory[key] || 0) + t.amount;
             } else if (t.type === 'Loan Repayment') {
-                totalLoans -= t.amount;
-                // Subtract repayments from the member+category balance
+                totalRepayments += t.amount;
                 const key = `${t.memberId}_${t.category || 'Unknown'}`;
-                if (!loansByMemberCategory[key]) {
-                    loansByMemberCategory[key] = 0;
-                }
-                loansByMemberCategory[key] -= t.amount;
+                loansByMemberCategory[key] = (loansByMemberCategory[key] || 0) - t.amount;
             }
         });
 
-        // Count active loans (those with remaining balance > 0)
+        // Calculate only positive balances as "Outstanding Debt"
+        let totalOutstandingDebt = 0;
         let activeLoansCount = 0;
         Object.values(loansByMemberCategory).forEach(balance => {
             if (balance > 0) {
                 activeLoansCount++;
+                totalOutstandingDebt += balance;
             }
         });
 
         return {
-            vaultBalance: totalContributions - totalLoans, // Total in vault is all contributions minus what is currently lent out
-            loanPool: totalLoans, // This is the total outstanding debt
+            vaultBalance: totalContributions + totalRepayments - totalLoansIssued,
+            loanPool: totalOutstandingDebt,
             activeLoans: activeLoansCount,
             totalMembers: 0
         };

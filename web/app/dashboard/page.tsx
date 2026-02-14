@@ -117,6 +117,7 @@ export default function DashboardPage() {
                     loansByMemberCategory[key] += amount;
                 } else if (data.type === "Loan Repayment") {
                     repaymentTotal += amount;
+                    monthlyStats[monthYear].contribution += amount; // Also count repayments as inflow in the chart
 
                     // Subtract repayments from the member+category balance
                     const key = `${data.memberId}_${data.category || 'Unknown'}`;
@@ -143,12 +144,18 @@ export default function DashboardPage() {
             }));
 
             setStats({
-                vaultBalance: totalContrib - (totalLoansIssued - repaymentTotal),
-                loanPool: totalLoansIssued - repaymentTotal,
+                vaultBalance: totalContrib + repaymentTotal - totalLoansIssued,
+                loanPool: activeLoansCount > 0 ? Object.values(loansByMemberCategory).reduce((sum, bal) => sum + Math.max(0, bal), 0) : 0,
                 activeLoans: activeLoansCount,
                 totalMembers: membersCount
             });
-            setChartData(formattedChartData);
+
+            // Format chart data - Inflow includes both Contributions and Repayments
+            const formattedChartData = Object.keys(monthlyStats).map(month => ({
+                name: month,
+                contribution: monthlyStats[month].contribution,
+                loans: monthlyStats[month].loans
+            }));
         } catch (error) {
             console.error("Error fetching dashboard data:", error);
         } finally {
