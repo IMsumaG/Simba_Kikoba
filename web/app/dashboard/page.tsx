@@ -136,13 +136,6 @@ export default function DashboardPage() {
                 }
             });
 
-            // Format chart data
-            const formattedChartData = Object.keys(monthlyStats).map(month => ({
-                name: month,
-                contribution: monthlyStats[month].contribution,
-                loans: monthlyStats[month].loans
-            }));
-
             setStats({
                 vaultBalance: totalContrib + repaymentTotal - totalLoansIssued,
                 loanPool: activeLoansCount > 0 ? Object.values(loansByMemberCategory).reduce((sum, bal) => sum + Math.max(0, bal), 0) : 0,
@@ -150,12 +143,14 @@ export default function DashboardPage() {
                 totalMembers: membersCount
             });
 
-            // Format chart data - Inflow includes both Contributions and Repayments
+            // Format chart data - Inflow includes both Contributions and Repayments (calculated during transaction loop)
             const formattedChartData = Object.keys(monthlyStats).map(month => ({
                 name: month,
                 contribution: monthlyStats[month].contribution,
                 loans: monthlyStats[month].loans
             }));
+
+            setChartData(formattedChartData);
         } catch (error) {
             console.error("Error fetching dashboard data:", error);
         } finally {
