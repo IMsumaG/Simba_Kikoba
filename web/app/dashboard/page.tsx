@@ -24,14 +24,16 @@ import { auth, db } from "../../lib/firebase";
 import { penaltyService } from "../../lib/penaltyService";
 
 export default function DashboardPage() {
-    const { user: authUser, timeRemaining } = useAuth();
+    const { user: authUser, role, timeRemaining } = useAuth();
     const [user, setUser] = useState<any>(null);
     const [stats, setStats] = useState({
-
         vaultBalance: 0,
         loanPool: 0,
         activeLoans: 0,
         totalMembers: 0,
+        // Personal stats for members
+        personalContribution: 0,
+        personalLoan: 0
     });
     const [chartData, setChartData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -92,6 +94,9 @@ export default function DashboardPage() {
             // Group by month for chart
             const monthlyStats: { [key: string]: { contribution: number, loans: number } } = {};
 
+            let personalContrib = 0;
+            let personalLoan = 0;
+
             transSnapshot.forEach((doc) => {
                 const data = doc.data();
                 const amount = data.amount || 0;
@@ -105,6 +110,9 @@ export default function DashboardPage() {
                 if (data.type === "Contribution") {
                     totalContrib += amount;
                     monthlyStats[monthYear].contribution += amount;
+                    if (data.memberId === user.uid) {
+                        personalContrib += amount;
+                    }
                 } else if (data.type === "Loan") {
                     totalLoansIssued += amount;
                     monthlyStats[monthYear].loans += amount;
@@ -115,6 +123,10 @@ export default function DashboardPage() {
                         loansByMemberCategory[key] = 0;
                     }
                     loansByMemberCategory[key] += amount;
+
+                    if (data.memberId === user.uid) {
+                        personalLoan += amount;
+                    }
                 } else if (data.type === "Loan Repayment") {
                     repaymentTotal += amount;
                     monthlyStats[monthYear].contribution += amount; // Also count repayments as inflow in the chart
@@ -125,6 +137,10 @@ export default function DashboardPage() {
                         loansByMemberCategory[key] = 0;
                     }
                     loansByMemberCategory[key] -= amount;
+
+                    if (data.memberId === user.uid) {
+                        personalLoan -= amount;
+                    }
                 }
             });
 
@@ -140,7 +156,9 @@ export default function DashboardPage() {
                 vaultBalance: totalContrib + repaymentTotal - totalLoansIssued,
                 loanPool: activeLoansCount > 0 ? Object.values(loansByMemberCategory).reduce((sum, bal) => sum + Math.max(0, bal), 0) : 0,
                 activeLoans: activeLoansCount,
-                totalMembers: membersCount
+                totalMembers: membersCount,
+                personalContribution: personalContrib,
+                personalLoan: personalLoan
             });
 
             // Format chart data - Inflow includes both Contributions and Repayments (calculated during transaction loop)
@@ -190,98 +208,125 @@ export default function DashboardPage() {
                 gap: '1.5rem',
                 marginBottom: '2.5rem'
             }}>
-                <StatCard
-                    title="Vault Balance"
-                    value={`TSh ${stats.vaultBalance.toLocaleString()}`}
-                    icon={Banknote}
-                    color="#10B981"
-                />
-                <StatCard
-                    title="Loan Pool (Owed)"
-                    value={`TSh ${stats.loanPool.toLocaleString()}`}
-                    icon={TrendingUp}
-                    color="#F57C00"
-                />
-                <StatCard
-                    title="Active Loans"
-                    value={stats.activeLoans}
-                    icon={ArrowUpCircle}
-                    color="#3B82F6"
-                />
-                <StatCard
-                    title="Total Members"
-                    value={stats.totalMembers}
-                    icon={Users}
-                    color="#8B5CF6"
-                />
+                {role === 'Admin' ? (
+                    <>
+                        <StatCard
+                            title="Vault Balance"
+                            value={`TSh ${stats.vaultBalance.toLocaleString()}`}
+                            icon={Banknote}
+                            color="#10B981"
+                        />
+                        <StatCard
+                            title="Loan Pool (Owed)"
+                            value={`TSh ${stats.loanPool.toLocaleString()}`}
+                            icon={TrendingUp}
+                            color="#F57C00"
+                        />
+                        <StatCard
+                            title="Active Loans"
+                            value={stats.activeLoans}
+                            icon={ArrowUpCircle}
+                            color="#3B82F6"
+                        />
+                        <StatCard
+                            title="Total Members"
+                            value={stats.totalMembers}
+                            icon={Users}
+                            color="#8B5CF6"
+                        />
+                    </>
+                ) : (
+                    <>
+                        <StatCard
+                            title="My Total Savings"
+                            value={`TSh ${stats.personalContribution.toLocaleString()}`}
+                            icon={Banknote}
+                            color="#10B981"
+                        />
+                        <StatCard
+                            title="My Current Debt"
+                            value={`TSh ${stats.personalLoan.toLocaleString()}`}
+                            icon={TrendingUp}
+                            color="#F57C00"
+                        />
+                        <StatCard
+                            title="Total Members"
+                            value={stats.totalMembers}
+                            icon={Users}
+                            color="#8B5CF6"
+                        />
+                    </>
+                )}
             </div>
 
-            <div className="card" style={{ padding: '2rem', marginBottom: '2.5rem' }}>
-                <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                        <h2 style={{ fontSize: '1.25rem', fontWeight: '800' }}>Inflow vs Outflow</h2>
-                        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Comparing Monthly Contributions and Loans issued</p>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', fontWeight: '700' }}>
-                            <div style={{ width: '12px', height: '12px', borderRadius: '4px', backgroundColor: '#F57C00' }}></div>
-                            <span style={{ color: 'var(--text-primary)' }}>Contributions</span>
+            {role === 'Admin' && (
+                <div className="card" style={{ padding: '2rem', marginBottom: '2.5rem' }}>
+                    <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                        <div>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: '800' }}>Inflow vs Outflow</h2>
+                            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Comparing Monthly Contributions and Loans issued</p>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', fontWeight: '700' }}>
-                            <div style={{ width: '12px', height: '12px', borderRadius: '4px', backgroundColor: 'var(--text-disabled)' }}></div>
-                            <span style={{ color: 'var(--text-primary)' }}>Loans</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', fontWeight: '700' }}>
+                                <div style={{ width: '12px', height: '12px', borderRadius: '4px', backgroundColor: '#F57C00' }}></div>
+                                <span style={{ color: 'var(--text-primary)' }}>Contributions</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', fontWeight: '700' }}>
+                                <div style={{ width: '12px', height: '12px', borderRadius: '4px', backgroundColor: 'var(--text-disabled)' }}></div>
+                                <span style={{ color: 'var(--text-primary)' }}>Loans</span>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div style={{ width: '100%', height: 400 }}>
-                    <ResponsiveContainer>
-                        <BarChart data={chartData}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                            <XAxis
-                                dataKey="name"
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
-                                dy={10}
-                            />
-                            <YAxis
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
-                                tickFormatter={(value) => `TSh ${value / 1000}k`}
-                            />
-                            <Tooltip
-                                cursor={{ fill: 'rgba(245, 124, 0, 0.05)' }}
-                                contentStyle={{
-                                    borderRadius: '12px',
-                                    backgroundColor: 'var(--card-bg)',
-                                    border: '1px solid var(--border)',
-                                    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
-                                    padding: '12px',
-                                    color: 'var(--text-primary)'
-                                }}
-                                itemStyle={{ color: 'var(--text-primary)' }}
-                                formatter={(value: any, name: any) => [`TSh ${value.toLocaleString()}`, name === 'contribution' ? 'Total Contribution' : 'Loans Issued']}
-                            />
-                            <Bar
-                                dataKey="contribution"
-                                name="contribution"
-                                fill="#F57C00"
-                                radius={[6, 6, 0, 0]}
-                                barSize={30}
-                            />
-                            <Bar
-                                dataKey="loans"
-                                name="loans"
-                                fill="var(--text-disabled)"
-                                radius={[6, 6, 0, 0]}
-                                barSize={30}
-                            />
-                        </BarChart>
-                    </ResponsiveContainer>
+                    <div style={{ width: '100%', height: 400 }}>
+                        <ResponsiveContainer>
+                            <BarChart data={chartData}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                                <XAxis
+                                    dataKey="name"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
+                                    dy={10}
+                                />
+                                <YAxis
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
+                                    tickFormatter={(value) => `TSh ${value / 1000}k`}
+                                />
+                                <Tooltip
+                                    cursor={{ fill: 'rgba(245, 124, 0, 0.05)' }}
+                                    contentStyle={{
+                                        borderRadius: '12px',
+                                        backgroundColor: 'var(--card-bg)',
+                                        border: '1px solid var(--border)',
+                                        boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+                                        padding: '12px',
+                                        color: 'var(--text-primary)'
+                                    }}
+                                    itemStyle={{ color: 'var(--text-primary)' }}
+                                    formatter={(value: any, name: any) => [`TSh ${value.toLocaleString()}`, name === 'contribution' ? 'Total Contribution' : 'Loans Issued']}
+                                />
+                                <Bar
+                                    dataKey="contribution"
+                                    name="contribution"
+                                    fill="#F57C00"
+                                    radius={[6, 6, 0, 0]}
+                                    barSize={30}
+                                />
+                                <Bar
+                                    dataKey="loans"
+                                    name="loans"
+                                    fill="var(--text-disabled)"
+                                    radius={[6, 6, 0, 0]}
+                                    barSize={30}
+                                />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
                 </div>
-            </div>
+            )}
         </AppLayout>
     );
 }

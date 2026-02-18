@@ -2,6 +2,7 @@
 
 import { addDoc, collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { ArrowDownLeft, ArrowUpRight, CheckCircle2, RefreshCw, UserSearch } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AppLayout from "../../components/AppLayout";
 import { useAuth } from "../../context/AuthContext";
@@ -16,7 +17,8 @@ interface Member {
 }
 
 export default function TransactionsPage() {
-    const { user: currentUser, groupCode } = useAuth();
+    const router = useRouter();
+    const { user: currentUser, role, groupCode, loading: authLoading } = useAuth();
     const [members, setMembers] = useState<Member[]>([]);
     const [selectedMember, setSelectedMember] = useState<Member | null>(null);
     const [type, setType] = useState<'Contribution' | 'Loan' | 'Loan Repayment'>('Contribution');
@@ -28,9 +30,23 @@ export default function TransactionsPage() {
     const [standardLoanBalance, setStandardLoanBalance] = useState(0);
     const [dharuraLoanBalance, setDhauraLoanBalance] = useState(0);
 
+    // Bulk upload state
+    const [mode, setMode] = useState<'single' | 'bulk'>('single');
+    const [bulkData, setBulkData] = useState<any[]>([]);
+    const [isParsing, setIsParsing] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
+
     useEffect(() => {
-        fetchMembers();
-    }, []);
+        if (!authLoading && role && role !== 'Admin') {
+            router.replace('/dashboard');
+        }
+    }, [role, authLoading, router]);
+
+    useEffect(() => {
+        if (role === 'Admin') {
+            fetchMembers();
+        }
+    }, [role, currentUser]);
 
     useEffect(() => {
         if (selectedMember) {
@@ -267,51 +283,53 @@ export default function TransactionsPage() {
 
     return (
         <AppLayout>
-            <div style={{ padding: '2rem' }}>
+            <div>
                 {/* Header & Tabs */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                     <div>
                         <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Transactions</h1>
                         <p style={{ color: 'var(--text-secondary)' }}>Record financial activities</p>
                     </div>
 
-                    <div style={{ backgroundColor: 'var(--background-muted)', padding: '0.25rem', borderRadius: '0.5rem', display: 'flex', gap: '0.5rem' }}>
-                        <button
-                            onClick={() => setIsBulkMode(false)}
-                            style={{
-                                padding: '0.5rem 1rem',
-                                borderRadius: '0.375rem',
-                                border: 'none',
-                                cursor: 'pointer',
-                                fontWeight: '600',
-                                backgroundColor: !isBulkMode ? 'var(--card-bg)' : 'transparent',
-                                color: !isBulkMode ? 'var(--text-primary)' : 'var(--text-secondary)',
-                                boxShadow: !isBulkMode ? '0 1px 2px 0 rgba(0, 0, 0, 0.05)' : 'none',
-                                transition: 'all 0.2s'
-                            }}
-                        >
-                            Single Entry
-                        </button>
-                        <button
-                            onClick={() => setIsBulkMode(true)}
-                            style={{
-                                padding: '0.5rem 1rem',
-                                borderRadius: '0.375rem',
-                                border: 'none',
-                                cursor: 'pointer',
-                                fontWeight: '600',
-                                backgroundColor: isBulkMode ? '#10B981' : 'transparent',
-                                color: isBulkMode ? 'white' : 'var(--text-secondary)',
-                                boxShadow: isBulkMode ? '0 1px 2px 0 rgba(0, 0, 0, 0.05)' : 'none',
-                                transition: 'all 0.2s'
-                            }}
-                        >
-                            Bulk Upload
-                        </button>
-                    </div>
+                    {role === 'Admin' && (
+                        <div style={{ backgroundColor: 'var(--background-muted)', padding: '0.25rem', borderRadius: '0.5rem', display: 'flex', gap: '0.5rem' }}>
+                            <button
+                                onClick={() => setIsBulkMode(false)}
+                                style={{
+                                    padding: '0.5rem 1rem',
+                                    borderRadius: '0.375rem',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontWeight: '600',
+                                    backgroundColor: !isBulkMode ? 'var(--card-bg)' : 'transparent',
+                                    color: !isBulkMode ? 'var(--text-primary)' : 'var(--text-secondary)',
+                                    boxShadow: !isBulkMode ? '0 1px 2px 0 rgba(0, 0, 0, 0.05)' : 'none',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                Single Entry
+                            </button>
+                            <button
+                                onClick={() => setIsBulkMode(true)}
+                                style={{
+                                    padding: '0.5rem 1rem',
+                                    borderRadius: '0.375rem',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontWeight: '600',
+                                    backgroundColor: isBulkMode ? '#10B981' : 'transparent',
+                                    color: isBulkMode ? 'white' : 'var(--text-secondary)',
+                                    boxShadow: isBulkMode ? '0 1px 2px 0 rgba(0, 0, 0, 0.05)' : 'none',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                Bulk Upload
+                            </button>
+                        </div>
+                    )}
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', alignItems: 'start' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem', alignItems: 'start' }}>
 
                     {/* LEFT COLUMN: FORM or UPLOADER */}
                     <div className="card" style={{ padding: '2rem', backgroundColor: 'var(--card-bg)', borderRadius: '1rem', border: '1px solid var(--border)', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' }}>
@@ -578,8 +596,10 @@ export default function TransactionsPage() {
                         {selectedMember ? (
                             <div className="card" style={{ padding: '2rem', borderRadius: '1rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                                    <h3 style={{ fontSize: '1.125rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>Loan Status</h3>
-                                    <button onClick={() => setSelectedMember(null)} style={{ fontSize: '0.875rem', color: 'var(--primary)', border: 'none', background: 'none', cursor: 'pointer', fontWeight: '600' }}>Change Member</button>
+                                    <h3 style={{ fontSize: '1.125rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>Account Balances</h3>
+                                    {role === 'Admin' && (
+                                        <button onClick={() => setSelectedMember(null)} style={{ fontSize: '0.875rem', color: 'var(--primary)', border: 'none', background: 'none', cursor: 'pointer', fontWeight: '600' }}>Change Member</button>
+                                    )}
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
                                     <div style={{ width: '48px', height: '48px', borderRadius: '12px', backgroundColor: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '1.25rem' }}>

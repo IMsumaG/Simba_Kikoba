@@ -32,15 +32,23 @@ export default function Sidebar({ isMinimized, setIsMinimized, isMobile = false 
 
     const menuItems = [
         { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-        { name: "Members", href: "/members", icon: Users },
-        { name: "Transactions", href: "/transactions", icon: PlusCircle },
-        { name: "Loan Requests", href: "/loan-requests", icon: PlusCircle },
-        { name: "Reports", href: "/reports", icon: BarChart3 },
-        { name: "Reminders", href: "/reminders", icon: Mail },
     ];
 
     if (role === 'Admin') {
-        menuItems.push({ name: "Audit Logs", href: "/audit-logs", icon: Shield });
+        menuItems.push(
+            { name: "Members", href: "/members", icon: Users },
+            { name: "Transactions", href: "/transactions", icon: PlusCircle },
+            { name: "Loan Requests", href: "/loan-requests", icon: PlusCircle },
+            { name: "Reports", href: "/reports", icon: BarChart3 },
+            { name: "Reminders", href: "/reminders", icon: Mail },
+            { name: "Audit Logs", href: "/audit-logs", icon: Shield }
+        );
+    } else {
+        // Limited access for Members
+        menuItems.push(
+            { name: "Loan Requests", href: "/loan-requests", icon: PlusCircle },
+            { name: "Reports", href: "/reports", icon: BarChart3 },
+        );
     }
 
     const handleSettings = () => {

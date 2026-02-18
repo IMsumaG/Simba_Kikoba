@@ -4,6 +4,8 @@ import { getAuth } from 'firebase/auth';
 // The mobile app now calls the backend API endpoint instead
 // All email sending is handled by the Next.js backend using Nodemailer
 
+const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || '';
+
 /**
  * Sends monthly reminder emails to all admins
  * This function calls the backend API which uses Nodemailer for email delivery
@@ -27,7 +29,7 @@ export async function sendEmailReminderToAllAdmins() {
         console.log('Calling backend email service...');
 
         // Call the backend API
-        const response = await fetch('/api/email/send-reminders', {
+        const response = await fetch(`${BASE_URL}/api/email/send-reminders`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -72,7 +74,7 @@ export async function sendContributionReminder() {
 
         console.log('Sending contribution reminder...');
 
-        const response = await fetch('/api/email/send-contribution-reminders', {
+        const response = await fetch(`${BASE_URL}/api/email/send-contribution-reminders`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -110,7 +112,7 @@ export async function sendLoanReminder() {
 
         console.log('Sending loan reminders...');
 
-        const response = await fetch('/api/email/send-loan-reminders', {
+        const response = await fetch(`${BASE_URL}/api/email/send-loan-reminders`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -142,7 +144,7 @@ async function sendLoanEmailNotification(type: 'request' | 'decision', payload: 
         if (!currentUser) return;
 
         const idToken = await currentUser.getIdToken();
-        const response = await fetch('/api/email/loan-notification', {
+        const response = await fetch(`${BASE_URL}/api/email/loan-notification`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

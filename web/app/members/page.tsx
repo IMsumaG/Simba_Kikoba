@@ -213,28 +213,13 @@ export default function MembersPage() {
 
     return (
         <AppLayout>
-            <div style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                <div>
+            <div style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1.5rem' }}>
+                <div style={{ minWidth: '280px' }}>
                     <h1 style={{ fontSize: '2rem', fontWeight: '900', letterSpacing: '-0.5px' }}>Member Directory</h1>
                     <p style={{ color: 'var(--text-secondary)' }}>Manage access levels and account status</p>
                 </div>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    {/* <button
-                        onClick={handleGenerateIds}
-                        style={{
-                            padding: '0.875rem 1rem',
-                            borderRadius: '0.75rem',
-                            backgroundColor: '#0F172A',
-                            color: 'white',
-                            fontWeight: 'bold',
-                            fontSize: '0.875rem',
-                            border: 'none',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        Generate IDs
-                    </button> */}
-                    <div style={{ position: 'relative', width: '320px' }}>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', width: '100%', maxWidth: '400px', flex: '1 1 320px' }}>
+                    <div style={{ position: 'relative', width: '100%' }}>
                         <input
                             type="text"
                             placeholder="Search by name, email or ID..."
@@ -256,7 +241,7 @@ export default function MembersPage() {
                 </div>
             </div>
 
-            <div className="card" style={{ overflow: 'hidden' }}>
+            <div className="card" style={{ overflow: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                     <thead>
                         <tr style={{ backgroundColor: 'var(--background-muted)', borderBottom: '1px solid var(--border)' }}>

@@ -48,9 +48,9 @@ export default function SettingsPage() {
 
     return (
         <AppLayout>
-            <div style={{ padding: '2rem', maxWidth: '900px', margin: '0 auto' }}>
+            <div>
                 {/* Header */}
-                <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ marginBottom: '2.5rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                     <Link href="/dashboard" style={{ textDecoration: 'none' }}>
                         <button style={{
                             padding: '0.5rem',

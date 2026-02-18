@@ -267,10 +267,10 @@ export default function LoanRequestsPage() {
 
     return (
         <AppLayout>
-            <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+            <div>
 
                 {/* Header Section */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                     <div>
                         <h1 style={{ fontSize: '2rem', fontWeight: '900', color: 'var(--text-primary)' }}>Loan Management</h1>
                         <p style={{ color: 'var(--text-secondary)' }}>Submit and track your loan requests</p>
@@ -510,8 +510,8 @@ export default function LoanRequestsPage() {
                                                 </tr>
                                                 {isExpanded && (
                                                     <tr style={{ backgroundColor: 'var(--background-muted)', borderBottom: '1px solid var(--border)' }}>
-                                                        <td colSpan={6} style={{ padding: '0 1.5rem 1.5rem' }}>
-                                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', padding: '1.5rem', backgroundColor: 'var(--card-bg)', borderRadius: '1rem', border: '1px solid var(--border)' }}>
+                                                        <td colSpan={6} style={{ padding: '1rem' }}>
+                                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', padding: '1.5rem', backgroundColor: 'var(--card-bg)', borderRadius: '1rem', border: '1px solid var(--border)' }}>
                                                                 <div>
                                                                     <h4 style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '1rem' }}>Admin Approval Track</h4>
                                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>

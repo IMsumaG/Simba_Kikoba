@@ -19,14 +19,23 @@ const firebaseConfig = {
     appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID
 };
 
-// Validate that all required config values are present
-const requiredConfigKeys = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'];
-const missingKeys = requiredConfigKeys.filter(key => !firebaseConfig[key as keyof typeof firebaseConfig]);
+// Map of config keys to their corresponding environment variable names
+const envVarMap: Record<string, string> = {
+    apiKey: 'EXPO_PUBLIC_FIREBASE_API_KEY',
+    authDomain: 'EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN',
+    projectId: 'EXPO_PUBLIC_FIREBASE_PROJECT_ID',
+    storageBucket: 'EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET',
+    messagingSenderId: 'EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
+    appId: 'EXPO_PUBLIC_FIREBASE_APP_ID'
+};
+
+const missingKeys = Object.keys(envVarMap).filter(key => !firebaseConfig[key as keyof typeof firebaseConfig]);
 
 if (missingKeys.length > 0) {
+    const missingVars = missingKeys.map(key => envVarMap[key]);
     throw new Error(
         `Firebase configuration is incomplete. Missing: ${missingKeys.join(', ')}. ` +
-        `Please set the following environment variables: ${missingKeys.map(k => `EXPO_PUBLIC_FIREBASE_${k.toUpperCase()}`).join(', ')}`
+        `Please set the following environment variables in your .env.local or EAS secrets: \n${missingVars.join('\n')}`
     );
 }
 

@@ -42,15 +42,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }, []);
 
     useEffect(() => {
-        if (!loading && (!user || role !== "Admin")) {
+        if (!loading && (!user || (role !== "Admin" && role !== "Member"))) {
             router.replace("/");
         }
     }, [user, role, loading, router]);
 
-    if (loading || !user || role !== "Admin") {
+    if (loading || !user || (role !== "Admin" && role !== "Member")) {
         return (
             <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--background)' }}>
-                <p>Loading Admin Dashboard...</p>
+                <p>Loading Portal...</p>
             </div>
         );
     }

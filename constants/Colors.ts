@@ -2,6 +2,26 @@ const tintColorLight = '#2f95dc';
 const tintColorDark = '#fff';
 
 export const Colors = {
+    // Top-level properties (defaults to light for backward compatibility)
+    primary: "#F57C00",
+    secondary: "#1E293B",
+    accent: "#FFB703",
+    background: "#FFFFFF",
+    backgroundMuted: "#F8FAFC",
+    text: "#0F172A",
+    textPrimary: "#0F172A", // Added for backward compatibility with Styles.ts
+    textSecondary: "#64748B",
+    textDisabled: "#CBD5E1",
+    tint: tintColorLight,
+    tabIconDefault: '#ccc',
+    tabIconSelected: tintColorLight,
+    card: '#FFFFFF',
+    border: '#E2E8F0',
+    success: '#10B981',
+    warning: '#F59E0B',
+    danger: '#EF4444',
+    info: '#0EA5E9',
+
     light: {
         primary: "#F57C00",
         secondary: "#1E293B",

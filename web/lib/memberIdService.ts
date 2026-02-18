@@ -7,8 +7,37 @@ interface UserProfile {
     createdAt?: string;
 }
 
+const MEMBER_ID_PREFIX = 'SBK';
+
 export const generateMemberId = (number: number): string => {
-    return `SBK${number.toString().padStart(3, '0')}`;
+    return `${MEMBER_ID_PREFIX}${number.toString().padStart(3, '0')}`;
+};
+
+/**
+ * Get the next available member ID
+ */
+export const getNextMemberId = async (): Promise<string> => {
+    try {
+        const snapshot = await getDocs(collection(db, 'users'));
+
+        // Find highest member ID number
+        let maxNumber = 0;
+        snapshot.forEach((doc) => {
+            const data = doc.data() as UserProfile;
+            if (data.memberId && data.memberId.startsWith(MEMBER_ID_PREFIX)) {
+                const numStr = data.memberId.replace(MEMBER_ID_PREFIX, '');
+                const num = parseInt(numStr, 10);
+                if (!isNaN(num) && num > maxNumber) {
+                    maxNumber = num;
+                }
+            }
+        });
+
+        return generateMemberId(maxNumber + 1);
+    } catch (error) {
+        console.error('Error getting next member ID:', error);
+        return generateMemberId(1);
+    }
 };
 
 export const generateMemberIds = async (): Promise<{ success: boolean; count: number; errors: string[] }> => {

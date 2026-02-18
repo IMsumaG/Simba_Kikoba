@@ -3,9 +3,11 @@
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import jsPDF from "jspdf";
 import { BarChart3, Download, RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import * as XLSX from "xlsx";
 import AppLayout from "../../components/AppLayout";
+import { useAuth } from "../../context/AuthContext";
 import { errorHandler } from "../../lib/errorHandler";
 import { db } from "../../lib/firebase";
 
@@ -42,6 +44,8 @@ interface GroupReportData {
 }
 
 export default function ReportsPage() {
+    const { user, role, loading: authLoading } = useAuth();
+    const router = useRouter();
     const [activeTab, setActiveTab] = useState<"personal" | "group">("personal");
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -73,8 +77,18 @@ export default function ReportsPage() {
     ];
 
     useEffect(() => {
-        fetchMembers();
-    }, []);
+        if (!authLoading && !user) {
+            router.replace('/');
+        }
+    }, [user, authLoading, router]);
+
+    useEffect(() => {
+        if (role === 'Admin') {
+            fetchMembers();
+        } else if (user) {
+            setSelectedMemberId(user.uid);
+        }
+    }, [role, user]);
 
     useEffect(() => {
         setReportData(null);
@@ -88,7 +102,7 @@ export default function ReportsPage() {
                 ...doc.data()
             }));
             setMembers(data);
-            if (data.length > 0) {
+            if (data.length > 0 && !selectedMemberId) {
                 setSelectedMemberId(data[0].uid);
             }
         } catch (error) {
@@ -502,7 +516,7 @@ export default function ReportsPage() {
 
     return (
         <AppLayout>
-            <div style={{ marginBottom: "2.5rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ marginBottom: "2.5rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
                 <div>
                     <h1 style={{ fontSize: "2rem", fontWeight: "900", letterSpacing: "-0.5px", color: "var(--text-primary)" }}>Reports & Analytics</h1>
                     <p style={{ color: "var(--text-secondary)" }}>Monthly member and group financial reports</p>
@@ -528,7 +542,7 @@ export default function ReportsPage() {
             </div>
 
             {/* Tab Selector */}
-            <div style={{ display: "flex", gap: "1rem", marginBottom: "2rem", borderBottom: "1px solid var(--border)", paddingBottom: "1rem" }}>
+            <div style={{ display: "flex", gap: "1rem", marginBottom: "2rem", borderBottom: "1px solid var(--border)", paddingBottom: "1rem", flexWrap: "wrap" }}>
                 <button
                     onClick={() => setActiveTab("personal")}
                     style={{
@@ -544,27 +558,29 @@ export default function ReportsPage() {
                 >
                     Personal Report
                 </button>
-                <button
-                    onClick={() => setActiveTab("group")}
-                    style={{
-                        padding: "0.75rem 1.5rem",
-                        backgroundColor: activeTab === "group" ? "var(--primary)" : "transparent",
-                        color: activeTab === "group" ? "white" : "var(--text-secondary)",
-                        border: "none",
-                        borderRadius: "0.75rem",
-                        fontWeight: "700",
-                        cursor: "pointer",
-                        transition: "all 0.2s"
-                    }}
-                >
-                    Group Report
-                </button>
+                {role === 'Admin' && (
+                    <button
+                        onClick={() => setActiveTab("group")}
+                        style={{
+                            padding: "0.75rem 1.5rem",
+                            backgroundColor: activeTab === "group" ? "var(--primary)" : "transparent",
+                            color: activeTab === "group" ? "white" : "var(--text-secondary)",
+                            border: "none",
+                            borderRadius: "0.75rem",
+                            fontWeight: "700",
+                            cursor: "pointer",
+                            transition: "all 0.2s"
+                        }}
+                    >
+                        Group Report
+                    </button>
+                )}
             </div>
 
             {activeTab === "personal" ? (
                 <>
                     {/* Report Type Selector */}
-                    <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem" }}>
+                    <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: 'wrap' }}>
                         <button
                             onClick={() => setReportType("monthly")}
                             style={{
@@ -679,30 +695,32 @@ export default function ReportsPage() {
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "var(--text-secondary)", marginBottom: "0.5rem", textTransform: "uppercase" }}>
-                                        Member
-                                    </label>
-                                    <select
-                                        value={selectedMemberId}
-                                        onChange={(e) => setSelectedMemberId(e.target.value)}
-                                        style={{
-                                            width: "100%",
-                                            padding: "0.75rem 1rem",
-                                            borderRadius: "0.75rem",
-                                            border: "1px solid var(--border)",
-                                            outline: "none",
-                                            fontSize: "0.875rem",
-                                            fontWeight: "500",
-                                            backgroundColor: "var(--card-bg)",
-                                            color: "var(--text-primary)"
-                                        }}
-                                    >
-                                        {members.map(m => (
-                                            <option key={m.uid} value={m.uid}>{m.displayName}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                                {role === 'Admin' && (
+                                    <div>
+                                        <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "var(--text-secondary)", marginBottom: "0.5rem", textTransform: "uppercase" }}>
+                                            Member
+                                        </label>
+                                        <select
+                                            value={selectedMemberId}
+                                            onChange={(e) => setSelectedMemberId(e.target.value)}
+                                            style={{
+                                                width: "100%",
+                                                padding: "0.75rem 1rem",
+                                                borderRadius: "0.75rem",
+                                                border: "1px solid var(--border)",
+                                                outline: "none",
+                                                fontSize: "0.875rem",
+                                                fontWeight: "500",
+                                                backgroundColor: "var(--card-bg)",
+                                                color: "var(--text-primary)"
+                                            }}
+                                        >
+                                            {members.map(m => (
+                                                <option key={m.uid} value={m.uid}>{m.displayName}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             // Statement Date Range Selectors
@@ -795,30 +813,32 @@ export default function ReportsPage() {
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "var(--text-secondary)", marginBottom: "0.5rem", textTransform: "uppercase" }}>
-                                        Member
-                                    </label>
-                                    <select
-                                        value={selectedMemberId}
-                                        onChange={(e) => setSelectedMemberId(e.target.value)}
-                                        style={{
-                                            width: "100%",
-                                            padding: "0.75rem 1rem",
-                                            borderRadius: "0.75rem",
-                                            border: "1px solid var(--border)",
-                                            outline: "none",
-                                            fontSize: "0.875rem",
-                                            fontWeight: "500",
-                                            backgroundColor: "var(--card-bg)",
-                                            color: "var(--text-primary)"
-                                        }}
-                                    >
-                                        {members.map(m => (
-                                            <option key={m.uid} value={m.uid}>{m.displayName}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                                {role === 'Admin' && (
+                                    <div>
+                                        <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "var(--text-secondary)", marginBottom: "0.5rem", textTransform: "uppercase" }}>
+                                            Member
+                                        </label>
+                                        <select
+                                            value={selectedMemberId}
+                                            onChange={(e) => setSelectedMemberId(e.target.value)}
+                                            style={{
+                                                width: "100%",
+                                                padding: "0.75rem 1rem",
+                                                borderRadius: "0.75rem",
+                                                border: "1px solid var(--border)",
+                                                outline: "none",
+                                                fontSize: "0.875rem",
+                                                fontWeight: "500",
+                                                backgroundColor: "var(--card-bg)",
+                                                color: "var(--text-primary)"
+                                            }}
+                                        >
+                                            {members.map(m => (
+                                                <option key={m.uid} value={m.uid}>{m.displayName}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -1102,7 +1122,7 @@ export default function ReportsPage() {
                     )}
                 </>
 
-            ) : (
+            ) : role === 'Admin' ? (
                 <>
                     {/* Group Report Selection */}
                     <div className="card" style={{ padding: "1.5rem", marginBottom: "2rem" }}>
@@ -1211,8 +1231,8 @@ export default function ReportsPage() {
                     {/* Group Report Table */}
                     {
                         groupReportData && (
-                            <div className="card" style={{ padding: "2rem", overflow: "auto" }}>
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+                            <div className="card" style={{ padding: "1.5rem", overflowX: "auto" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: 'wrap', gap: '1rem' }}>
                                     <div>
                                         <h2 style={{ fontSize: "1.5rem", fontWeight: "900", marginBottom: "0.5rem", color: "var(--text-primary)" }}>Simba Bingwa Kikoba Endelevu</h2>
                                         <p style={{ color: "var(--text-secondary)", marginBottom: "0.5rem" }}>
@@ -1280,9 +1300,13 @@ export default function ReportsPage() {
                                     </tbody>
                                 </table>
                             </div>
-                        )
-                    }
+                        )}
                 </>
+            ) : (
+                <div style={{ padding: "4rem", textAlign: "center", color: "var(--text-secondary)" }}>
+                    <p style={{ fontSize: "1.25rem", fontWeight: "600" }}>Access Restricted</p>
+                    <p>Only administrators can access the Group Report.</p>
+                </div>
             )}
         </AppLayout>
     );

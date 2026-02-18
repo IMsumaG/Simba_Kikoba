@@ -1,0 +1,21 @@
+# Ignore dependencies
+node_modules/
+
+# Ignore native build artifacts
+android/
+ios/
+.expo/
+dist/
+web-build/
+
+# Ignore environment files
+.env*.local
+
+# Ignore logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Ignore macOS metadata
+.DS_Store

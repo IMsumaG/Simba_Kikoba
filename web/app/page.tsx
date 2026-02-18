@@ -3,6 +3,7 @@
 import { sendEmailVerification, signInWithEmailAndPassword, User } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { Eye, EyeOff } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
@@ -29,10 +30,10 @@ export default function LoginPage() {
         if (!loading && user && !verificationNeeded) {
             // Check if email is verified
             if (user.emailVerified) {
-                if (role === "Admin") {
+                if (role === "Admin" || role === "Member") {
                     router.replace("/dashboard");
-                } else {
-                    setError("Access denied. Only admins can access the web portal.");
+                } else if (role) {
+                    setError("Access denied. You do not have permission to access the portal.");
                 }
             } else {
                 // If user somehow exists in context but email not verified (and not handled by handleLogin)
@@ -61,12 +62,17 @@ export default function LoginPage() {
 
             const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
 
-            if (userDoc.exists() && userDoc.data().role === "Admin") {
-                router.push("/dashboard");
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                if (userData.role === "Admin" || userData.role === "Member") {
+                    router.push("/dashboard");
+                } else {
+                    await auth.signOut();
+                    setError("Access denied. Unauthorized role.");
+                }
             } else {
-                // If not admin, sign them out immediately to prevent access
                 await auth.signOut();
-                setError("Access denied. Admin role required.");
+                setError("User record not found.");
             }
         } catch (err: any) {
             const { userMessage } = errorHandler.handle(err);
@@ -185,7 +191,7 @@ export default function LoginPage() {
                         <img src="/sbk-logo.png" alt="SBK Logo" style={{ width: '120px', height: '120px', objectFit: 'contain' }} />
                     </div>
                     <h1 style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--text-primary)' }}>Simba Bingwa Kikoba Endelevu</h1>
-                    <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>Admin Portal</p>
+                    <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>Web Portal</p>
                 </div>
 
                 <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -256,6 +262,12 @@ export default function LoginPage() {
                         {isSubmitting ? "Logging in..." : "Login to Portal"}
                     </button>
                 </form>
+
+                <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                        Don't have an account? <Link href="/register" style={{ color: 'var(--primary)', fontWeight: '700', textDecoration: 'none' }}>Sign Up</Link>
+                    </p>
+                </div>
             </div>
         </div>
     );

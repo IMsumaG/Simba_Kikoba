@@ -1,7 +1,5 @@
-
 "use client";
 
-import { onAuthStateChanged } from 'firebase/auth';
 import {
     collection,
     deleteDoc,
@@ -13,7 +11,7 @@ import {
     query,
     Timestamp,
     where
-} from 'firebase/firestore';
+} from "firebase/firestore";
 import {
     Calendar,
     ChevronLeft,
@@ -25,15 +23,16 @@ import {
     Trash2,
     User
 } from "lucide-react";
+import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import { ActivityLog } from '../../../types/ActivityLog';
 import AppLayout from '../../components/AppLayout';
-import { auth, db } from '../../lib/firebase';
+import { useAuth } from '../../context/AuthContext';
+import { db } from '../../lib/firebase';
 
 export default function AuditLogsPage() {
-    const [user, setUser] = useState<any>(null);
-    const [role, setRole] = useState<string | null>(null); // Start as null to avoid wrong default
-    const [authLoading, setAuthLoading] = useState(true); // New loading state for auth
+    const { user, role, loading: authLoading } = useAuth();
+    const router = useRouter();
     const [logs, setLogs] = useState<ActivityLog[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
@@ -49,33 +48,13 @@ export default function AuditLogsPage() {
     const [itemsPerPage, setItemsPerPage] = useState(10);
 
     useEffect(() => {
-        const unsubscribeAuth = onAuthStateChanged(auth, async (u) => {
-            if (u) {
-                setUser(u);
-                try {
-                    const userDoc = await getDoc(doc(db, 'users', u.uid));
-                    if (userDoc.exists()) {
-                        const r = userDoc.data().role || 'Member';
-                        setRole(r);
-                        if (r !== 'Admin') {
-                            window.location.href = '/dashboard';
-                            return;
-                        }
-                    }
-                } catch (error) {
-                    console.error("Error fetching user role", error);
-                }
-            } else {
-                window.location.href = '/';
-            }
-            setAuthLoading(false);
-        });
-
-        return () => unsubscribeAuth();
-    }, []);
+        if (!authLoading && role !== 'Admin') {
+            router.replace('/dashboard');
+        }
+    }, [role, authLoading, router]);
 
     useEffect(() => {
-        if (!user || role !== 'Admin') return;
+        if (role !== 'Admin') return;
 
         const fetchLogs = async () => {
             setLoading(true);
@@ -261,8 +240,8 @@ export default function AuditLogsPage() {
 
     return (
         <AppLayout>
-            <div style={{ padding: '2rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+            <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                     <div>
                         <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                             <Shield size={32} color="#F57C00" />
@@ -352,7 +331,7 @@ export default function AuditLogsPage() {
                 </div>
 
                 {/* Logs Table */}
-                <div className="card" style={{ overflow: 'hidden' }}>
+                <div className="card" style={{ overflow: 'auto', padding: 0 }}>
                     {loading ? (
                         <div style={{ padding: '4rem', textAlign: 'center' }}>
                             <div className="animate-spin" style={{ margin: '0 auto', width: '2rem', height: '2rem', border: '3px solid var(--background-muted)', borderTopColor: '#F57C00', borderRadius: '50%' }}></div>
